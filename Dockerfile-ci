@@ -1,0 +1,9 @@
+FROM golang:1.23-alpine
+
+RUN apk add --no-cache git bash curl unzip entr make tar
+
+RUN go install github.com/cespare/reflex@latest
+
+ENV PATH="/go/bin:${PATH}"
+
+CMD ["bash"]

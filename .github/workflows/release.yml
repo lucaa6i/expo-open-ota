@@ -1,0 +1,91 @@
+name: Release Workflow
+
+on:
+  push:
+    tags:
+      - '*'
+
+permissions:
+  id-token: write
+  contents: read
+  packages: write
+
+jobs:
+  checkout:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: checkout
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build and tag Docker image
+        run: |
+          IMAGE_TAG="${GITHUB_REF#refs/tags/}"
+          docker build -t ghcr.io/${{ github.repository_owner }}/expo-open-ota:${IMAGE_TAG} .
+          docker push ghcr.io/${{ github.repository_owner }}/expo-open-ota:${IMAGE_TAG}
+
+  helm:
+    runs-on: ubuntu-latest
+    needs: docker
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Update Helm values.yaml
+        run: |
+          IMAGE_TAG="${GITHUB_REF#refs/tags/}"
+          sed -i "s/tag: .*/tag: ${IMAGE_TAG}/" helm/values.yaml
+
+      - name: Package Helm chart
+        run: |
+          IMAGE_TAG="${GITHUB_REF#refs/tags/}"
+          helm package ./helm -d ./charts
+          mv ./charts/expo-open-ota-*.tgz ./charts/expo-open-ota-helm-charts-${IMAGE_TAG}.tgz
+
+  npm:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Publish NPM package
+        run: |
+          cd eoas
+          npm ci
+          npm version ${{ github.ref_name }} --no-git-tag-version
+          npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  github-release:
+    runs-on: ubuntu-latest
+    needs: [helm, npm]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ./charts/expo-open-ota-helm-charts-${{ github.ref_name }}.tgz
+          body: |
+            ## Changes
+            - Docker image: `ghcr.io/${{ github.repository_owner }}/expo-open-ota:${{ github.ref_name }}`
+            - Helm chart version updated
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,86 @@
+{
+  "name": "eoas",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "watch": "tsc --project tsconfig.json --watch",
+    "lint": "eslint ."
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "homepage": "https://github.com/axelmarciano/expo-open-ota/tree/main/eoas",
+  "keywords": [
+    "expo-open-ota",
+    "expo",
+    "eas",
+    "cli"
+  ],
+  "author": "Axel Marciano",
+  "license": "MIT",
+  "description": "A CLI tool to manage publishing and OTA updates for expo-open-OTA self-hosted server. This is not an official tool from Expo but an open-source project (https://github.com/axelmarciano/expo-open-ota)",
+  "repository": "axelmarciano/expo-open-ota",
+  "dependencies": {
+    "@expo/code-signing-certificates": "^0.0.5",
+    "@expo/config": "10.0.6",
+    "@expo/config-plugins": "9.0.12",
+    "@expo/eas-build-job": "1.0.165",
+    "@expo/fingerprint": "^0.11.7",
+    "@expo/package-manager": "1.7.0",
+    "@expo/spawn-async": "1.7.2",
+    "@oclif/core": "^4.2.4",
+    "@types/node-fetch": "^2.6.12",
+    "@urql/core": "4.0.11",
+    "@urql/exchange-retry": "1.2.0",
+    "better-opn": "3.0.2",
+    "chalk": "4.1.2",
+    "fast-glob": "3.3.2",
+    "figures": "3.2.0",
+    "file-type": "^20.0.0",
+    "form-data": "^4.0.1",
+    "fs-extra": "11.2.0",
+    "getenv": "1.0.0",
+    "graphql": "16.8.1",
+    "graphql-tag": "^2.12.6",
+    "https-proxy-agent": "5.0.1",
+    "ignore": "5.3.0",
+    "joi": "17.11.0",
+    "mime": "3.0.0",
+    "node-fetch": "^2.6.7",
+    "ora": "^5.1.0",
+    "prompts": "^2.4.2",
+    "resolve-from": "5.0.0",
+    "semver": "7.5.4",
+    "tar": "6.2.1",
+    "terminal-link": "2.1.1",
+    "uuid": "9.0.1"
+  },
+  "devDependencies": {
+    "@tsconfig/node18": "^18.2.4",
+    "@types/fs-extra": "11.0.4",
+    "@types/getenv": "^1.0.0",
+    "@types/mime": "^3.0.4",
+    "@types/node": "^18.19.74",
+    "@types/prompts": "^2.4.9",
+    "@types/semver": "7.5.6",
+    "@types/tar": "6.1.10",
+    "@types/uuid": "9.0.7",
+    "eslint": "^8.57.1",
+    "eslint-config-universe": "^14.0.0",
+    "eslint-plugin-async-protect": "^3.1.0",
+    "eslint-plugin-node": "^11.1.0",
+    "prettier": "3.1.1",
+    "ts-node": "10.9.2",
+    "typescript": "5.3.3"
+  },
+  "bin": {
+    "eoas": "./bin/run.js"
+  },
+  "oclif": {
+    "bin": "eoas",
+    "commands": "./dist/commands",
+    "dirname": "eoas",
+    "topicSeparator": ":"
+  }
+}

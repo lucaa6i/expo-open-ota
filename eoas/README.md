@@ -1,0 +1,19 @@
+# EOAS (Expo-Open-OTA Support)
+
+![EOAS Logo](https://via.placeholder.com/500x200?text=EOAS+Logo)
+
+EOAS (Expo-Open-OTA Support) is a powerful helper package designed to simplify the setup and update publication process for the [expo-open-ota](https://github.com/axelmarciano/expo-open-ota) project.
+
+## Quick Start
+
+To get started with EOAS, check out the official documentation:
+[EOAS Official Documentation](https://axelmarciano.github.io/expo-open-ota/)
+
+## Learn More
+For detailed information and to explore the core functionalities of expo-open-ota, visit the main repository:
+[expo-open-ota on GitHub](https://github.com/axelmarciano/expo-open-ota)
+
+---
+
+Feel free to contribute, raise issues, or share feedback to help us improve EOAS!
+
