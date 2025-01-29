@@ -150,61 +150,70 @@ export async function createOrModifyExpoConfigAsync(
   projectDir: string,
   exp: Partial<ExpoConfig>
 ): Promise<void> {
-  ensureExpoConfigExists(projectDir);
-  const configPathJS = path.join(projectDir, 'app.config.js');
-  const configPathTS = path.join(projectDir, 'app.config.ts');
-  // eslint-disable-next-line node/no-sync
-  const configPath = fs.existsSync(configPathTS) ? configPathTS : configPathJS;
+  try {
+    ensureExpoConfigExists(projectDir);
+    const configPathJS = path.join(projectDir, 'app.config.js');
+    const configPathTS = path.join(projectDir, 'app.config.ts');
 
-  if (isUsingStaticExpoConfig(projectDir)) {
-    Log.withInfo(
-      'You are using a static app config. We will create a dynamic config file for you.'
-    );
+    // eslint-disable-next-line node/no-sync
+    const hasJsConfig = fs.existsSync(configPathJS);
 
-    const newConfigContent = `export default ({ config }) => ({
+    if (isUsingStaticExpoConfig(projectDir)) {
+      Log.withInfo(
+        'You are using a static app config. We will create a dynamic config file for you.'
+      );
+
+      const newConfigContent = `export default ({ config }) => ({
                                 ...config,
                                 ...${stringifyWithEnv(exp)}
                               });`;
+      // eslint-disable-next-line node/no-sync
+      fs.writeFileSync(configPathJS, newConfigContent);
+    } else if (hasJsConfig) {
+      // eslint-disable-next-line node/no-sync
+      const existingCode = fs.readFileSync(configPathJS, 'utf8');
+      const j = jscodeshift;
+      const ast: Collection = j(existingCode);
 
-    // eslint-disable-next-line node/no-sync
-    fs.writeFileSync(configPathJS, newConfigContent);
-  } else {
-    // eslint-disable-next-line node/no-sync
-    if (!fs.existsSync(configPath)) {
-      throw new Error('No existing app.config.js or app.config.ts file found.');
-    }
-    // eslint-disable-next-line node/no-sync
-    const existingCode = fs.readFileSync(configPath, 'utf8');
-    const j = jscodeshift;
-    const ast: Collection = j(existingCode);
-
-    ast.find(j.ArrowFunctionExpression).forEach(path => {
-      if (
-        path.value.body &&
-        j.BlockStatement.check(path.value.body) &&
-        path.value.body.body.length > 0
-      ) {
-        const returnStatement = path.value.body.body.find(node => j.ReturnStatement.check(node));
+      ast.find(j.ArrowFunctionExpression).forEach(path => {
         if (
-          returnStatement &&
-          j.ReturnStatement.check(returnStatement) &&
-          returnStatement.argument
+          path.value.body &&
+          j.BlockStatement.check(path.value.body) &&
+          path.value.body.body.length > 0
         ) {
-          const configObject = returnStatement.argument;
-          if (j.ObjectExpression.check(configObject)) {
-            updateObjectExpression(j, configObject, exp);
+          const returnStatement = path.value.body.body.find(node => j.ReturnStatement.check(node));
+          if (
+            returnStatement &&
+            j.ReturnStatement.check(returnStatement) &&
+            returnStatement.argument
+          ) {
+            const configObject = returnStatement.argument;
+            if (j.ObjectExpression.check(configObject)) {
+              updateObjectExpression(j, configObject, exp);
+            }
           }
         }
-      }
-    });
-    const updatedCode = ast.toSource({
-      quote: 'auto',
-      trailingComma: true,
-      reuseWhitespace: true,
-    });
+      });
+      const updatedCode = ast.toSource({
+        quote: 'auto',
+        trailingComma: true,
+        reuseWhitespace: true,
+      });
 
-    // eslint-disable-next-line node/no-sync
-    fs.writeFileSync(configPath, updatedCode);
+      // eslint-disable-next-line node/no-sync
+      fs.writeFileSync(configPathJS, updatedCode);
+    } else if (configPathTS) {
+      Log.warn('TypeScript support is not yet implemented.');
+      throw new Error('TypeScript support is not yet implemented.');
+    }
+  } catch (e) {
+    Log.withInfo('An error occurred while updating the Expo config. Please update it manually.');
+    Log.newLine();
+    Log.warn('Please modify your app.config.ts file manually by adding the following code:');
+    Log.newLine();
+    Log.withInfo(`${stringifyWithEnv(exp)}`);
+    Log.newLine();
+    throw e;
   }
 }
 

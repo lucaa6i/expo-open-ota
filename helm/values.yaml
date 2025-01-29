@@ -27,12 +27,23 @@ secretName: "expo-open-ota-secrets" # If set, environment variables will be read
 storageMode: "s3"
 certsStorageType: "aws-secrets-manager"
 useCloudfrontRedirect: "false"
+useAWSAccessKeys: "false"
 
 environment:
   - name: "STORAGE_MODE"
     key: "storageMode"
     required: true
     computed: true
+  - name: "AWS_ACCESS_KEY_ID"
+    value: ""
+    required:
+      - key: "useAWSAccessKeys"
+        is: "true"
+  - name: "AWS_SECRET_ACCESS_KEY"
+    value: ""
+    required:
+      - key: "useAWSAccessKeys"
+        is: "true"
   - name: "AWS_REGION"
     value: ""
     required:
