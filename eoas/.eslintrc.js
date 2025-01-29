@@ -2,6 +2,7 @@ module.exports = {
   root: true,
   extends: ['universe/node'],
   plugins: ['node'],
+  ignorePatterns: ['bin/'],
   rules: {
     'no-console': 'warn',
     'no-constant-condition': ['warn', { checkLoops: false }],

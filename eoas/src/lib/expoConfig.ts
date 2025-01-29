@@ -1,9 +1,10 @@
 // This file is copied from eas-cli[https://github.com/expo/eas-cli] to ensure consistent user experience across the CLI.
-import { ExpoConfig, getConfig, getConfigFilePaths, modifyConfigAsync } from '@expo/config';
+import { ExpoConfig, getConfig, getConfigFilePaths } from '@expo/config';
 import { Env } from '@expo/eas-build-job';
 import spawnAsync from '@expo/spawn-async';
 import fs from 'fs-extra';
 import Joi from 'joi';
+import jscodeshift, { Collection } from 'jscodeshift';
 import path from 'path';
 
 import Log from './log';
@@ -32,20 +33,6 @@ export interface ExpoConfigOptions {
 
 interface ExpoConfigOptionsInternal extends ExpoConfigOptions {
   isPublicConfig?: boolean;
-}
-
-export async function createOrModifyExpoConfigAsync(
-  projectDir: string,
-  exp: Partial<ExpoConfig>,
-  readOptions?: { skipSDKVersionRequirement?: boolean }
-): ReturnType<typeof modifyConfigAsync> {
-  ensureExpoConfigExists(projectDir);
-
-  if (readOptions) {
-    return await modifyConfigAsync(projectDir, exp, readOptions);
-  } else {
-    return await modifyConfigAsync(projectDir, exp);
-  }
 }
 
 let wasExpoConfigWarnPrinted = false;
@@ -157,4 +144,113 @@ export async function getPublicExpoConfigAsync(
 
 export function getExpoConfigUpdateUrl(config: ExpoConfig): string | undefined {
   return config.updates?.url;
+}
+
+export async function createOrModifyExpoConfigAsync(
+  projectDir: string,
+  exp: Partial<ExpoConfig>
+): Promise<void> {
+  ensureExpoConfigExists(projectDir);
+  const configPathJS = path.join(projectDir, 'app.config.js');
+  const configPathTS = path.join(projectDir, 'app.config.ts');
+  // eslint-disable-next-line node/no-sync
+  const configPath = fs.existsSync(configPathTS) ? configPathTS : configPathJS;
+
+  if (isUsingStaticExpoConfig(projectDir)) {
+    Log.withInfo(
+      'You are using a static app config. We will create a dynamic config file for you.'
+    );
+
+    const newConfigContent = `export default ({ config }) => ({
+                                ...config,
+                                ...${stringifyWithEnv(exp)}
+                              });`;
+
+    // eslint-disable-next-line node/no-sync
+    fs.writeFileSync(configPathJS, newConfigContent);
+  } else {
+    // eslint-disable-next-line node/no-sync
+    if (!fs.existsSync(configPath)) {
+      throw new Error('No existing app.config.js or app.config.ts file found.');
+    }
+    // eslint-disable-next-line node/no-sync
+    const existingCode = fs.readFileSync(configPath, 'utf8');
+    const j = jscodeshift;
+    const ast: Collection = j(existingCode);
+
+    ast.find(j.ArrowFunctionExpression).forEach(path => {
+      if (
+        path.value.body &&
+        j.BlockStatement.check(path.value.body) &&
+        path.value.body.body.length > 0
+      ) {
+        const returnStatement = path.value.body.body.find(node => j.ReturnStatement.check(node));
+        if (
+          returnStatement &&
+          j.ReturnStatement.check(returnStatement) &&
+          returnStatement.argument
+        ) {
+          const configObject = returnStatement.argument;
+          if (j.ObjectExpression.check(configObject)) {
+            updateObjectExpression(j, configObject, exp);
+          }
+        }
+      }
+    });
+    const updatedCode = ast.toSource({
+      quote: 'auto',
+      trailingComma: true,
+      reuseWhitespace: true,
+    });
+
+    // eslint-disable-next-line node/no-sync
+    fs.writeFileSync(configPath, updatedCode);
+  }
+}
+
+function updateObjectExpression(
+  j: typeof jscodeshift,
+  configObject: ReturnType<typeof j.objectExpression>,
+  updates: Record<string, any>
+): void {
+  Object.entries(updates).forEach(([key, value]) => {
+    const existingProperty = configObject.properties.find(prop => {
+      return (
+        prop.type === 'Property' &&
+        ((prop.key.type === 'Identifier' && prop.key.name === key) ||
+          (prop.key.type === 'StringLiteral' && prop.key.value === key))
+      );
+    });
+
+    if (existingProperty) {
+      configObject.properties = configObject.properties.filter(prop => prop !== existingProperty);
+    }
+
+    const newProperty = j.objectProperty(j.identifier(key), createValueNode(j, value));
+
+    configObject.properties.push(newProperty);
+  });
+}
+
+function createValueNode(j: typeof jscodeshift, value: any): any {
+  if (typeof value === 'string' && value.startsWith('process.env.')) {
+    return j.memberExpression(
+      j.memberExpression(j.identifier('process'), j.identifier('env')),
+      j.identifier(value.split('.')[2])
+    );
+  }
+
+  if (typeof value === 'object' && value !== null) {
+    return j.objectExpression(
+      Object.entries(value).map(
+        ([key, val]) => j.objectProperty(j.stringLiteral(key), createValueNode(j, val)) // Force stringLiteral pour garder les guillemets
+      )
+    );
+  }
+
+  return j.literal(value);
+}
+
+function stringifyWithEnv(obj: Record<string, any>): string {
+  return JSON.stringify(obj, null, 2).replace(/"process\.env\.(\w+)"/g, 'process.env.$1');
 }

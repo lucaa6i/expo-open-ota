@@ -42,6 +42,10 @@ export default class Publish extends Command {
       default: RequestedPlatform.All,
       required: false,
     }),
+    channel: Flags.string({
+      description: 'Name of the channel to publish the update to',
+      required: true,
+    }),
     branch: Flags.string({
       description: 'Name of the branch to point to',
       required: true,
@@ -55,11 +59,13 @@ export default class Publish extends Command {
     platform: RequestedPlatform;
     branch: string;
     nonInteractive: boolean;
+    channel: string;
   } {
     return {
       platform: flags.platform,
       branch: flags.branch,
       nonInteractive: flags.nonInteractive,
+      channel: flags.channel,
     };
   }
   public async run(): Promise<void> {
@@ -70,9 +76,13 @@ export default class Publish extends Command {
       return;
     }
     const { flags } = await this.parse(Publish);
-    const { platform, nonInteractive, branch } = this.sanitizeFlags(flags);
+    const { platform, nonInteractive, branch, channel } = this.sanitizeFlags(flags);
     if (!branch) {
       Log.error('Branch name is required');
+      return;
+    }
+    if (!channel) {
+      Log.error('Channel name is required');
       return;
     }
     await this.vcsClient.ensureRepoExistsAsync();
@@ -84,7 +94,11 @@ export default class Publish extends Command {
       return;
     }
 
-    const privateConfig = await getPrivateExpoConfigAsync(projectDir);
+    const privateConfig = await getPrivateExpoConfigAsync(projectDir, {
+      env: {
+        RELEASE_CHANNEL: channel,
+      },
+    });
     const updateUrl = getExpoConfigUpdateUrl(privateConfig);
     if (!updateUrl) {
       Log.error(
@@ -120,7 +134,9 @@ export default class Publish extends Command {
                 platform: 'ios',
                 workflow: await resolveWorkflowAsync(projectDir, Platform.IOS, this.vcsClient),
                 projectDir,
-                env: undefined,
+                env: {
+                  RELEASE_CHANNEL: channel,
+                },
               })
             )?.runtimeVersion,
           ]
@@ -133,7 +149,9 @@ export default class Publish extends Command {
                 platform: 'android',
                 workflow: await resolveWorkflowAsync(projectDir, Platform.ANDROID, this.vcsClient),
                 projectDir,
-                env: undefined,
+                env: {
+                  RELEASE_CHANNEL: channel,
+                },
               })
             )?.runtimeVersion,
           ]
@@ -158,7 +176,7 @@ export default class Publish extends Command {
       });
       exportSpinner.succeed('Project exported successfully');
       Log.withInfo(stdout);
-    } catch (err: any) {
+    } catch {
       exportSpinner.fail('Failed to export the project');
     }
     const publicConfig = await getPublicExpoConfigAsync(projectDir, {

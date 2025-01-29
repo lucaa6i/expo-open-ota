@@ -6,9 +6,9 @@ import {
   createOrModifyExpoConfigAsync,
   getExpoConfigUpdateUrl,
   getPrivateExpoConfigAsync,
-  isUsingStaticExpoConfig,
 } from '../lib/expoConfig';
 import Log from '../lib/log';
+import { ora } from '../lib/ora';
 import { isExpoInstalled } from '../lib/package';
 import { confirmAsync, promptAsync } from '../lib/prompts';
 import { isValidUpdateUrl } from '../lib/utils';
@@ -97,22 +97,20 @@ export default class Init extends Command {
       },
       codeSigningCertificate: codeSigningCertificatePath,
       enabled: true,
+      requestHeaders: {
+        'expo-channel-name': 'process.env.RELEASE_CHANNEL',
+      },
     };
-    if (!isUsingStaticExpoConfig(projectDir)) {
-      Log.warn(
-        'This project is using a dynamic Expo config. You will need to manually add the update configuration to your app.config.js. with the following:'
-      );
-      Log.newLine();
-      Log.gray(JSON.stringify({ updates: newUpdateConfig }, null, 2));
-      return;
-    }
+    const updateConfigSpinner = ora('Updating Expo config').start();
     try {
       await createOrModifyExpoConfigAsync(projectDir, {
         updates: newUpdateConfig,
       });
-      Log.succeed('Expo config successfully updated');
+      updateConfigSpinner.succeed(
+        'Expo config successfully updated do not forget to format the file with prettier or eslint'
+      );
     } catch (e) {
-      Log.error('Failed to update Expo config');
+      updateConfigSpinner.fail('Failed to update Expo config');
       Log.error(e);
     }
   }

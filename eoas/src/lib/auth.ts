@@ -31,7 +31,7 @@ function dotExpoHomeDirectory(): string {
   return dirPath;
 }
 
-function getStateJsonPath() {
+function getStateJsonPath(): string {
   return path.join(dotExpoHomeDirectory(), 'state.json');
 }
 
