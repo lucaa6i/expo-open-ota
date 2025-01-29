@@ -23,8 +23,10 @@ func getStorage() (CertsStorage, error) {
 	var storageType CertsStorageType
 	if config.GetEnv("CERTS_STORAGE_TYPE") == "aws-secrets-manager" {
 		storageType = AWSSecretsManager
-	} else {
+	} else if config.GetEnv("CERTS_STORAGE_TYPE") == "local" {
 		storageType = LocalFiles
+	} else {
+		storageType = Environment
 	}
 
 	switch storageType {
@@ -54,9 +56,9 @@ func getStorage() (CertsStorage, error) {
 		}, nil
 	case Environment:
 		return &EnvironmentCertsStorage{
-			publicExpoCertKey:        "PUBLIC_EXPO_CERT",
-			privateExpoCertKey:       "PRIVATE_EXPO_CERT",
-			privateCloudfrontCertKey: "PRIVATE_CLOUDFRONT_CERT",
+			publicExpoCertBase64Key:        "PUBLIC_EXPO_CERT_B64",
+			privateExpoCertBase64Key:       "PRIVATE_EXPO_CERT_B64",
+			privateCloudfrontCertBase64Key: "PRIVATE_CLOUDFRONT_CERT_B64",
 		}, nil
 	default:
 		return nil, fmt.Errorf("unknown certs storage type: %s", storageType)

@@ -107,17 +107,17 @@ environment:
     required:
       - key: "certsStorageType"
         is: "local"
-  - name: "PUBLIC_EXPO_CERT"
+  - name: "PUBLIC_EXPO_CERT_B64"
     value: ""
     required:
       - key: "certsStorageType"
         is: "environment"
-  - name: "PRIVATE_EXPO_CERT"
+  - name: "PRIVATE_EXPO_CERT_B64"
     value: ""
     required:
       - key: "certsStorageType"
         is: "environment"
-  - name: "PRIVATE_CLOUDFRONT_CERT"
+  - name: "PRIVATE_CLOUDFRONT_CERT_B64"
     value: ""
     required:
       - key: "certsStorageType"
