@@ -107,6 +107,21 @@ environment:
     required:
       - key: "certsStorageType"
         is: "local"
+  - name: "PUBLIC_EXPO_CERT"
+    value: ""
+    required:
+      - key: "certsStorageType"
+        is: "environment"
+  - name: "PRIVATE_EXPO_CERT"
+    value: ""
+    required:
+      - key: "certsStorageType"
+        is: "environment"
+  - name: "PRIVATE_CLOUDFRONT_CERT"
+    value: ""
+    required:
+      - key: "certsStorageType"
+        is: "environment"
   - name: "BASE_URL"
     value: ""
     required: true

@@ -10,6 +10,7 @@ type CertsStorageType string
 const (
 	AWSSecretsManager CertsStorageType = "aws-secrets-manager"
 	LocalFiles        CertsStorageType = "local-files"
+	Environment       CertsStorageType = "environment"
 )
 
 type CertsStorage interface {
@@ -50,6 +51,12 @@ func getStorage() (CertsStorage, error) {
 			publicKeyPath:            publicKeyPath,
 			privateKeyPath:           privateKeyPath,
 			privateCloudfrontKeyPath: privateCloudfrontKeyPath,
+		}, nil
+	case Environment:
+		return &EnvironmentCertsStorage{
+			publicExpoCertKey:        "PUBLIC_EXPO_CERT",
+			privateExpoCertKey:       "PRIVATE_EXPO_CERT",
+			privateCloudfrontCertKey: "PRIVATE_CLOUDFRONT_CERT",
 		}, nil
 	default:
 		return nil, fmt.Errorf("unknown certs storage type: %s", storageType)
