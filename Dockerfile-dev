@@ -27,7 +27,8 @@ COPY config ./config
 COPY updates ./updates
 COPY test ./test
 COPY commands ./commands
-COPY .env ./
+RUN if [ -f .env ]; then cp .env /app/.env; fi
+
 
 # Install dependencies
 RUN go get ./...

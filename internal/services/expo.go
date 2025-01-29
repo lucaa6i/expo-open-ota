@@ -288,8 +288,11 @@ type ExpoApp struct {
 	Name string `json:"name"`
 }
 
-func GetExpoApplications() ([]ExpoApp, error) {
-	username := FetchSelfExpoUsername()
+func GetExpoApplications(auth types.ExpoAuth) ([]ExpoApp, error) {
+	account, err := FetchExpoUserAccountInformations(auth)
+	if err != nil {
+		return nil, err
+	}
 	query := `
 		query AppsPaginatedQuery($username: String!, $first: Int!) {
 			account {
@@ -306,10 +309,10 @@ func GetExpoApplications() ([]ExpoApp, error) {
 			}
 		}`
 	variables := map[string]interface{}{
-		"username": username,
+		"username": account.Username,
 		"first":    100,
 	}
-	token := GetExpoAccessToken()
+
 	headers := map[string]string{}
 	if config.IsTestMode() {
 		headers["operationName"] = "GetExpoApplications"
@@ -331,9 +334,7 @@ func GetExpoApplications() ([]ExpoApp, error) {
 		} `json:"data"`
 	}
 	ctx := context.Background()
-	if err := makeGraphQLRequest(ctx, query, variables, types.ExpoAuth{
-		Token: &token,
-	}, &resp, headers); err != nil {
+	if err := makeGraphQLRequest(ctx, query, variables, auth, &resp, headers); err != nil {
 		return nil, err
 	}
 	var apps []ExpoApp

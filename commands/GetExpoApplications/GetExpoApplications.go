@@ -8,13 +8,8 @@ import (
 )
 
 func main() {
-	accessToken := services.GetExpoAccessToken()
-	if accessToken == "" {
-		log.Fatalf("EXPO_ACCESS_TOKEN is not set")
-		return
-	}
-
-	apps, err := services.GetExpoApplications()
+	auth := retrieveExpoAuth()
+	apps, err := services.GetExpoApplications(*auth)
 	if err != nil {
 		log.Fatalf("Error fetching expo applications: %v", err)
 		return

@@ -57,9 +57,9 @@ endef
 
 get_expo_apps:
 ifeq ($(DOCKER_FLAG),docker)
-	docker-compose exec ota-server go run ./internal/commands/GetExpoApplications.go
+	docker-compose exec ota-server go run  ./commands/GetExpoApplications
 else
-	go run ./commands/GetExpoApplications.go
+	go run ./commands/GetExpoApplications
 endif
 
 .PHONY: docker html
