@@ -41,9 +41,7 @@ func signDirectiveOrManifest(content interface{}, expectSignatureHeader string) 
 	if expectSignatureHeader == "" {
 		return "", nil
 	}
-
 	privateKey := keys.GetPrivateExpoKey()
-	fmt.Println("privateKey", privateKey)
 	contentJSON, err := json.Marshal(content)
 	if err != nil {
 		return "", fmt.Errorf("error stringifying content: %w", err)

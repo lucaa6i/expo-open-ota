@@ -55,11 +55,4 @@ define GENERATE_HTML
 	fi
 endef
 
-get_expo_apps:
-ifeq ($(DOCKER_FLAG),docker)
-	docker-compose exec ota-server go run  ./commands/GetExpoApplications
-else
-	go run ./commands/GetExpoApplications
-endif
-
 .PHONY: docker html
