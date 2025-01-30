@@ -1,5 +1,5 @@
 ---
-sidebar_position: 3
+sidebar_position: 2
 ---
 
 # Storage
@@ -19,9 +19,10 @@ If you really want to use it in production, make sure to not have multiple insta
 
 :::
 
-To use the local file system as your storage solution, you need to set the `LOCAL_BUCKET_BASE_PATH` environment variable to the path where you want to store your assets. The server will create the necessary directories and store the assets in the specified location.
+To use the local file system as your storage solution, you need to set the `STORAGE_MODE` and `LOCAL_BUCKET_BASE_PATH` environment variable to the path where you want to store your assets. The server will create the necessary directories and store the assets in the specified location.
 
 ```bash
+STORAGE_MODE=local
 LOCAL_BUCKET_BASE_PATH=/path/to/your/assets
 ```
 
@@ -29,6 +30,7 @@ LOCAL_BUCKET_BASE_PATH=/path/to/your/assets
 
 To enable Amazon S3 as your storage solution, you need to set the following environment variables:
 ```bash
+STORAGE_MODE=s3
 AWS_REGION=your-region
 S3_BUCKET_NAME=your-bucket-name
 ```
