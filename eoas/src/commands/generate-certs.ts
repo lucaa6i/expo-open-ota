@@ -22,7 +22,7 @@ export default class GenerateCerts extends Command {
         'In which directory would you like to store your code signing certificate (used by your expo app)?',
       name: 'certificateOutputDir',
       type: 'text',
-      initial: './keysStore',
+      initial: './certs',
       validate: v => {
         try {
           // eslint-disable-next-line
@@ -35,10 +35,10 @@ export default class GenerateCerts extends Command {
     });
     const { keyOutputDir } = await promptAsync({
       message:
-        'In which directory would you like to store your key pair (used by your OTA Server) ?. ⚠️ Those keysStore are sensitive and should be kept private.',
+        'In which directory would you like to store your key pair (used by your OTA Server) ?. ⚠️ Those certss are sensitive and should be kept private.',
       name: 'keyOutputDir',
       type: 'text',
-      initial: './keysStore',
+      initial: './certs',
       validate: v => {
         try {
           // eslint-disable-next-line
