@@ -3,7 +3,7 @@ name: Release Workflow
 on:
   push:
     tags:
-      - '*'
+      - "v*"
 
 permissions:
   id-token: write
@@ -27,33 +27,32 @@ jobs:
       - name: Log in to GitHub Container Registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Get latest GitHub release tag
-        id: latest_release
-        run: |
-          LATEST_TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName')
-          echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Build and tag Docker image
         run: |
           IMAGE_TAG="${GITHUB_REF#refs/tags/}"
+          REPO="ghcr.io/${{ github.repository_owner }}/expo-open-ota"
 
-          docker build -t ghcr.io/${{ github.repository_owner }}/expo-open-ota:${IMAGE_TAG} .
-          docker push ghcr.io/${{ github.repository_owner }}/expo-open-ota:${IMAGE_TAG}
+          echo "🔨 Building Docker image with tag: $IMAGE_TAG"
+          docker build -t "$REPO:$IMAGE_TAG" .
+          docker push "$REPO:$IMAGE_TAG"
 
-          TAGS=$(gh api -H "Accept: application/vnd.github+json" \
-            /users/${{ github.repository_owner }}/packages/container/expo-open-ota/versions \
-            | jq -r '.[].metadata.container.tags[]' | sort -V)
+      - name: Check latest version and update latest tag
+        run: |
+          REPO="ghcr.io/${{ github.repository_owner }}/expo-open-ota"
 
-          LATEST_TAG=$(echo "$TAGS" | tail -n 1)
+          echo "📡 Fetching the latest version tag from GHCR..."
+          LATEST_TAG=$(gh api "https://api.github.com/users/${{ github.repository_owner }}/packages/container/expo-open-ota/versions" \
+            --jq '[.[].metadata.container.tags[]] | map(select(test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))) | sort_by(.) | last' | tr -d '"')
 
-          if [ "$IMAGE_TAG" == "$LATEST_TAG" ]; then
-            echo "This is the highest version. Tagging as 'latest'."
-            docker tag ghcr.io/${{ github.repository_owner }}/expo-open-ota:${IMAGE_TAG} ghcr.io/${{ github.repository_owner }}/expo-open-ota:latest
-            docker push ghcr.io/${{ github.repository_owner }}/expo-open-ota:latest
+          echo "🔍 Latest found version: $LATEST_TAG"
+          echo "🏷️ Current version: $IMAGE_TAG"
+
+          if [ "$LATEST_TAG" = "$IMAGE_TAG" ]; then
+            echo "✅ $IMAGE_TAG is the latest version. Updating latest tag..."
+            docker tag "$REPO:$IMAGE_TAG" "$REPO:latest"
+            docker push "$REPO:latest"
           else
-            echo "Skipping 'latest' tag, $IMAGE_TAG is not the highest version, $LATEST_TAG is."
+            echo "ℹ️ $IMAGE_TAG is not the latest version. Skipping latest tag update."
           fi
 
   helm:
@@ -83,8 +82,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
-          registry-url: 'https://registry.npmjs.org'
+          node-version: "20.x"
+          registry-url: "https://registry.npmjs.org"
 
       - name: Publish NPM package
         run: |
