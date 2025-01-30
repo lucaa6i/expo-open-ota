@@ -12,7 +12,7 @@ This is an independent open-source project.
 ## 📖 Documentation
 
 The full documentation is available at:  
-➡️ [axelmarciano.github.io/expo-open-ota/](https://axelmarciano.github.io/expo-open-ota/)
+➡️ [Documentation](https://axelmarciano.github.io/expo-open-ota/)
 
 ## 🛠 Features
 
