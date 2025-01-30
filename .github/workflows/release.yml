@@ -27,11 +27,30 @@ jobs:
       - name: Log in to GitHub Container Registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
+      - name: Get latest GitHub release tag
+        id: latest_release
+        run: |
+          LATEST_TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName')
+          echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build and tag Docker image
         run: |
           IMAGE_TAG="${GITHUB_REF#refs/tags/}"
           docker build -t ghcr.io/${{ github.repository_owner }}/expo-open-ota:${IMAGE_TAG} .
+
+          # Push main tag
           docker push ghcr.io/${{ github.repository_owner }}/expo-open-ota:${IMAGE_TAG}
+
+          # If latest, also push the `latest` tag
+          if [ "$IMAGE_TAG" == "$LATEST_TAG" ]; then
+            echo "This is the latest release. Tagging as 'latest'."
+            docker tag ghcr.io/${{ github.repository_owner }}/expo-open-ota:${IMAGE_TAG} ghcr.io/${{ github.repository_owner }}/expo-open-ota:latest
+            docker push ghcr.io/${{ github.repository_owner }}/expo-open-ota:latest
+          else
+            echo "Skipping 'latest' tag, not the newest release."
+          fi
 
   helm:
     runs-on: ubuntu-latest
