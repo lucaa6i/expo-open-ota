@@ -1,4 +1,4 @@
-package keys
+package keyStore
 
 import (
 	"encoding/base64"
