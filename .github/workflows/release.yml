@@ -53,7 +53,7 @@ jobs:
             docker tag ghcr.io/${{ github.repository_owner }}/expo-open-ota:${IMAGE_TAG} ghcr.io/${{ github.repository_owner }}/expo-open-ota:latest
             docker push ghcr.io/${{ github.repository_owner }}/expo-open-ota:latest
           else
-            echo "Skipping 'latest' tag, $IMAGE_TAG is not the highest version."
+            echo "Skipping 'latest' tag, $IMAGE_TAG is not the highest version, $LATEST_TAG is."
           fi
 
   helm:
