@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"expo-open-ota/internal/crypto"
-	"expo-open-ota/internal/keysStore"
+	"expo-open-ota/internal/keyStore"
 	"expo-open-ota/internal/services"
 	"expo-open-ota/internal/types"
 	"expo-open-ota/internal/update"
@@ -41,7 +41,7 @@ func signDirectiveOrManifest(content interface{}, expectSignatureHeader string) 
 	if expectSignatureHeader == "" {
 		return "", nil
 	}
-	privateKey := keys.GetPrivateExpoKey()
+	privateKey := keyStore.GetPrivateExpoKey()
 	contentJSON, err := json.Marshal(content)
 	if err != nil {
 		return "", fmt.Errorf("error stringifying content: %w", err)

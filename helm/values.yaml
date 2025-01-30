@@ -25,7 +25,7 @@ serviceAccount:
 
 secretName: "expo-open-ota-secrets" # If set, environment variables will be read from this secret, else they will be read from the values.yaml file or passed in via the helm command line
 storageMode: "s3"
-keysStorageType: "aws-secrets-manager"
+keyStorageType: "aws-secrets-manager"
 useCloudfrontRedirect: "false"
 useAWSAccessKeys: "false"
 

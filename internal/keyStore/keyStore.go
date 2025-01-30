@@ -1,4 +1,4 @@
-package keys
+package keyStore
 
 import (
 	"expo-open-ota/config"
@@ -61,7 +61,7 @@ func getStorage() (KeysStorage, error) {
 			privateCloudfrontKeyBase64Key: "PRIVATE_CLOUDFRONT_KEY_B64",
 		}, nil
 	default:
-		return nil, fmt.Errorf("unknown keysStore storage type: %s", storageType)
+		return nil, fmt.Errorf("unknown keyStore storage type: %s", storageType)
 	}
 }
 

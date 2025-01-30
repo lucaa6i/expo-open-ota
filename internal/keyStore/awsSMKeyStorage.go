@@ -1,4 +1,4 @@
-package keys
+package keyStore
 
 import "expo-open-ota/internal/services"
 
