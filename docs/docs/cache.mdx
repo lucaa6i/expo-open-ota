@@ -15,7 +15,7 @@ The cache is primarily used for:
    - This prevents the need to recompute the last update for every request, significantly speeding up responses.
 
 2. **Caching the computed manifest**
-   - Manifest generation can be an expensive operation, especially when querying the database.
+   - Manifest generation can be an expensive operation.
    - By caching the results, we reduce response times and improve overall performance.
 
 ## Current Limitations
@@ -31,7 +31,6 @@ We plan to implement a **distributed caching system**, such as Redis, to:
 
 - Share cached results across multiple instances.
 - Ensure consistent and faster responses regardless of the server handling the request.
-- Reduce the load on database queries and CPU-intensive computations.
 
 Once the distributed cache is in place, performance will be significantly improved, especially for high-traffic environments.
 
