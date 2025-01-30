@@ -31,9 +31,9 @@ func getStorage() (KeysStorage, error) {
 
 	switch storageType {
 	case AWSSecretsManager:
-		publicKeySecretID := config.GetEnv("AWS_KEYS_PUBLIC_KEY_SECRET_ID")
-		privateKeySecretID := config.GetEnv("AWS_KEYS_PRIVATE_KEY_SECRET_ID")
-		privateCloudfrontKeySecretID := config.GetEnv("AWS_KEYS_PRIVATE_CLOUDFRONT_KEY_SECRET_ID")
+		publicKeySecretID := config.GetEnv("AWSSM_EXPO_PUBLIC_KEY_SECRET_ID")
+		privateKeySecretID := config.GetEnv("AWSSM_EXPO_PRIVATE_KEY_SECRET_ID")
+		privateCloudfrontKeySecretID := config.GetEnv("AWSSM_CLOUDFRONT_PRIVATE_KEY_SECRET_ID")
 		if publicKeySecretID == "" || privateKeySecretID == "" {
 			return nil, fmt.Errorf("PUBLIC_KEY_SECRET_ID, PRIVATE_KEY_SECRET_ID must be set in environment")
 		}

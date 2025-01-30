@@ -76,7 +76,7 @@ environment:
         is: "true"
       - key: "keysStorageType"
         is: "local"
-  - name: "AWS_KEYS_PRIVATE_CLOUDFRONT_KEY_SECRET_ID"
+  - name: "AWSSM_CLOUDFRONT_PRIVATE_KEY_SECRET_ID"
     value: ""
     required:
       - key: "useCloudfrontRedirect"
@@ -87,12 +87,12 @@ environment:
     key: "keysStorageType"
     required: true
     computed: true
-  - name: "AWS_KEYS_PUBLIC_KEY_SECRET_ID"
+  - name: "AWSSM_EXPO_PUBLIC_KEY_SECRET_ID"
     value: ""
     required:
       - key: "keysStorageType"
         is: "aws-secrets-manager"
-  - name: "AWS_KEYS_PRIVATE_KEY_SECRET_ID"
+  - name: "AWSSM_EXPO_PRIVATE_KEY_SECRET_ID"
     value: ""
     required:
       - key: "keysStorageType"

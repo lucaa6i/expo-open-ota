@@ -2,7 +2,7 @@
 sidebar_position: 5
 ---
 
-# Keys Store
+# Key Store
 
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
@@ -49,7 +49,7 @@ Those two keys are used by the server to sign and verify the updates.
 :::note
 This key is only required if you are using Cloudfront as your CDN.
 :::
-Please refer to this [section](/docs/cdn#cloudfront) on how to generate a Cloudfront private key.
+Please refer to this [section](/docs/cdn/cloudfront#generate-key-pair) on how to generate a Cloudfront private key.
 
 ## Key Store Configuration
 
@@ -82,7 +82,7 @@ Please refer to this [section](/docs/cdn#cloudfront) on how to generate a Cloudf
     KEYS_STORAGE_TYPE=aws-secrets-manager
     AWS_KEYS_PRIVATE_EXPO_KEY_SECRET_ID=The secret name of the expo private key
     AWS_KEYS_PUBLIC_EXPO_KEY_SECRET_ID=The secret name of the expo public key
-    AWS_KEYS_PRIVATE_CLOUDFRONT_KEY_SECRET_ID=The secret name of the cloudfront private key
+    AWSSM_CLOUDFRONT_PRIVATE_KEY_SECRET_ID=The secret name of the cloudfront private key
     AWS_REGION=your-region
     ```
 
