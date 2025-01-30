@@ -2,6 +2,10 @@
 sidebar_position: 3
 ---
 
+# Runtime version
+
+EOAS uses official Expo packages to resolve the runtime version of your project.  
+It supports the fingerprint policy.
 
 # Publish an update
 
@@ -11,11 +15,12 @@ To publish an update, run the following command in your Expo project:
 npx eoas publish --branch <branch-name> --channel <release-channel>
 ```
 
-This command will retrieve the expo credentials on your .expo/state.json file or an EXPO_TOKEN in your runtime environment to authentify
+This command will retrieve the expo credentials from your .expo/state.json file or an EXPO_TOKEN in your runtime environment to authenticate
 the request to the Expo API.
 
 
 ## CI/CD
 
-You can automate the process of publishing updates by integrating the `npx eoas publish` command in your CI/CD pipeline.
-But you need to make sure that the EXPO_TOKEN is setup in your CI/CD environment.
+You can automate the process of publishing updates by integrating the `npx eoas publish --nonInteractive` command in your CI/CD pipeline.
+However, you need to make sure that the EXPO_TOKEN is set up in your CI/CD environment.
+(Do not forget the `--nonInteractive` flag to avoid interactive prompts)
