@@ -54,19 +54,19 @@ export default class Init extends Command {
       }
     }
     const confirmed = await confirmAsync({
-      message: 'Do you have already generated your certificates and keysStore for code signing?',
+      message: 'Do you have already generated your certificates for code signing?',
       name: 'certificates',
       type: 'confirm',
     });
     if (!confirmed) {
-      Log.fail('You need to generate your certificates first by using npx eoas generate-keysStore');
+      Log.fail('You need to generate your certificates first by using npx eoas generate-certs');
       return;
     }
     const { codeSigningCertificatePath } = await promptAsync({
-      message: 'Enter the path to your code signing certificate (ex: ./keysStore/certificate.pem)',
+      message: 'Enter the path to your code signing certificate (ex: ./certs/certificate.pem)',
       name: 'codeSigningCertificatePath',
       type: 'text',
-      initial: './keysStore/certificate.pem',
+      initial: './certs/certificate.pem',
       validate: v => {
         try {
           const fullPath = path.resolve(projectDir, v);
