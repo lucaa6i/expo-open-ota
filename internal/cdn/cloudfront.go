@@ -5,7 +5,7 @@ import (
 	"crypto"
 	"errors"
 	"expo-open-ota/config"
-	"expo-open-ota/internal/certs"
+	"expo-open-ota/internal/keysStore"
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/feature/cloudfront/sign"
 	"time"
@@ -22,7 +22,7 @@ func getCloudfrontKeyPairId() string {
 }
 
 func (c *CloudfrontCDN) isCDNAvailable() bool {
-	privateCloudfrontCert := certs.GetPrivateCloudfrontCert()
+	privateCloudfrontCert := keys.GetPrivateCloudfrontKey()
 	domain := getCloudfrontDomain()
 	keyPairId := getCloudfrontKeyPairId()
 	return privateCloudfrontCert != "" && domain != "" && keyPairId != ""
@@ -43,7 +43,7 @@ func getSigner(key string) (crypto.Signer, error) {
 func (c *CloudfrontCDN) ComputeRedirectionURLForAsset(branch, runtimeVersion, updateId, asset string) (string, error) {
 	domain := getCloudfrontDomain()
 	keyPairId := getCloudfrontKeyPairId()
-	privateCloudfrontCert := certs.GetPrivateCloudfrontCert()
+	privateCloudfrontCert := keys.GetPrivateCloudfrontKey()
 
 	if domain == "" || keyPairId == "" || privateCloudfrontCert == "" {
 		return "", errors.New("CloudFront configuration is incomplete")

@@ -3,8 +3,8 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
-	"expo-open-ota/internal/certs"
 	"expo-open-ota/internal/crypto"
+	"expo-open-ota/internal/keysStore"
 	"expo-open-ota/internal/services"
 	"expo-open-ota/internal/types"
 	"expo-open-ota/internal/update"
@@ -42,7 +42,8 @@ func signDirectiveOrManifest(content interface{}, expectSignatureHeader string) 
 		return "", nil
 	}
 
-	privateKey := certs.GetPrivateExpoCert()
+	privateKey := keys.GetPrivateExpoKey()
+	fmt.Println("privateKey", privateKey)
 	contentJSON, err := json.Marshal(content)
 	if err != nil {
 		return "", fmt.Errorf("error stringifying content: %w", err)

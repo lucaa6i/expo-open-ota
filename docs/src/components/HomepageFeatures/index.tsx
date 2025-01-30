@@ -13,16 +13,16 @@ const FeatureList: FeatureItem[] = [
     title: 'Modular and Flexible',
     description: (
       <>
-        Expo Open OTA is built with a modular architecture, allowing you to tailor it to your needs. Host updates on AWS S3 or manage certificates with AWS Secrets Manager, or even host them locally. Every component is designed to be optional, giving you the freedom to adapt the solution to your specific infrastructure.
+        Expo Open OTA is built with a modular architecture, allowing you to tailor it to your needs. Host updates on AWS S3 or manage key pair with AWS Secrets Manager, or even host them locally. Every component is designed to be optional, giving you the freedom to adapt the solution to your specific infrastructure.
       </>
     ),
   },
   {
-    title: 'Optimized for AWS Integration',
+    title: 'Runs on Your Cloud',
     description: (
-      <>
-        Expo Open OTA integrates seamlessly with AWS. You can host updates on S3, leverage CloudFront for CDN, and even deploy with Lambda@Edge. While AWS is the primary integration today, the system is designed for extensibility, enabling future support for other platforms.
-      </>
+        <>
+          Take full control of your infrastructure—Expo Open OTA runs entirely on your cloud. Seamlessly integrate with AWS today, leveraging Secrets Manager, S3, and CloudFront for secure and scalable update distribution. Designed for flexibility, our solution is built to support more cloud providers soon, ensuring you stay in control of your deployment strategy.
+        </>
     ),
   },
   {
@@ -32,7 +32,7 @@ const FeatureList: FeatureItem[] = [
         We developed the EOAS (Expo Open Application Services) NPM package to streamline and automate workflows in CI or local environments. This tool simplifies client-side updates and enables secure publishing through the Expo Open OTA server, reducing friction and accelerating implementation.
       </>
     ),
-  },  
+  },
 ];
 
 function Feature({title, description}: FeatureItem) {

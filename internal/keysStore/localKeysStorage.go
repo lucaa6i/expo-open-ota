@@ -1,4 +1,4 @@
-package certs
+package keys
 
 import (
 	"fmt"
@@ -6,9 +6,9 @@ import (
 	"os"
 )
 
-type LocalCertsStorage struct {
-	privateKeyPath           string
-	publicKeyPath            string
+type LocalKeysStorage struct {
+	privateExpoKeyPath       string
+	publicExpoKeyPath        string
 	privateCloudfrontKeyPath string
 }
 
@@ -28,22 +28,22 @@ func retrieveFileContent(path string) string {
 
 	return string(content)
 }
-func (c *LocalCertsStorage) GetPublicExpoCert() string {
-	if c.publicKeyPath == "" {
+func (c *LocalKeysStorage) GetPublicExpoKey() string {
+	if c.publicExpoKeyPath == "" {
 		return ""
 	}
-	return retrieveFileContent(c.publicKeyPath)
+	return retrieveFileContent(c.publicExpoKeyPath)
 }
 
-func (c *LocalCertsStorage) GetPrivateExpoCert() string {
-	if c.privateKeyPath == "" {
+func (c *LocalKeysStorage) GetPrivateExpoKey() string {
+	if c.privateExpoKeyPath == "" {
 		return ""
 	}
-	private := retrieveFileContent(c.privateKeyPath)
+	private := retrieveFileContent(c.privateExpoKeyPath)
 	return private
 }
 
-func (c *LocalCertsStorage) GetPrivateCloudfrontCert() string {
+func (c *LocalKeysStorage) GetPrivateCloudfrontKey() string {
 	if c.privateCloudfrontKeyPath == "" {
 		return ""
 	}

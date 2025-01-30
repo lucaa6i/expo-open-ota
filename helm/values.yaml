@@ -25,7 +25,7 @@ serviceAccount:
 
 secretName: "expo-open-ota-secrets" # If set, environment variables will be read from this secret, else they will be read from the values.yaml file or passed in via the helm command line
 storageMode: "s3"
-certsStorageType: "aws-secrets-manager"
+keysStorageType: "aws-secrets-manager"
 useCloudfrontRedirect: "false"
 useAWSAccessKeys: "false"
 
@@ -69,58 +69,58 @@ environment:
     required:
       - key: "useCloudfrontRedirect"
         is: "true"
-  - name: "PRIVATE_CLOUDFRONT_CERT_KEY_PATH"
+  - name: "PRIVATE_CLOUDFRONT_KEY_PATH"
     value: ""
     required:
       - key: "useCloudfrontRedirect"
         is: "true"
-      - key: "certsStorageType"
+      - key: "keysStorageType"
         is: "local"
-  - name: "AWS_CERTS_PRIVATE_CLOUDFRONT_KEY_SECRET_ID"
+  - name: "AWS_KEYS_PRIVATE_CLOUDFRONT_KEY_SECRET_ID"
     value: ""
     required:
       - key: "useCloudfrontRedirect"
         is: "true"
-      - key: "certsStorageType"
+      - key: "keysStorageType"
         is: "aws-secrets-manager"
-  - name: "CERTS_STORAGE_TYPE"
-    key: "certsStorageType"
+  - name: "KEYS_STORAGE_TYPE"
+    key: "keysStorageType"
     required: true
     computed: true
-  - name: "AWS_CERTS_PUBLIC_KEY_SECRET_ID"
+  - name: "AWS_KEYS_PUBLIC_KEY_SECRET_ID"
     value: ""
     required:
-      - key: "certsStorageType"
+      - key: "keysStorageType"
         is: "aws-secrets-manager"
-  - name: "AWS_CERTS_PRIVATE_KEY_SECRET_ID"
+  - name: "AWS_KEYS_PRIVATE_KEY_SECRET_ID"
     value: ""
     required:
-      - key: "certsStorageType"
+      - key: "keysStorageType"
         is: "aws-secrets-manager"
-  - name: "PUBLIC_CERT_KEY_PATH"
+  - name: "PUBLIC_LOCAL_EXPO_KEY_PATH"
     value: ""
     required:
-      - key: "certsStorageType"
+      - key: "keysStorageType"
         is: "local"
-  - name: "PRIVATE_CERT_KEY_PATH"
+  - name: "PRIVATE_LOCAL_EXPO_KEY_PATH"
     value: ""
     required:
-      - key: "certsStorageType"
+      - key: "keysStorageType"
         is: "local"
-  - name: "PUBLIC_EXPO_CERT_B64"
+  - name: "PUBLIC_EXPO_KEY_B64"
     value: ""
     required:
-      - key: "certsStorageType"
+      - key: "keysStorageType"
         is: "environment"
-  - name: "PRIVATE_EXPO_CERT_B64"
+  - name: "PRIVATE_EXPO_KEY_B64"
     value: ""
     required:
-      - key: "certsStorageType"
+      - key: "keysStorageType"
         is: "environment"
-  - name: "PRIVATE_CLOUDFRONT_CERT_B64"
+  - name: "PRIVATE_CLOUDFRONT_KEY_B64"
     value: ""
     required:
-      - key: "certsStorageType"
+      - key: "keysStorageType"
         is: "environment"
   - name: "BASE_URL"
     value: ""

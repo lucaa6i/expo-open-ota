@@ -74,14 +74,14 @@ func LoadConfig() {
 }
 
 var DefaultEnvValues = map[string]string{
-	"LOCAL_BUCKET_BASE_PATH": "./updates",
-	"STORAGE_MODE":           "local",
-	"BASE_URL":               "http://localhost:3000",
-	"PUBLIC_CERT_KEY_PATH":   "./certs/public-key.pem",
-	"PRIVATE_CERT_KEY_PATH":  "./certs/private-key.pem",
-	"CERTS_STORAGE_TYPE":     "local",
-	"JWT_SECRET":             "",
-	"AWS_REGION":             "eu-west-3",
+	"LOCAL_BUCKET_BASE_PATH":      "./updates",
+	"STORAGE_MODE":                "local",
+	"BASE_URL":                    "http://localhost:3000",
+	"PUBLIC_LOCAL_EXPO_KEY_PATH":  "./keysStore/public-key.pem",
+	"PRIVATE_LOCAL_EXPO_KEY_PATH": "./keysStore/private-key.pem",
+	"KEYS_STORAGE_TYPE":           "local",
+	"JWT_SECRET":                  "",
+	"AWS_REGION":                  "eu-west-3",
 }
 
 func GetEnv(key string) string {

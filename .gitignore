@@ -50,4 +50,4 @@ coverage.html
 # Temporary backup files
 *~
 updates/**/*
-certs/**/*
+test/keys/**/*

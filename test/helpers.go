@@ -369,13 +369,13 @@ func SetValidConfiguration() {
 		panic(err)
 	}
 	os.Setenv("BASE_URL", "http://localhost:3000")
-	os.Setenv("PUBLIC_CERT_KEY_PATH", filepath.Join(projectRoot, "/test/certs/public-key-test.pem"))
-	os.Setenv("PRIVATE_CERT_KEY_PATH", filepath.Join(projectRoot, "/test/certs/private-key-test.pem"))
+	os.Setenv("PUBLIC_LOCAL_EXPO_KEY_PATH", filepath.Join(projectRoot, "/test/keys/public-key-test.pem"))
+	os.Setenv("PRIVATE_LOCAL_EXPO_KEY_PATH", filepath.Join(projectRoot, "/test/keys/private-key-test.pem"))
 	os.Setenv("LOCAL_BUCKET_BASE_PATH", filepath.Join(projectRoot, "/test/test-updates"))
 	os.Setenv("EXPO_APP_ID", "EXPO_APP_ID")
 	os.Setenv("EXPO_ACCESS_TOKEN", "EXPO_ACCESS_TOKEN")
 	os.Setenv("JWT_SECRET", "test_jwt_secret")
-	os.Setenv("PRIVATE_CLOUDFRONT_CERT_KEY_PATH", "")
+	os.Setenv("PRIVATE_CLOUDFRONT_KEY_PATH", "")
 	os.Setenv("CLOUDFRONT_DOMAIN", "")
 	os.Setenv("CLOUDFRONT_KEY_PAIR_ID", "")
 }

@@ -44,7 +44,7 @@ func TestEmptyAssetNameForAssets(t *testing.T) {
 
 	t.Run("Test HandleAssetsWithURL", func(t *testing.T) {
 		testEmptyAssetName(t, func(req assets.AssetsRequest) (assets.AssetsResponse, error) {
-			os.Setenv("PRIVATE_CLOUDFRONT_CERT_KEY_PATH", filepath.Join(projectRoot, "/test/certs/private-key-cloudfront-test.pem"))
+			os.Setenv("PRIVATE_CLOUDFRONT_KEY_PATH", filepath.Join(projectRoot, "/test/keys/private-key-cloudfront-test.pem"))
 			os.Setenv("CLOUDFRONT_DOMAIN", "https://cdn.expoopenota.com")
 			os.Setenv("CLOUDFRONT_KEY_PAIR_ID", "test")
 			return assets.HandleAssetsWithURL(req, &cdn.CloudfrontCDN{})
@@ -75,7 +75,7 @@ func TestBadPlatformForAssets(t *testing.T) {
 	})
 	t.Run("Test HandleAssetsWithURL", func(t *testing.T) {
 		testInvalidPlatform(t, func(req assets.AssetsRequest) (assets.AssetsResponse, error) {
-			os.Setenv("PRIVATE_CLOUDFRONT_CERT_KEY_PATH", filepath.Join(projectRoot, "/test/certs/private-key-cloudfront-test.pem"))
+			os.Setenv("PRIVATE_CLOUDFRONT_KEY_PATH", filepath.Join(projectRoot, "/test/keys/private-key-cloudfront-test.pem"))
 			os.Setenv("CLOUDFRONT_DOMAIN", "https://cdn.expoopenota.com")
 			os.Setenv("CLOUDFRONT_KEY_PAIR_ID", "test")
 			return assets.HandleAssetsWithURL(req, &cdn.CloudfrontCDN{})
@@ -106,7 +106,7 @@ func TestMissingRuntimeVersionForAssets(t *testing.T) {
 	})
 	t.Run("Test HandleAssetsWithURL", func(t *testing.T) {
 		testMissingRuntimeVersion(t, func(req assets.AssetsRequest) (assets.AssetsResponse, error) {
-			os.Setenv("PRIVATE_CLOUDFRONT_CERT_KEY_PATH", filepath.Join(projectRoot, "/test/certs/private-key-cloudfront-test.pem"))
+			os.Setenv("PRIVATE_CLOUDFRONT_KEY_PATH", filepath.Join(projectRoot, "/test/keys/private-key-cloudfront-test.pem"))
 			os.Setenv("CLOUDFRONT_DOMAIN", "https://cdn.expoopenota.com")
 			os.Setenv("CLOUDFRONT_KEY_PAIR_ID", "test")
 			return assets.HandleAssetsWithURL(req, &cdn.CloudfrontCDN{})
@@ -137,7 +137,7 @@ func TestEmptyUpdatesForAssets(t *testing.T) {
 	})
 	t.Run("Test HandleAssetsWithURL", func(t *testing.T) {
 		testEmptyUpdates(t, func(req assets.AssetsRequest) (assets.AssetsResponse, error) {
-			os.Setenv("PRIVATE_CLOUDFRONT_CERT_KEY_PATH", filepath.Join(projectRoot, "/test/certs/private-key-cloudfront-test.pem"))
+			os.Setenv("PRIVATE_CLOUDFRONT_KEY_PATH", filepath.Join(projectRoot, "/test/keys/private-key-cloudfront-test.pem"))
 			os.Setenv("CLOUDFRONT_DOMAIN", "https://cdn.expoopenota.com")
 			os.Setenv("CLOUDFRONT_KEY_PAIR_ID", "test")
 			return assets.HandleAssetsWithURL(req, &cdn.CloudfrontCDN{})
@@ -168,7 +168,7 @@ func TestBadRuntimeVersion(t *testing.T) {
 	})
 	t.Run("Test HandleAssetsWithURL", func(t *testing.T) {
 		testBadRuntimeVersion(t, func(req assets.AssetsRequest) (assets.AssetsResponse, error) {
-			os.Setenv("PRIVATE_CLOUDFRONT_CERT_KEY_PATH", filepath.Join(projectRoot, "/test/certs/private-key-cloudfront-test.pem"))
+			os.Setenv("PRIVATE_CLOUDFRONT_KEY_PATH", filepath.Join(projectRoot, "/test/keys/private-key-cloudfront-test.pem"))
 			os.Setenv("CLOUDFRONT_DOMAIN", "https://cdn.expoopenota.com")
 			os.Setenv("CLOUDFRONT_KEY_PAIR_ID", "test")
 			return assets.HandleAssetsWithURL(req, &cdn.CloudfrontCDN{})
@@ -188,7 +188,7 @@ func TestToRetrieveBundleAsset(t *testing.T) {
 		RequestID:      "test",
 	}
 	projectRoot, _ := findProjectRoot()
-	os.Setenv("PRIVATE_CLOUDFRONT_CERT_KEY_PATH", filepath.Join(projectRoot, "/test/certs/private-key-cloudfront-test.pem"))
+	os.Setenv("PRIVATE_CLOUDFRONT_KEY_PATH", filepath.Join(projectRoot, "/test/keys/private-key-cloudfront-test.pem"))
 	os.Setenv("CLOUDFRONT_DOMAIN", "https://cdn.expoopenota.com")
 	os.Setenv("CLOUDFRONT_KEY_PAIR_ID", "test")
 	response, err := assets.HandleAssetsWithFile(asset)
@@ -331,7 +331,7 @@ func TestAutomaticUrlRedirectionIfCDNIsSet(t *testing.T) {
 	teardown := setup(t)
 	defer teardown()
 	projectRoot, _ := findProjectRoot()
-	os.Setenv("PRIVATE_CLOUDFRONT_CERT_KEY_PATH", filepath.Join(projectRoot, "/test/certs/private-key-cloudfront-test.pem"))
+	os.Setenv("PRIVATE_CLOUDFRONT_KEY_PATH", filepath.Join(projectRoot, "/test/keys/private-key-cloudfront-test.pem"))
 	os.Setenv("CLOUDFRONT_DOMAIN", "https://cdn.expoopenota.com")
 	os.Setenv("CLOUDFRONT_KEY_PAIR_ID", "test")
 
@@ -351,7 +351,7 @@ func TestPreventCDNRedirectionHeader(t *testing.T) {
 	teardown := setup(t)
 	defer teardown()
 	projectRoot, _ := findProjectRoot()
-	os.Setenv("PRIVATE_CLOUDFRONT_CERT_KEY_PATH", filepath.Join(projectRoot, "/test/certs/private-key-cloudfront-test.pem"))
+	os.Setenv("PRIVATE_CLOUDFRONT_KEY_PATH", filepath.Join(projectRoot, "/test/keys/private-key-cloudfront-test.pem"))
 	os.Setenv("CLOUDFRONT_DOMAIN", "https://cdn.expoopenota.com")
 	os.Setenv("CLOUDFRONT_KEY_PAIR_ID", "test")
 

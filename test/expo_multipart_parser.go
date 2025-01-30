@@ -8,7 +8,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
-	"expo-open-ota/internal/certs"
+	"expo-open-ota/internal/keysStore"
 	"fmt"
 	"io"
 	"mime"
@@ -82,7 +82,7 @@ func IsMultipartPartWithName(part MultipartPart, name string) bool {
 }
 
 func ValidateSignatureHeader(signature string, content string) bool {
-	publicCert := certs.GetPublicExpoCert()
+	publicCert := keys.GetPublicExpoKey()
 	signatureParts := strings.Split(signature, ",")
 	if len(signatureParts) != 2 {
 		fmt.Println("Invalid signature format")
