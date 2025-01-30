@@ -67,7 +67,7 @@ const config: Config = {
 
   themeConfig: {
     // Replace with your project's social card
-    image: 'img/docusaurus-social-card.jpg',
+    image: 'img/social_card.png',
     navbar: {
       title: 'Expo Open OTA',
       logo: {
