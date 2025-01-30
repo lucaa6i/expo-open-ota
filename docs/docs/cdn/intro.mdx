@@ -1,6 +1,8 @@
 ---
-sidebar_position: 6
+sidebar_position: 1
+pagination_next: storage
 ---
+import DocCardList from '@theme/DocCardList';
 
 # CDN
 
@@ -11,12 +13,8 @@ Currently only cloudfront is supported as a CDN provider.
 The environment variables required for each cdn are listed below, you can set them in a `.env` file in the root of the project or keep them in a safe place to prepare for deployment.
 :::
 
-## Cloudfront
+**This feature is optional you can skip this section.**
 
-The cloudfront CDN feature requires your storage mode to be set to `s3`. You can follow the [storage guide](/docs/storage) to set up your storage solution.
+## Available CDNs
 
-### Create a Cloudfront Distribution
-
-1. Go to the [Cloudfront console](https://console.aws.amazon.com/cloudfront/home).
-2. Click on **Create Distribution**.
-3. Set your S3 bucket as the origin.
+<DocCardList />

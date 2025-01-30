@@ -33,13 +33,13 @@ This token will be used as the `EXPO_ACCESS_TOKEN` environment variable.
 1. Ensure you have the [EAS CLI](https://github.com/expo/eas-cli) installed.
 2. Ensure you are logged in to your Expo account by running
 
-    ```bash
+    ```bash title="cd ./my-expo-project"
     eas account:view
     ```
 3. On your terminal go to the root directory of your Expo project.
 4. Run
 
-    ```bash
+    ```bash title="cd ./my-expo-project"
     eas project:info
     ```
    to get the project ID.
@@ -61,7 +61,7 @@ A JWT Secret can be used to sign and verify some of the requests made to the ser
 that is sent to the client when they request an update manifest.
 To generate a JWT secret, you can use the following command:
 
-```bash
+```bash title="Generate JWT Secret"
 openssl rand -base64 32
 ```
 

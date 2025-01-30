@@ -1,0 +1,36 @@
+---
+sidebar_position: 7
+---
+
+# Caching
+
+The **Expo Open OTA server** uses a cache to improve performance and reduce server load by avoiding repeated computations.
+
+## Cache Usage
+
+The cache is primarily used for:
+
+1. **Storing the computed `lastUpdateId` for a given platform and runtime version**
+   - This prevents the need to recompute the last update for every request, significantly speeding up responses.
+
+2. **Caching the computed manifest**
+   - Manifest generation can be an expensive operation, especially when querying the database.
+   - By caching the results, we reduce response times and improve overall performance.
+
+## Current Limitations
+
+Currently, the cache is **local** to the server instance. This means:
+
+- When a new update is published, the first request for the manifest may take longer as the cache needs to be repopulated.
+- The cache is not shared across multiple instances, which could lead to inconsistent results in a distributed setup.
+
+## Future Improvements
+
+We plan to implement a **distributed caching system**, such as Redis, to:
+
+- Share cached results across multiple instances.
+- Ensure consistent and faster responses regardless of the server handling the request.
+- Reduce the load on database queries and CPU-intensive computations.
+
+Once the distributed cache is in place, performance will be significantly improved, especially for high-traffic environments.
+

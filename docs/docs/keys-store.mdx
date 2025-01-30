@@ -4,6 +4,10 @@ sidebar_position: 5
 
 # Keys Store
 
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+
 The **Expo Open OTA** server requires several keys and secrets to interact with the Expo API and your CDN.
 
 The **Key store** is a module that manages how these keys are accessed by the server.
@@ -29,7 +33,7 @@ To generate expo signing key pairs :
 1. On your terminal, go to the root directory of your expo project.
 2. Run the following command:
 
-```bash
+```bash title="cd ./my-expo-project"
 npx eoas generate-certs
 ```
 
@@ -49,61 +53,63 @@ Please refer to this [section](/docs/cdn#cloudfront) on how to generate a Cloudf
 
 ## Key Store Configuration
 
-### Environment Variables
+<Tabs queryString="keyStore" defaultValue="environment">
+    <TabItem value="environment" label="Environment Variables" default>
+    You will have to encode the keys in base64 format and set the following environment variables:
 
-You will have to encode the keys in base64 format and set the following environment variables:
+    ```bash title="Encode keys"
+    echo -n "your-private-key" | base64
+    ```
 
-```bash
-echo -n "your-private-key" | base64
-```
+    Then set the following environment variables:
 
-Then set the following environment variables:
+    ```bash title=".env"
+    KEYS_STORAGE_TYPE=environment
+    PUBLIC_EXPO_KEY_B64=base64-encoded-public-key
+    PRIVATE_EXPO_KEY_B64=base64-encoded-private-key
+    PRIVATE_CLOUDFRONT_KEY_B64=base64-encoded-cloudfront-private-key
+    ```
+    </TabItem>
+    <TabItem value="aws-secrets-manager" label="AWS Secrets Manager">
+    :::note
+    If you are not familiar with AWS Secrets Manager, you can refer to the [official documentation](https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html).
+    :::
 
-```bash
-KEYS_STORAGE_TYPE=environment
-PUBLIC_EXPO_KEY_B64=base64-encoded-public-key
-PRIVATE_EXPO_KEY_B64=base64-encoded-private-key
-PRIVATE_CLOUDFRONT_KEY_B64=base64-encoded-cloudfront-private-key
-```
+    1. Create a secret for each keys in AWS Secrets Manager.
+    2. Set the following environment variables:
 
-### AWS Secrets Manager
+    ```bash title=".env"
+    KEYS_STORAGE_TYPE=aws-secrets-manager
+    AWS_KEYS_PRIVATE_EXPO_KEY_SECRET_ID=The secret name of the expo private key
+    AWS_KEYS_PUBLIC_EXPO_KEY_SECRET_ID=The secret name of the expo public key
+    AWS_KEYS_PRIVATE_CLOUDFRONT_KEY_SECRET_ID=The secret name of the cloudfront private key
+    AWS_REGION=your-region
+    ```
 
-:::note
-If you are not familiar with AWS Secrets Manager, you can refer to the [official documentation](https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html).
-:::
+    If your are not using AWS IAM roles, you also need to set the following environment variables:
+    ```bash title=".env"
+    AWS_ACCESS_KEY_ID=your-access-key-id
+    AWS_SECRET_ACCESS_KEY=your-secret-access-key
+    ```
 
-1. Create a secret for each keys in AWS Secrets Manager.
-2. Set the following environment variables:
+    :::info
+        The server use the same AWS credentials for [S3 Storage](/docs/storage?storage=s3) and AWS Secrets Manager. Please ensure to setup the correct ACLs and permissions for the keys.
+    :::
+    </TabItem>
+    <TabItem value="local" label="Local Key Store">
+    :::warning
+    This key store is not recommended for production use. It is intended for development and testing purposes only.
+    :::
 
-```bash
-KEYS_STORAGE_TYPE=aws-secrets-manager
-AWS_KEYS_PRIVATE_EXPO_KEY_SECRET_ID=The secret name of the expo private key
-AWS_KEYS_PUBLIC_EXPO_KEY_SECRET_ID=The secret name of the expo public key
-AWS_KEYS_PRIVATE_CLOUDFRONT_KEY_SECRET_ID=The secret name of the cloudfront private key
-AWS_REGION=your-region
-```
+    To use local key store you will need to set the following environment variables:
 
-If your are not using AWS IAM roles, you also need to set the following environment variables:
-```bash
-AWS_ACCESS_KEY_ID=your-access-key-id
-AWS_SECRET_ACCESS_KEY=your-secret-access-key
-```
+    ```bash title=".env"
+    KEYS_STORAGE_TYPE=local
+    PUBLIC_LOCAL_EXPO_KEY_PATH=/path/to/public-key.pem
+    PRIVATE_LOCAL_EXPO_KEY_PATH=/path/to/private-key.pem
+    PRIVATE_LOCAL_CLOUDFRONT_KEY_PATH=/path/to/cloudfront-private-key.pem
+    ```
 
-:::info
-    The server use the same AWS credentials for [S3 Storage](/docs/storage#amazon-s3) and AWS Secrets Manager. Please ensure to setup the correct ACLs and permissions for the keys.
-:::
+    </TabItem>
+</Tabs>
 
-### Local Key Store
-
-:::warning
-This key store is not recommended for production use. It is intended for development and testing purposes only.
-:::
-
-To use local key store you will need to set the following environment variables:
-
-```bash
-KEYS_STORAGE_TYPE=local
-PUBLIC_LOCAL_EXPO_KEY_PATH=/path/to/public-key.pem
-PRIVATE_LOCAL_EXPO_KEY_PATH=/path/to/private-key.pem
-PRIVATE_LOCAL_CLOUDFRONT_KEY_PATH=/path/to/cloudfront-private-key.pem
-```
