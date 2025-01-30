@@ -39,16 +39,18 @@ jobs:
           docker push "$REPO:$IMAGE_TAG"
 
       - name: Check latest version and update latest tag
+        env:
+          IMAGE_TAG: ${{ github.ref_name }}
         run: |
           REPO="ghcr.io/${{ github.repository_owner }}/expo-open-ota"
-          IMAGE_TAG="${GITHUB_REF#refs/tags/}"
+          
           echo "📡 Fetching the latest version tag from GHCR..."
           LATEST_TAG=$(gh api "https://api.github.com/users/${{ github.repository_owner }}/packages/container/expo-open-ota/versions" \
             --jq '[.[].metadata.container.tags[]] | map(select(test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))) | sort_by(.) | last' | tr -d '"')
-
+          
           echo "🔍 Latest found version: $LATEST_TAG"
           echo "🏷️ Current version: $IMAGE_TAG"
-
+          
           if [ "$LATEST_TAG" = "$IMAGE_TAG" ]; then
             echo "✅ $IMAGE_TAG is the latest version. Updating latest tag..."
             docker tag "$REPO:$IMAGE_TAG" "$REPO:latest"
