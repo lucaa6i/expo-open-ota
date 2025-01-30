@@ -41,7 +41,7 @@ jobs:
       - name: Check latest version and update latest tag
         run: |
           REPO="ghcr.io/${{ github.repository_owner }}/expo-open-ota"
-
+          IMAGE_TAG="${GITHUB_REF#refs/tags/}"
           echo "📡 Fetching the latest version tag from GHCR..."
           LATEST_TAG=$(gh api "https://api.github.com/users/${{ github.repository_owner }}/packages/container/expo-open-ota/versions" \
             --jq '[.[].metadata.container.tags[]] | map(select(test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))) | sort_by(.) | last' | tr -d '"')
