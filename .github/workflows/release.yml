@@ -67,6 +67,7 @@ jobs:
         run: |
           cd eoas
           npm ci
+          npm run build
           npm version ${{ github.ref_name }} --no-git-tag-version
           npm publish --access public --provenance
         env:

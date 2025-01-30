@@ -1,6 +1,6 @@
 {
   "name": "eoas",
-  "version": "1.0.2",
+  "version": "1.0.0",
   "main": "index.js",
   "scripts": {
     "build": "tsc --project tsconfig.json",
@@ -88,5 +88,9 @@
     "commands": "./dist/commands",
     "dirname": "eoas",
     "topicSeparator": ":"
-  }
+  },
+  "files": [
+    "/bin",
+    "/dist"
+  ]
 }
