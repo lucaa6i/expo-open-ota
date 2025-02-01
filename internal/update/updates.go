@@ -286,6 +286,7 @@ func ComposeUpdateManifest(
 		Metadata:       json.RawMessage("{}"),
 		Extra: types.ExtraManifestData{
 			ExpoClient: expoConfig,
+			Branch:     update.Branch,
 		},
 		Assets:      assets,
 		LaunchAsset: launchAsset,
