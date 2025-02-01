@@ -72,10 +72,6 @@ const config: Config = {
     image: './static/img/social_card.png',
     navbar: {
       title: 'Expo Open OTA',
-      logo: {
-        alt: 'Expo Open OTA',
-        src: 'img/logo.png',
-      },
       items: [
         {
           type: 'docSidebar',
