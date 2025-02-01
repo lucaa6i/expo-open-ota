@@ -124,7 +124,7 @@ export default class Publish extends Command {
         Log.error('Please run `eoas init` to setup the correct update url');
       }
     }
-    const runtimeSpinner = ora('Resolving runtime version').start();
+    const runtimeSpinner = ora('🔄 Resolving runtime version...').start();
     const runtimeVersions = [
       ...(!platform || platform === RequestedPlatform.All || platform === RequestedPlatform.Ios
         ? [
@@ -162,9 +162,9 @@ export default class Publish extends Command {
       Log.error('Could not resolve runtime versions for the requested platforms');
       return;
     }
-    runtimeSpinner.succeed('Runtime versions resolved');
+    runtimeSpinner.succeed('✅ Runtime versions resolved');
 
-    const exportSpinner = ora("Exporting project's static files").start();
+    const exportSpinner = ora("📦 Exporting project files...").start();
     try {
       await spawnAsync('rm', ['-rf', 'dist'], { cwd: projectDir });
       const { stdout } = await spawnAsync('npx', ['expo', 'export', '--output-dir', 'dist'], {
@@ -174,10 +174,10 @@ export default class Publish extends Command {
           EXPO_NO_DOTENV: '1',
         },
       });
-      exportSpinner.succeed('Project exported successfully');
+      exportSpinner.succeed('🚀 Project exported successfully');
       Log.withInfo(stdout);
     } catch {
-      exportSpinner.fail('Failed to export the project');
+      exportSpinner.fail('❌ Failed to export the project');
     }
     const publicConfig = await getPublicExpoConfigAsync(projectDir, {
       skipSDKVersionRequirement: true,
@@ -193,7 +193,7 @@ export default class Publish extends Command {
       spaces: 2,
     });
     Log.withInfo('expoConfig.json file created in dist directory');
-    const uploadFilesSpinner = ora('Uploading files to the server').start();
+    const uploadFilesSpinner = ora('📤 Uploading files...').start();
     const files = computeFilesRequests(projectDir, platform || RequestedPlatform.All);
     if (!files.length) {
       uploadFilesSpinner.fail('No files to upload');
@@ -263,15 +263,20 @@ export default class Publish extends Command {
             body: buffer,
           });
           if (!response.ok) {
-            Log.error('Failed to upload file', await response.text());
+            Log.error('❌ File upload failed', await response.text());
             throw new Error('Failed to upload file');
           }
           file.close();
         })
       );
-      uploadFilesSpinner.succeed('Files uploaded successfully');
+      uploadFilesSpinner.succeed('✅ Files uploaded successfully');
     } catch {
-      uploadFilesSpinner.fail('Failed to upload static files');
+      uploadFilesSpinner.fail('❌ Failed to upload static files');
     }
+    console.log(`\n✅ Your update has been successfully pushed to ${updateUrl}`);
+    console.log(`🔗 Channel: \`${channel}\``);
+    console.log(`🌿 Branch: \`${branch}\``);
+    console.log(`⏳ Deployed at: \`${new Date().toUTCString()}\`\n`);
+    console.log('🔥 Your users will receive the latest update automatically!');
   }
 }
