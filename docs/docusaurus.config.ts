@@ -69,7 +69,7 @@ const config: Config = {
 
   themeConfig: {
     // Replace with your project's social card
-    image: 'https://opengraph.githubassets.com/1/axelmarciano/expo-open-ota',
+    image: './static/img/social_card.png',
     navbar: {
       title: 'Expo Open OTA',
       logo: {
