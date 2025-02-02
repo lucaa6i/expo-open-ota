@@ -1,6 +1,6 @@
-# EOAS (Expo-Open-OTA Support)
+# EOAS (Expo Open Application Services)
 
-EOAS (Expo-Open-OTA Support) is a powerful helper package designed to simplify the setup and update publication process for the [expo-open-ota](https://github.com/axelmarciano/expo-open-ota) project.
+EOAS ((Expo Open Application Services) is a powerful helper package designed to simplify the setup and update publication process for the [expo-open-ota](https://github.com/axelmarciano/expo-open-ota) project.
 
 ## Quick Start
 
