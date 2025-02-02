@@ -9,31 +9,33 @@ type FeatureItem = {
 };
 
 const FeatureList: FeatureItem[] = [
-  {
-    title: 'Modular and Flexible',
-    description: (
-      <>
-        Expo Open OTA is built with a modular architecture, allowing you to tailor it to your needs. Host updates on AWS S3 or manage key pair with AWS Secrets Manager, or even host them locally. Every component is designed to be optional, giving you the freedom to adapt the solution to your specific infrastructure.
-      </>
-    ),
-  },
-  {
-    title: 'Runs on Your Cloud',
-    description: (
-        <>
-          Take full control of your infrastructure—Expo Open OTA runs entirely on your cloud. Seamlessly integrate with AWS today, leveraging Secrets Manager, S3, and CloudFront for secure and scalable update distribution. Designed for flexibility, our solution is built to support more cloud providers soon, ensuring you stay in control of your deployment strategy.
-        </>
-    ),
-  },
-  {
-    title: 'Streamlined Adoption with EOAS',
-    description: (
-      <>
-        We developed the EOAS (Expo Open Application Services) NPM package to streamline and automate workflows in CI or local environments. This tool simplifies client-side updates and enables secure publishing through the Expo Open OTA server, reducing friction and accelerating implementation.
-      </>
-    ),
-  },
+    {
+        title: '⚙️ Ready for production in 10 minutes',
+        description: (
+            <>
+                No database, no complex setup—Expo Open OTA is designed for seamless production use. It fully leverages Expo’s configuration, handling <strong>release channels</strong>, <strong>branches</strong>, and <strong>runtime version fingerprints</strong> out of the box. Just connect your cloud storage (S3) and you're ready to go!
+            </>
+        ),
+    },
+    {
+        title: '🚀 EOAS: One Command to Publish & Configure',
+        description: (
+            <>
+                Say goodbye to manual setup! Our <code>eoas</code> NPM package automates everything—run <code>npx eoas init</code> to configure your project, and <code>npx eoas publish</code> to push updates effortlessly from your CI/CD pipeline. No extra scripts, no hassle.
+            </>
+        ),
+    },
+    {
+        title: '⚡ CDN Delivery',
+        description: (
+            <>
+                Your assets, delivered at lightning speed. Expo Open OTA serves static assets through a CDN for maximum performance. Currently supporting AWS CloudFront, with upcoming support for Cloudflare and more—so your users get updates instantly, wherever they are.
+            </>
+        ),
+    },
+
 ];
+
 
 function Feature({title, description}: FeatureItem) {
   return (
