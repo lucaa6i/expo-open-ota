@@ -73,17 +73,17 @@ export default class Publish extends Command {
 
     if (!credentials.token && !credentials.sessionSecret) {
       Log.error('You are not logged to eas, please run `eas login`');
-      return;
+      process.exit(1);
     }
     const { flags } = await this.parse(Publish);
     const { platform, nonInteractive, branch, channel } = this.sanitizeFlags(flags);
     if (!branch) {
       Log.error('Branch name is required');
-      return;
+      process.exit(1);
     }
     if (!channel) {
       Log.error('Channel name is required');
-      return;
+      process.exit(1);
     }
     await this.vcsClient.ensureRepoExistsAsync();
     await ensureRepoIsCleanAsync(this.vcsClient, nonInteractive);
@@ -91,7 +91,7 @@ export default class Publish extends Command {
     const hasExpo = isExpoInstalled(projectDir);
     if (!hasExpo) {
       Log.error('Expo is not installed in this project. Please install Expo first.');
-      return;
+      process.exit(1);
     }
 
     const privateConfig = await getPrivateExpoConfigAsync(projectDir, {
@@ -104,7 +104,7 @@ export default class Publish extends Command {
       Log.error(
         "Update url is not setup in your config. Please run 'eoas init' to setup the update url"
       );
-      return;
+      process.exit(1);
     }
     let baseUrl: string;
     try {
@@ -112,7 +112,7 @@ export default class Publish extends Command {
       baseUrl = parsedUrl.origin;
     } catch (e) {
       Log.error('Invalid URL', e);
-      return;
+      process.exit(1);
     }
     if (!nonInteractive) {
       const confirmed = await confirmAsync({
@@ -122,6 +122,7 @@ export default class Publish extends Command {
       });
       if (!confirmed) {
         Log.error('Please run `eoas init` to setup the correct update url');
+        process.exit(1);
       }
     }
     const runtimeSpinner = ora('🔄 Resolving runtime version...').start();
@@ -160,11 +161,11 @@ export default class Publish extends Command {
     if (!runtimeVersions.length) {
       runtimeSpinner.fail('Could not resolve runtime versions for the requested platforms');
       Log.error('Could not resolve runtime versions for the requested platforms');
-      return;
+      process.exit(1);
     }
     runtimeSpinner.succeed('✅ Runtime versions resolved');
 
-    const exportSpinner = ora("📦 Exporting project files...").start();
+    const exportSpinner = ora('📦 Exporting project files...').start();
     try {
       await spawnAsync('rm', ['-rf', 'dist'], { cwd: projectDir });
       const { stdout } = await spawnAsync('npx', ['expo', 'export', '--output-dir', 'dist'], {
@@ -178,6 +179,7 @@ export default class Publish extends Command {
       Log.withInfo(stdout);
     } catch {
       exportSpinner.fail('❌ Failed to export the project');
+      process.exit(1);
     }
     const publicConfig = await getPublicExpoConfigAsync(projectDir, {
       skipSDKVersionRequirement: true,
@@ -186,7 +188,7 @@ export default class Publish extends Command {
       Log.error(
         'Could not find Expo config in this project. Please make sure you have an Expo config.'
       );
-      return;
+      process.exit(1);
     }
     // eslint-disable-next-line
     fs.writeJsonSync(path.join(projectDir, 'dist', 'expoConfig.json'), publicConfig, {
@@ -197,6 +199,7 @@ export default class Publish extends Command {
     const files = computeFilesRequests(projectDir, platform || RequestedPlatform.All);
     if (!files.length) {
       uploadFilesSpinner.fail('No files to upload');
+      process.exit(1);
     }
     try {
       const uploadUrls = await Promise.all(
@@ -264,7 +267,7 @@ export default class Publish extends Command {
           });
           if (!response.ok) {
             Log.error('❌ File upload failed', await response.text());
-            throw new Error('Failed to upload file');
+            process.exit(1);
           }
           file.close();
         })
@@ -272,6 +275,7 @@ export default class Publish extends Command {
       uploadFilesSpinner.succeed('✅ Files uploaded successfully');
     } catch {
       uploadFilesSpinner.fail('❌ Failed to upload static files');
+      process.exit(1);
     }
     console.log(`\n✅ Your update has been successfully pushed to ${updateUrl}`);
     console.log(`🔗 Channel: \`${channel}\``);
