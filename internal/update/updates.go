@@ -35,6 +35,9 @@ func GetAllUpdatesForRuntimeVersion(branch string, runtimeVersion string) ([]typ
 }
 
 func MarkUpdateAsChecked(update types.Update) error {
+	cache := cache2.GetCache()
+	cacheKey := ComputeLastUpdateCacheKey(update.Branch, update.RuntimeVersion)
+	cache.Delete(cacheKey)
 	resolvedBucket := bucket.GetBucket()
 	reader := strings.NewReader(".check")
 	_ = resolvedBucket.UploadFileIntoUpdate(update, ".check", reader)
@@ -66,6 +69,38 @@ func ComputeUpdataManifestCacheKey(branch string, runtimeVersion string, updateI
 
 func ComputeManifestAssetCacheKey(update types.Update, assetPath string) string {
 	return fmt.Sprintf("asset:%s:%s:%s:%s", update.Branch, update.RuntimeVersion, update.UpdateId, assetPath)
+}
+
+func VerifyUploadedUpdate(update types.Update) error {
+	metadata, errMetadata := GetMetadata(update)
+	if errMetadata != nil {
+		return errMetadata
+	}
+	if metadata.MetadataJSON.FileMetadata.IOS.Bundle == "" && metadata.MetadataJSON.FileMetadata.Android.Bundle == "" {
+		return fmt.Errorf("missing bundle path in metadata")
+	}
+	files := []string{}
+	if metadata.MetadataJSON.FileMetadata.IOS.Bundle != "" {
+		files = append(files, metadata.MetadataJSON.FileMetadata.IOS.Bundle)
+		for _, asset := range metadata.MetadataJSON.FileMetadata.IOS.Assets {
+			files = append(files, asset.Path)
+		}
+	}
+	if metadata.MetadataJSON.FileMetadata.Android.Bundle != "" {
+		files = append(files, metadata.MetadataJSON.FileMetadata.Android.Bundle)
+		for _, asset := range metadata.MetadataJSON.FileMetadata.Android.Assets {
+			files = append(files, asset.Path)
+		}
+	}
+
+	resolvedBucket := bucket.GetBucket()
+	for _, file := range files {
+		_, err := resolvedBucket.GetFile(update, file)
+		if err != nil {
+			return fmt.Errorf("missing file: %s in update", file)
+		}
+	}
+	return nil
 }
 
 func GetUpdate(branch string, runtimeVersion string, updateId string) (*types.Update, error) {

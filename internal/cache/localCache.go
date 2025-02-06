@@ -56,15 +56,15 @@ func (c *LocalCache) Set(key string, value string, ttl *int) error {
 }
 
 func (c *LocalCache) Delete(key string) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	if _, exists := c.items[key]; !exists {
+	if c == nil {
 		return
 	}
 
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	// delete sur une map nil est sans danger en Go, donc pas besoin de vérifier c.items.
 	delete(c.items, key)
-	return
 }
 
 func (c *LocalCache) Clear() error {
