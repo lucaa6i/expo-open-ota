@@ -179,17 +179,26 @@ func TestRequestUploadUrlWithSampleUpdate(t *testing.T) {
 		"BRANCH": "DO_NOT_USE",
 	})
 	r.Header.Set("Authorization", "Bearer expo_test_token")
-	sampleUpdatePath := filepath.Join(projectRoot, "/test/test-updates/branch-1/1/1674170951")
+	sampleUpdatePath := filepath.Join(projectRoot, "/test/test-updates/branch-3/1/1666304169")
 	uploadRequestsInput := ComputeUploadRequestsInput(sampleUpdatePath)
 	uploadRequestsInputJSON, err := json.Marshal(uploadRequestsInput)
 	if err != nil {
 		t.Errorf("Error marshalling uploadRequestsInput: %v", err)
 	}
+
 	r.Body = io.NopCloser(bytes.NewReader(uploadRequestsInputJSON))
 	handlers.RequestUploadUrlHandler(w, r)
 	assert.Equal(t, 200, w.Code, "Expected status code 200")
-	var fileUploadRequests []bucket.FileUploadRequest
-	err = json.NewDecoder(w.Body).Decode(&fileUploadRequests)
+	type ResponseBody struct {
+		UpdateId       string                     `json:"updateId"`
+		UploadRequests []bucket.FileUploadRequest `json:"uploadRequests"`
+	}
+	var responseBody ResponseBody
+	err = json.NewDecoder(w.Body).Decode(&responseBody)
+	if err != nil {
+		assert.Fail(t, "Expected valid JSON response")
+	}
+	fileUploadRequests := responseBody.UploadRequests
 	assert.Len(t, fileUploadRequests, 3, "Expected 3 file upload requests (1 is duplicated)")
 	updateId := w.Header().Get("expo-update-id")
 	assert.NotEmpty(t, updateId, "Expected non-empty update ID")
