@@ -20,6 +20,14 @@ type LocalBucket struct {
 	BasePath string
 }
 
+func (b *LocalBucket) DeleteUpdateFolder(branch string, runtimeVersion string, updateId string) error {
+	if b.BasePath == "" {
+		return errors.New("BasePath not set")
+	}
+	dirPath := filepath.Join(b.BasePath, branch, runtimeVersion, updateId)
+	return os.RemoveAll(dirPath)
+}
+
 func (b *LocalBucket) RequestUploadUrlForFileUpdate(branch string, runtimeVersion string, updateId string, fileName string) (string, error) {
 	if b.BasePath == "" {
 		return "", errors.New("BasePath not set")
