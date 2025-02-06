@@ -1,7 +1,6 @@
 import { Platform } from '@expo/eas-build-job';
 import spawnAsync from '@expo/spawn-async';
 import { Command, Flags } from '@oclif/core';
-import { Config } from '@oclif/core/lib/config';
 import FormData from 'form-data';
 import fs from 'fs-extra';
 import mime from 'mime';
@@ -23,15 +22,9 @@ import { confirmAsync } from '../lib/prompts';
 import { ensureRepoIsCleanAsync } from '../lib/repo';
 import { resolveRuntimeVersionAsync } from '../lib/runtimeVersion';
 import { resolveVcsClient } from '../lib/vcs';
-import { Client } from '../lib/vcs/vcs';
 import { resolveWorkflowAsync } from '../lib/workflow';
 
 export default class Publish extends Command {
-  vcsClient: Client;
-  constructor(argv: string[], config: Config) {
-    super(argv, config);
-    this.vcsClient = resolveVcsClient(false);
-  }
   static override args = {};
   static override description = 'Publish a new update to the self-hosted update server';
   static override examples = ['<%= config.bin %> <%= command.id %>'];
@@ -85,8 +78,9 @@ export default class Publish extends Command {
       Log.error('Channel name is required');
       process.exit(1);
     }
-    await this.vcsClient.ensureRepoExistsAsync();
-    await ensureRepoIsCleanAsync(this.vcsClient, nonInteractive);
+    const vcsClient = resolveVcsClient(true);
+    await vcsClient.ensureRepoExistsAsync();
+    await ensureRepoIsCleanAsync(vcsClient, nonInteractive);
     const projectDir = process.cwd();
     const hasExpo = isExpoInstalled(projectDir);
     if (!hasExpo) {
@@ -134,7 +128,7 @@ export default class Publish extends Command {
                 await resolveRuntimeVersionAsync({
                   exp: privateConfig,
                   platform: 'ios',
-                  workflow: await resolveWorkflowAsync(projectDir, Platform.IOS, this.vcsClient),
+                  workflow: await resolveWorkflowAsync(projectDir, Platform.IOS, vcsClient),
                   projectDir,
                   env: {
                     RELEASE_CHANNEL: channel,
@@ -152,11 +146,7 @@ export default class Publish extends Command {
                 await resolveRuntimeVersionAsync({
                   exp: privateConfig,
                   platform: 'android',
-                  workflow: await resolveWorkflowAsync(
-                    projectDir,
-                    Platform.ANDROID,
-                    this.vcsClient
-                  ),
+                  workflow: await resolveWorkflowAsync(projectDir, Platform.ANDROID, vcsClient),
                   projectDir,
                   env: {
                     RELEASE_CHANNEL: channel,
@@ -337,12 +327,7 @@ export default class Publish extends Command {
     }
     if (erroredUpdates.length) {
       markAsFinishedSpinner.fail('❌ Some errors occurred while marking updates as finished');
-      if (hasSuccess) {
-        markAsFinishedSpinner.succeed('✅ Some updates were successfully updated');
-      } else {
-        markAsFinishedSpinner.fail('❌ Failed to update any of the updates');
-        return;
-      }
+      throw new Error();
     } else {
       markAsFinishedSpinner.succeed(
         `\n✅ Your update has been successfully pushed to ${updateUrl}`
