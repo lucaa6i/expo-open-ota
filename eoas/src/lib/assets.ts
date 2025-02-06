@@ -102,7 +102,7 @@ export async function requestUploadUrls(
   requestUploadUrl: string,
   auth: ExpoCredentials,
   runtimeVersion: string
-): Promise<RequestUploadUrlItem[]> {
+): Promise<{ uploadRequests: RequestUploadUrlItem[]; updateId: string }> {
   const response = await fetch(`${requestUploadUrl}?runtimeVersion=${runtimeVersion}`, {
     method: 'POST',
     headers: {
