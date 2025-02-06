@@ -79,8 +79,8 @@ func MarkUpdateAsUploadedHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	resolvedBucket := bucket.GetBucket()
-	isUpdateValid := update.IsUpdateValid(*currentUpdate)
-	if !isUpdateValid {
+	errorVerify := update.VerifyUploadedUpdate(*currentUpdate)
+	if errorVerify != nil {
 		// Delete folder and throw error
 		log.Printf("[RequestID: %s] Invalid update, deleting folder...", requestID)
 		err := resolvedBucket.DeleteUpdateFolder(branchName, runtimeVersion, updateId)
@@ -90,7 +90,7 @@ func MarkUpdateAsUploadedHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		log.Printf("[RequestID: %s] Invalid update, folder deleted", requestID)
-		http.Error(w, "Invalid update", http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("Invalid update %s", errorVerify), http.StatusBadRequest)
 		return
 	}
 	// Now we have to retrieve the latest update and compare hash changes

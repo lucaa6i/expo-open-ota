@@ -179,18 +179,17 @@ func TestRequestUploadUrlWithSampleUpdate(t *testing.T) {
 		"BRANCH": "DO_NOT_USE",
 	})
 	r.Header.Set("Authorization", "Bearer expo_test_token")
-	sampleUpdatePath := filepath.Join(projectRoot, "/test/test-updates/branch-3/1/1666304169")
+	sampleUpdatePath := filepath.Join(projectRoot, "/test/test-updates/branch-4/1/1674170952")
 	uploadRequestsInput := ComputeUploadRequestsInput(sampleUpdatePath)
 	uploadRequestsInputJSON, err := json.Marshal(uploadRequestsInput)
 	if err != nil {
 		t.Errorf("Error marshalling uploadRequestsInput: %v", err)
 	}
-
 	r.Body = io.NopCloser(bytes.NewReader(uploadRequestsInputJSON))
 	handlers.RequestUploadUrlHandler(w, r)
 	assert.Equal(t, 200, w.Code, "Expected status code 200")
 	type ResponseBody struct {
-		UpdateId       string                     `json:"updateId"`
+		UpdateId       int64                      `json:"updateId"`
 		UploadRequests []bucket.FileUploadRequest `json:"uploadRequests"`
 	}
 	var responseBody ResponseBody
@@ -199,7 +198,7 @@ func TestRequestUploadUrlWithSampleUpdate(t *testing.T) {
 		assert.Fail(t, "Expected valid JSON response")
 	}
 	fileUploadRequests := responseBody.UploadRequests
-	assert.Len(t, fileUploadRequests, 3, "Expected 3 file upload requests (1 is duplicated)")
+	assert.Len(t, fileUploadRequests, 4, "Expected 4 file upload requests")
 	updateId := w.Header().Get("expo-update-id")
 	assert.NotEmpty(t, updateId, "Expected non-empty update ID")
 	for _, uploadRequest := range fileUploadRequests {
@@ -234,11 +233,12 @@ func TestRequestUploadUrlWithSampleUpdate(t *testing.T) {
 			ws[index] = httptest.NewRecorder()
 			body := &bytes.Buffer{}
 			writer := multipart.NewWriter(body)
-			fileBuffer, err := os.Open(projectRoot + "/test/test-updates/branch-1/1/1674170951/" + request.FilePath)
+			fileBuffer, err := os.Open(projectRoot + "/test/test-updates/branch-4/1/1674170952/" + request.FilePath)
 			if err != nil {
 				errs <- err
 				return
 			}
+
 			part, err := writer.CreateFormFile(request.FileName, request.FileName)
 			if err != nil {
 				errs <- err
@@ -272,6 +272,27 @@ func TestRequestUploadUrlWithSampleUpdate(t *testing.T) {
 		_, err := os.Open(projectRoot + "/updates/DO_NOT_USE/1/" + updateId + "/" + fileUploadRequests[0].FilePath)
 		assert.Nil(t, err, "Expected no errors")
 	}
+	lastUpdate, err := update.GetLatestUpdateBundlePathForRuntimeVersion("DO_NOT_USE", "1")
+	if err != nil {
+		t.Errorf("Error getting latest update: %v", err)
+	}
+	assert.Nil(t, lastUpdate, "Expected nil")
+	q = "http://localhost:3000/markUpdateAsUploaded/DO_NOT_USE?platform=android&runtimeVersion=1&updateId=" + updateId
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest("POST", q, nil)
+	r.Header.Set("Authorization", "Bearer expo_test_token")
+	r = mux.SetURLVars(r, map[string]string{
+		"BRANCH": "DO_NOT_USE",
+	})
+	handlers.MarkUpdateAsUploadedHandler(w, r)
+	assert.Equal(t, 200, w.Code, "Expected status code 200")
+	lastUpdate, err = update.GetLatestUpdateBundlePathForRuntimeVersion("DO_NOT_USE", "1")
+	if err != nil {
+		t.Errorf("Error getting latest update: %v", err)
+	}
+	assert.NotNil(t, lastUpdate, "Expected non-nil")
+	assert.Equal(t, updateId, lastUpdate.UpdateId, "Expected updated ID")
+
 }
 
 func TestRequestUploadUrlWithValidExpoSession(t *testing.T) {

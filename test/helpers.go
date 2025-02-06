@@ -324,8 +324,15 @@ func ComputeUploadRequestsInput(dirPath string) handlers.FileNamesRequest {
 	for _, asset := range metadataObject.FileMetadata.Android.Assets {
 		fileNames = append(fileNames, asset.Path)
 	}
-	fileNames = append(fileNames, metadataObject.FileMetadata.Android.Bundle)
-	fileNames = append(fileNames, metadataObject.FileMetadata.IOS.Bundle)
+	if metadataObject.FileMetadata.Android.Bundle != "" {
+		fileNames = append(fileNames, metadataObject.FileMetadata.Android.Bundle)
+	}
+	if metadataObject.FileMetadata.IOS.Bundle != "" {
+		fileNames = append(fileNames, metadataObject.FileMetadata.IOS.Bundle)
+	}
+	// Add metadata.json & expoConfig.json
+	fileNames = append(fileNames, "metadata.json")
+	fileNames = append(fileNames, "expoConfig.json")
 	return handlers.FileNamesRequest{FileNames: fileNames}
 }
 
