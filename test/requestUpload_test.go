@@ -511,6 +511,13 @@ func TestIdenticalUpload(t *testing.T) {
 	if w2.Code == 200 {
 		t.Fatalf("Second mark as uploaded should have failed (non-200), got %d", w2.Code)
 	}
+	// Should return first update ID
+	lastUpdate, err := update.GetLatestUpdateBundlePathForRuntimeVersion(branch, runtimeVersion)
+	if err != nil {
+		t.Fatalf("Error getting latest update: %v", err)
+	}
+	assert.NotNil(t, lastUpdate, "Expected non-nil")
+	assert.Equal(t, updateId1, lastUpdate.UpdateId, "Expected update ID to match")
 }
 
 func TestDifferentUpload(t *testing.T) {
@@ -525,12 +532,21 @@ func TestDifferentUpload(t *testing.T) {
 	branch := "DO_NOT_USE"
 	runtimeVersion := "1"
 	updateId1 := performUpload(t, projectRoot, branch, runtimeVersion, sampleUpdatePath)
+	fmt.Println(updateId1)
 	w := markUpdateAsUploaded(t, branch, runtimeVersion, updateId1)
 	if w.Code != 200 {
 		t.Fatalf("First mark as uploaded failed with status %d", w.Code)
 	}
 	sampleOtherUpdatePath := filepath.Join(projectRoot, "test", "test-updates", "branch-4", "1", "1674170951")
 	updateId2 := performUpload(t, projectRoot, branch, runtimeVersion, sampleOtherUpdatePath)
+	fmt.Println(updateId2)
 	w2 := markUpdateAsUploaded(t, branch, runtimeVersion, updateId2)
 	assert.Equal(t, 200, w2.Code, "Expected status code 200")
+	// Should return latest update ID
+	lastUpdate, err := update.GetLatestUpdateBundlePathForRuntimeVersion(branch, runtimeVersion)
+	if err != nil {
+		t.Fatalf("Error getting latest update: %v", err)
+	}
+	assert.NotNil(t, lastUpdate, "Expected non-nil")
+	assert.Equal(t, updateId2, lastUpdate.UpdateId, "Expected update ID to match")
 }
