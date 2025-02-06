@@ -293,8 +293,9 @@ export default class Publish extends Command {
         })
       );
       uploadFilesSpinner.succeed('✅ Files uploaded successfully');
-    } catch {
+    } catch (e) {
       uploadFilesSpinner.fail('❌ Failed to upload static files');
+      Log.error(e);
       process.exit(1);
     }
 
@@ -314,28 +315,38 @@ export default class Publish extends Command {
         // If success and status code = 200
         if (response.ok) {
           Log.withInfo(`✅ Update ready for ${platform}`);
-          return true;
+          return 'deployed';
         }
         // If response.status === 406 duplicate update
         if (response.status === 406) {
           Log.withInfo(`⚠️ There is no change in the update for ${platform}, ignored...`);
-          return true;
+          return 'identical';
         }
         Log.error('❌ Failed to mark the update as finished for platform', platform);
         Log.newLine();
         Log.error(await response.text());
-        return false;
+        return 'error';
       })
     );
-    const erroredUpdates = results.filter(result => !result);
-    const hasSuccess = results.some(result => result);
+    const erroredUpdates = results.filter(result => result === 'error');
+    const hasSuccess = results.some(result => result === 'deployed');
+    const allIdentical = results.every(result => result === 'identical');
+    if (allIdentical) {
+      markAsFinishedSpinner.warn('⚠️ No changes found in the update, nothing to deploy');
+      return;
+    }
     if (erroredUpdates.length) {
       markAsFinishedSpinner.fail('❌ Some errors occurred while marking updates as finished');
       if (hasSuccess) {
-        Log.withInfo('✅ Some updates were successfully updated');
+        markAsFinishedSpinner.succeed('✅ Some updates were successfully updated');
+      } else {
+        markAsFinishedSpinner.fail('❌ Failed to update any of the updates');
+        return;
       }
     } else {
-      Log.withInfo(`\n✅ Your update has been successfully pushed to ${updateUrl}`);
+      markAsFinishedSpinner.succeed(
+        `\n✅ Your update has been successfully pushed to ${updateUrl}`
+      );
     }
     if (hasSuccess) {
       Log.withInfo(`🔗 Channel: \`${channel}\``);
