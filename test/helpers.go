@@ -34,7 +34,6 @@ func GlobalBeforeEach() {
 }
 
 func GlobalAfterEach(t *testing.T) {
-	removeAllCheckFiles()
 	t.Helper()
 	t.Cleanup(func() {
 		bucket.ResetBucketInstance()
@@ -378,20 +377,4 @@ func SetValidConfiguration() {
 	os.Setenv("PRIVATE_CLOUDFRONT_KEY_PATH", "")
 	os.Setenv("CLOUDFRONT_DOMAIN", "")
 	os.Setenv("CLOUDFRONT_KEY_PAIR_ID", "")
-}
-
-func removeAllCheckFiles() {
-	dirPath := os.Getenv("LOCAL_BUCKET_BASE_PATH")
-	_ = filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if filepath.Ext(path) == ".check" {
-			err := os.Remove(path)
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	})
 }

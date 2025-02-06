@@ -15,6 +15,7 @@ type Bucket interface {
 	GetFile(update types.Update, assetPath string) (types.BucketFile, error)
 	RequestUploadUrlForFileUpdate(branch string, runtimeVersion string, updateId string, fileName string) (string, error)
 	UploadFileIntoUpdate(update types.Update, fileName string, file io.Reader) error
+	DeleteUpdateFolder(branch string, runtimeVersion string, updateId string) error
 }
 
 type BucketType string

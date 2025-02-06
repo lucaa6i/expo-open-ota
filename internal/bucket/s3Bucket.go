@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"io"
 	"strconv"
 	"time"
@@ -15,6 +16,67 @@ import (
 
 type S3Bucket struct {
 	BucketName string
+}
+
+func (b *S3Bucket) DeleteUpdateFolder(branch, runtimeVersion, updateId string) error {
+	if b.BucketName == "" {
+		return errors.New("BucketName not set")
+	}
+
+	s3Client, err := services.GetS3Client()
+	if err != nil {
+		return fmt.Errorf("error getting S3 client: %w", err)
+	}
+
+	prefix := fmt.Sprintf("%s/%s/%s/", branch, runtimeVersion, updateId)
+
+	listInput := &s3.ListObjectsV2Input{
+		Bucket: aws.String(b.BucketName),
+		Prefix: aws.String(prefix),
+	}
+
+	var objects []s3types.ObjectIdentifier
+
+	paginator := s3.NewListObjectsV2Paginator(s3Client, listInput)
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(context.TODO())
+		if err != nil {
+			return fmt.Errorf("failed to list objects: %w", err)
+		}
+
+		for _, obj := range page.Contents {
+			objects = append(objects, s3types.ObjectIdentifier{
+				Key: obj.Key,
+			})
+		}
+	}
+
+	if len(objects) == 0 {
+		return nil
+	}
+
+	const batchSize = 1000
+	for i := 0; i < len(objects); i += batchSize {
+		end := i + batchSize
+		if end > len(objects) {
+			end = len(objects)
+		}
+
+		deleteInput := &s3.DeleteObjectsInput{
+			Bucket: aws.String(b.BucketName),
+			Delete: &s3types.Delete{
+				Objects: objects[i:end],
+				Quiet:   aws.Bool(true),
+			},
+		}
+
+		_, err := s3Client.DeleteObjects(context.TODO(), deleteInput)
+		if err != nil {
+			return fmt.Errorf("failed to delete objects: %w", err)
+		}
+	}
+
+	return nil
 }
 
 func (b *S3Bucket) GetUpdates(branch string, runtimeVersion string) ([]types.Update, error) {
