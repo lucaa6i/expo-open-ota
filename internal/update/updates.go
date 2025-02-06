@@ -125,9 +125,6 @@ func AreUpdatesIdentical(update1, update2 types.Update, platform string) (bool, 
 	if errMetadata2 != nil {
 		return false, errMetadata2
 	}
-	if metadata1.ID == metadata2.ID {
-		return false, nil
-	}
 	update1Manifest, errManifest1 := ComposeUpdateManifest(&metadata1, update1, platform)
 	if errManifest1 != nil {
 		return false, errManifest1
@@ -135,9 +132,6 @@ func AreUpdatesIdentical(update1, update2 types.Update, platform string) (bool, 
 	update2Manifest, errManifest2 := ComposeUpdateManifest(&metadata2, update2, platform)
 	if errManifest2 != nil {
 		return false, errManifest2
-	}
-	if update1Manifest.Id == update2Manifest.Id {
-		return false, nil
 	}
 	if len(update2Manifest.Assets) != len(update1Manifest.Assets) {
 		return false, nil
