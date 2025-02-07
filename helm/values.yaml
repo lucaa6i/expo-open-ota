@@ -2,7 +2,7 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-replicaCount: 1 # Do not use more than 1 replica because we don't support distributed cache yet
+replicaCount: 1 # Do not use more than 1 replica if storageMode is set to local
 
 image:
   repository: ghcr.io/axelmarciano/expo-open-ota
