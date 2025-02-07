@@ -18,19 +18,30 @@ The cache is primarily used for:
    - Manifest generation can be an expensive operation.
    - By caching the results, we reduce response times and improve overall performance.
 
-## Current Limitations
+:::note
+The environment variables required for each storage solution are listed below, you can set them in a `.env` file in the root of the project or keep them in a safe place to prepare for deployment.
+:::
 
-Currently, the cache is **local** to the server instance. This means:
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
 
-- When a new update is published, the first request for the manifest may take longer as the cache needs to be repopulated.
-- The cache is not shared across multiple instances, which could lead to inconsistent results in a distributed setup.
+<Tabs queryString="cache" defaultValue="local">
+  <TabItem value="local" label="Local cache" default>
+  :::warning
 
-## Future Improvements
+  This cache solution is not recommended for production use. It is intended for development and testing purposes only.
+  If you really want to use it in production, make sure to not have multiple instances of the server running, as the cache is stored locally and not shared between instances.
 
-We plan to implement a **distributed caching system**, such as Redis, to:
-
-- Share cached results across multiple instances.
-- Ensure consistent and faster responses regardless of the server handling the request.
-
-Once the distributed cache is in place, performance will be significantly improved, especially for high-traffic environments.
-
+  :::
+   Local cache is the default cache solution used by the server. It stores the cache in memory and is not shared between instances of the server. This means that the cache is lost when the server is restarted.
+   No additional configuration is required to use the local cache.
+  </TabItem>
+  <TabItem value="redis" label="Redis">
+    To use Redis as your cache solution, you need to set the following environment variables:
+    ```bash title=".env"
+    REDIS_HOST=your-redis-host
+    REDIS_PORT=your-redis-port
+    REDIS_PASSWORD=your-redis-password
+    ```
+  </TabItem>
+</Tabs>
