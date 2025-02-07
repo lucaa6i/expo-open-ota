@@ -28,8 +28,28 @@ storageMode: "s3"
 keysStorageType: "aws-secrets-manager"
 useCloudfrontRedirect: "false"
 useAWSAccessKeys: "false"
+cacheMode: "redis"
 
 environment:
+  - name: "CACHE_MODE"
+    key: "cacheMode"
+    required: true
+    computed: true
+  - name: "REDIS_HOST"
+    value: ""
+    required:
+      - key: "cacheMode"
+        is: "redis"
+  - name: "REDIS_PORT"
+    value: ""
+    required:
+      - key: "cacheMode"
+        is: "redis"
+  - name: "REDIS_PASSWORD"
+    value: ""
+    required:
+      - key: "cacheMode"
+        is: "redis"
   - name: "STORAGE_MODE"
     key: "storageMode"
     required: true
