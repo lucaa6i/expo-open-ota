@@ -7,7 +7,6 @@ import (
 	"expo-open-ota/internal/cdn"
 	"expo-open-ota/internal/handlers"
 	"expo-open-ota/internal/update"
-	"fmt"
 	"github.com/andybalholm/brotli"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
@@ -203,7 +202,6 @@ func TestToRetrieveBundleAsset(t *testing.T) {
 	parsedUrl, err := url.Parse(responseWithUrl.URL)
 	require.NoError(t, err, "Error while parsing the URL")
 	expectedBaseURL := "https://cdn.expoopenota.com/branch-1/1/1674170951/bundles/ios-9d01842d6ee1224f7188971c5d397115.js"
-	fmt.Println(responseWithUrl.URL)
 	assert.Equal(t, expectedBaseURL, parsedUrl.Scheme+"://"+parsedUrl.Host+parsedUrl.Path, "URL should match the expected base URL")
 	queryParams := parsedUrl.Query()
 	assert.NotEmpty(t, queryParams.Get("Policy"), "Policy should not be empty")

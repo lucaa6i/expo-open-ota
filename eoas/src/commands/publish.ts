@@ -1,14 +1,13 @@
 import { Platform } from '@expo/eas-build-job';
 import spawnAsync from '@expo/spawn-async';
 import { Command, Flags } from '@oclif/core';
-import { Config } from '@oclif/core/lib/config';
 import FormData from 'form-data';
 import fs from 'fs-extra';
 import mime from 'mime';
 import fetch from 'node-fetch';
 import path from 'path';
 
-import { computeFilesRequests, requestUploadUrls } from '../lib/assets';
+import { RequestUploadUrlItem, computeFilesRequests, requestUploadUrls } from '../lib/assets';
 import { getAuthExpoHeaders, retrieveExpoCredentials } from '../lib/auth';
 import {
   RequestedPlatform,
@@ -23,15 +22,9 @@ import { confirmAsync } from '../lib/prompts';
 import { ensureRepoIsCleanAsync } from '../lib/repo';
 import { resolveRuntimeVersionAsync } from '../lib/runtimeVersion';
 import { resolveVcsClient } from '../lib/vcs';
-import { Client } from '../lib/vcs/vcs';
 import { resolveWorkflowAsync } from '../lib/workflow';
 
 export default class Publish extends Command {
-  vcsClient: Client;
-  constructor(argv: string[], config: Config) {
-    super(argv, config);
-    this.vcsClient = resolveVcsClient(false);
-  }
   static override args = {};
   static override description = 'Publish a new update to the self-hosted update server';
   static override examples = ['<%= config.bin %> <%= command.id %>'];
@@ -85,8 +78,9 @@ export default class Publish extends Command {
       Log.error('Channel name is required');
       process.exit(1);
     }
-    await this.vcsClient.ensureRepoExistsAsync();
-    await ensureRepoIsCleanAsync(this.vcsClient, nonInteractive);
+    const vcsClient = resolveVcsClient(true);
+    await vcsClient.ensureRepoExistsAsync();
+    await ensureRepoIsCleanAsync(vcsClient, nonInteractive);
     const projectDir = process.cwd();
     const hasExpo = isExpoInstalled(projectDir);
     if (!hasExpo) {
@@ -129,35 +123,41 @@ export default class Publish extends Command {
     const runtimeVersions = [
       ...(!platform || platform === RequestedPlatform.All || platform === RequestedPlatform.Ios
         ? [
-            (
-              await resolveRuntimeVersionAsync({
-                exp: privateConfig,
-                platform: 'ios',
-                workflow: await resolveWorkflowAsync(projectDir, Platform.IOS, this.vcsClient),
-                projectDir,
-                env: {
-                  RELEASE_CHANNEL: channel,
-                },
-              })
-            )?.runtimeVersion,
+            {
+              runtimeVersion: (
+                await resolveRuntimeVersionAsync({
+                  exp: privateConfig,
+                  platform: 'ios',
+                  workflow: await resolveWorkflowAsync(projectDir, Platform.IOS, vcsClient),
+                  projectDir,
+                  env: {
+                    RELEASE_CHANNEL: channel,
+                  },
+                })
+              )?.runtimeVersion,
+              platform: 'ios',
+            },
           ]
         : []),
       ...(!platform || platform === RequestedPlatform.All || platform === RequestedPlatform.Android
         ? [
-            (
-              await resolveRuntimeVersionAsync({
-                exp: privateConfig,
-                platform: 'android',
-                workflow: await resolveWorkflowAsync(projectDir, Platform.ANDROID, this.vcsClient),
-                projectDir,
-                env: {
-                  RELEASE_CHANNEL: channel,
-                },
-              })
-            )?.runtimeVersion,
+            {
+              runtimeVersion: (
+                await resolveRuntimeVersionAsync({
+                  exp: privateConfig,
+                  platform: 'android',
+                  workflow: await resolveWorkflowAsync(projectDir, Platform.ANDROID, vcsClient),
+                  projectDir,
+                  env: {
+                    RELEASE_CHANNEL: channel,
+                  },
+                })
+              )?.runtimeVersion,
+              platform: 'android',
+            },
           ]
         : []),
-    ].filter(Boolean);
+    ].filter(({ runtimeVersion }) => !!runtimeVersion);
     if (!runtimeVersions.length) {
       runtimeSpinner.fail('Could not resolve runtime versions for the requested platforms');
       Log.error('Could not resolve runtime versions for the requested platforms');
@@ -201,23 +201,33 @@ export default class Publish extends Command {
       uploadFilesSpinner.fail('No files to upload');
       process.exit(1);
     }
+    let uploadUrls: {
+      uploadRequests: RequestUploadUrlItem[];
+      updateId: string;
+      platform: string;
+      runtimeVersion: string;
+    }[] = [];
     try {
-      const uploadUrls = await Promise.all(
-        runtimeVersions.map(runtimeVersion => {
+      uploadUrls = await Promise.all(
+        runtimeVersions.map(async ({ runtimeVersion, platform }) => {
           if (!runtimeVersion) {
             throw new Error('Runtime version is not resolved');
           }
-          return requestUploadUrls(
-            {
-              fileNames: files.map(file => file.path),
-            },
-            `${baseUrl}/requestUploadUrl/${branch}`,
-            credentials,
-            runtimeVersion
-          );
+          return {
+            ...(await requestUploadUrls(
+              {
+                fileNames: files.map(file => file.path),
+              },
+              `${baseUrl}/requestUploadUrl/${branch}`,
+              credentials,
+              runtimeVersion
+            )),
+            runtimeVersion,
+            platform,
+          };
         })
       );
-      const allItems = uploadUrls.flat();
+      const allItems = uploadUrls.flatMap(({ uploadRequests }) => uploadRequests);
       await Promise.all(
         allItems.map(async itm => {
           const isLocalBucketFileUpload = itm.requestUploadUrl.startsWith(
@@ -273,14 +283,61 @@ export default class Publish extends Command {
         })
       );
       uploadFilesSpinner.succeed('✅ Files uploaded successfully');
-    } catch {
+    } catch (e) {
       uploadFilesSpinner.fail('❌ Failed to upload static files');
+      Log.error(e);
       process.exit(1);
     }
-    console.log(`\n✅ Your update has been successfully pushed to ${updateUrl}`);
-    console.log(`🔗 Channel: \`${channel}\``);
-    console.log(`🌿 Branch: \`${branch}\``);
-    console.log(`⏳ Deployed at: \`${new Date().toUTCString()}\`\n`);
-    console.log('🔥 Your users will receive the latest update automatically!');
+
+    const markAsFinishedSpinner = ora('🔗 Marking the updates as finished...').start();
+    const results = await Promise.all(
+      uploadUrls.map(async ({ updateId, platform, runtimeVersion }) => {
+        const response = await fetch(
+          `${baseUrl}/markUpdateAsUploaded/${branch}?platform=${platform}&updateId=${updateId}&runtimeVersion=${runtimeVersion}`,
+          {
+            method: 'POST',
+            headers: {
+              ...getAuthExpoHeaders(credentials),
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+        // If success and status code = 200
+        if (response.ok) {
+          Log.withInfo(`✅ Update ready for ${platform}`);
+          return 'deployed';
+        }
+        // If response.status === 406 duplicate update
+        if (response.status === 406) {
+          Log.withInfo(`⚠️ There is no change in the update for ${platform}, ignored...`);
+          return 'identical';
+        }
+        Log.error('❌ Failed to mark the update as finished for platform', platform);
+        Log.newLine();
+        Log.error(await response.text());
+        return 'error';
+      })
+    );
+    const erroredUpdates = results.filter(result => result === 'error');
+    const hasSuccess = results.some(result => result === 'deployed');
+    const allIdentical = results.every(result => result === 'identical');
+    if (allIdentical) {
+      markAsFinishedSpinner.warn('⚠️ No changes found in the update, nothing to deploy');
+      return;
+    }
+    if (erroredUpdates.length) {
+      markAsFinishedSpinner.fail('❌ Some errors occurred while marking updates as finished');
+      throw new Error();
+    } else {
+      markAsFinishedSpinner.succeed(
+        `\n✅ Your update has been successfully pushed to ${updateUrl}`
+      );
+    }
+    if (hasSuccess) {
+      Log.withInfo(`🔗 Channel: \`${channel}\``);
+      Log.withInfo(`🌿 Branch: \`${branch}\``);
+      Log.withInfo(`⏳ Deployed at: \`${new Date().toUTCString()}\`\n`);
+      Log.withInfo('🔥 Your users will receive the latest update automatically!');
+    }
   }
 }

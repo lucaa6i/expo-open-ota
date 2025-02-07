@@ -278,7 +278,6 @@ func TestSkippingNotValidUpdatesAndCache(t *testing.T) {
 		t.Errorf("Error getting latest update: %v", err)
 	}
 	assert.Equal(t, "1674170951", lastUpdate.UpdateId, "Expected a specific update id")
-	// Should have a .check file
 	resolvedBucket := bucket.GetBucket()
 	file, _ := resolvedBucket.GetFile(*lastUpdate, ".check")
 	defer file.Reader.Close()
