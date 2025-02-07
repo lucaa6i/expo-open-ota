@@ -1,6 +1,12 @@
 version: '3.8'
 
 services:
+#  redis:
+#    image: redis:6.0.9
+#    environment:
+#      - REDIS_PASSWORD=secret
+#    ports:
+#      - "6379:6379"
   ota-server:
     build:
       context: .
