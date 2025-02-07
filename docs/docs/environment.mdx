@@ -26,6 +26,15 @@ You can set these variables in a `.env` file for local development or in your de
 | `EXPO_APP_ID` | ✅ | The ID of the Expo project | `Random string` | [Ref](/docs/prerequisites#how-to-get-your-project-id) |
 | `EXPO_ACCESS_TOKEN` | ✅ | Expo access token | `Random string` | [Ref](/docs/prerequisites#how-to-get-your-expo-token) |
 
+### ⚡ **Cache Configuration**
+| Name | Required | Description | Example | Reference |
+| --- | --- | --- | --- | --- |
+| `CACHE_MODE` | ✅ | `local` or `redis` | `local` | [Ref](/docs/cache) |
+| `REDIS_HOST` | ✅ if CACHE_MODE = `redis` | Redis host | `127.0.0.1` | [Ref](/docs/cache?cache=redis) |
+| `REDIS_PORT` | ✅ if CACHE_MODE = `redis` | Redis port | `6379` | [Ref](/docs/cache?cache=redis) |
+| `REDIS_PASSWORD` | ✅ if CACHE_MODE = `redis` | Redis password | `password` | [Ref](/docs/cache?cache=redis) |
+
+
 ### 📦 **Storage Configuration**
 | Name | Required | Description | Example | Reference |
 | --- | --- | --- | --- | --- |
