@@ -20,5 +20,7 @@ func NewRouter() *mux.Router {
 	r.HandleFunc("/requestUploadUrl/{BRANCH}", handlers.RequestUploadUrlHandler).Methods(http.MethodPost)
 	r.HandleFunc("/uploadLocalFile", handlers.RequestUploadLocalFileHandler).Methods(http.MethodPut)
 	r.HandleFunc("/markUpdateAsUploaded/{BRANCH}", handlers.MarkUpdateAsUploadedHandler).Methods(http.MethodPost)
+	r.HandleFunc("/login", handlers.LoginHandler).Methods(http.MethodPost)
+	r.HandleFunc("/refreshToken", handlers.RefreshTokenHandler).Methods(http.MethodPost)
 	return r
 }
