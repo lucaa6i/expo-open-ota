@@ -29,8 +29,18 @@ keysStorageType: "aws-secrets-manager"
 useCloudfrontRedirect: "false"
 useAWSAccessKeys: "false"
 cacheMode: "redis"
+useDashboard: "false"
 
 environment:
+  - name: "USE_DASHBOARD"
+    key: "useDashboard"
+    required: true
+    computed: true
+  - name: "ADMIN_PASSWORD"
+    value: ""
+    required:
+      - key: "useDashboard"
+        is: "true"
   - name: "CACHE_MODE"
     key: "cacheMode"
     required: true
