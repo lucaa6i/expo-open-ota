@@ -168,6 +168,7 @@ func ManifestHandler(w http.ResponseWriter, r *http.Request) {
 	if channelName == "" {
 		log.Printf("[RequestID: %s] No channel name provided", requestID)
 		http.Error(w, "No channel name provided", http.StatusBadRequest)
+		return
 	}
 	branchMap, err := services.FetchExpoChannelMapping(channelName)
 	if err != nil {

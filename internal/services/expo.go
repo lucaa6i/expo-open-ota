@@ -115,6 +115,55 @@ func FetchSelfExpoUsername() string {
 	return expoAccount.Username
 }
 
+func FetchExpoChannels() ([]string, error) {
+	query := `
+		query FetchAppChannels($appId: String!) {
+			app {
+				byId(appId: $appId) {
+					id
+					name
+					updateChannels(offset: 0, limit: 10000) {
+						id
+						name
+					}
+				}
+			}
+		}
+	`
+	appId := GetExpoAppId()
+	expoToken := GetExpoAccessToken()
+	variables := map[string]interface{}{
+		"appId": appId,
+	}
+	var resp struct {
+		Data struct {
+			App struct {
+				ById struct {
+					UpdateChannels []struct {
+						ID   string `json:"id"`
+						Name string `json:"name"`
+					} `json:"updateChannels"`
+				} `json:"byId"`
+			} `json:"app"`
+		} `json:"data"`
+	}
+	headers := map[string]string{}
+	if config.IsTestMode() {
+		headers["operationName"] = "FetchExpoChannels"
+	}
+	ctx := context.Background()
+	if err := makeGraphQLRequest(ctx, query, variables, types.ExpoAuth{
+		Token: &expoToken,
+	}, &resp, headers); err != nil {
+		return nil, err
+	}
+	var channels []string
+	for _, channel := range resp.Data.App.ById.UpdateChannels {
+		channels = append(channels, channel.Name)
+	}
+	return channels, nil
+}
+
 func FetchExpoChannelMapping(channelName string) (*ExpoChannelMapping, error) {
 	query := `
 		query FetchAppChannel($appId: String!, $channelName: String!) {
