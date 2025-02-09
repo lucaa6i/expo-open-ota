@@ -138,6 +138,7 @@ func RequestUploadLocalFileHandler(w http.ResponseWriter, r *http.Request) {
 	if bucketType != bucket.LocalBucketType {
 		log.Printf("Invalid bucket type: %s", bucketType)
 		http.Error(w, "Invalid bucket type", http.StatusInternalServerError)
+		return
 	}
 	requestID := uuid.New().String()
 	expoAuth := helpers.GetExpoAuth(r)
@@ -277,9 +278,9 @@ func RequestUploadUrlHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("expo-update-id", fmt.Sprintf("%d", updateId))
-	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		log.Printf("[RequestID: %s] Error encoding response: %v", requestID, err)
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
 	}
+	w.WriteHeader(http.StatusOK)
 }

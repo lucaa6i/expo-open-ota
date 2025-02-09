@@ -41,7 +41,7 @@ export class ApiClient {
     try {
       const form = new URLSearchParams();
       form.append('refreshToken', refreshToken);
-      const response = await fetch(`${this.baseUrl}/refreshToken`, {
+      const response = await fetch(`${this.baseUrl}/auth/refreshToken`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: form.toString(),
@@ -65,10 +65,16 @@ export class ApiClient {
   public async login(password: string) {
     const form = new URLSearchParams();
     form.append('password', password);
-    return this.request<{ token: string; refreshToken: string }>('/login', {
+    return this.request<{ token: string; refreshToken: string }>('/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: form.toString(),
+    });
+  }
+
+  public async getReleaseChannels() {
+    return this.request<string[]>('/dashboard/releaseChannels', {
+      method: 'GET',
     });
   }
 }

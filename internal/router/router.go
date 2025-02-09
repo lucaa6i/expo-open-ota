@@ -14,14 +14,21 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 func NewRouter() *mux.Router {
 	r := mux.NewRouter()
 	r.Use(middleware.LoggingMiddleware)
+
 	r.HandleFunc("/hc", HealthCheck).Methods(http.MethodGet)
 	r.HandleFunc("/manifest", handlers.ManifestHandler).Methods(http.MethodGet)
 	r.HandleFunc("/assets", handlers.AssetsHandler).Methods(http.MethodGet)
 	r.HandleFunc("/requestUploadUrl/{BRANCH}", handlers.RequestUploadUrlHandler).Methods(http.MethodPost)
 	r.HandleFunc("/uploadLocalFile", handlers.RequestUploadLocalFileHandler).Methods(http.MethodPut)
 	r.HandleFunc("/markUpdateAsUploaded/{BRANCH}", handlers.MarkUpdateAsUploadedHandler).Methods(http.MethodPost)
-	r.Use(middleware.CorsMiddleware)
-	r.HandleFunc("/login", handlers.LoginHandler).Methods(http.MethodPost)
-	r.HandleFunc("/refreshToken", handlers.RefreshTokenHandler).Methods(http.MethodPost)
+
+	corsSubrouter := r.PathPrefix("/auth").Subrouter()
+	corsSubrouter.HandleFunc("/login", handlers.LoginHandler).Methods(http.MethodPost)
+	corsSubrouter.HandleFunc("/refreshToken", handlers.RefreshTokenHandler).Methods(http.MethodPost)
+
+	authSubrouter := r.PathPrefix("/dashboard").Subrouter()
+	authSubrouter.Use(middleware.AuthMiddleware)
+	authSubrouter.HandleFunc("/releaseChannels", handlers.GetReleaseChannelsHandler).Methods(http.MethodGet)
+
 	return r
 }
