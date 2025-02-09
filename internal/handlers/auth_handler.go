@@ -20,12 +20,13 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	authService := auth.NewAuth()
 	authResponse, err := authService.LoginWithPassword(password)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+
 	w.Header().Set("Content-Type", "application/json")
 	_, _ = w.Write([]byte(`{"token":"` + authResponse.Token + `","refreshToken":"` + authResponse.RefreshToken + `"}`))
+	w.WriteHeader(http.StatusOK)
 }
 
 func RefreshTokenHandler(w http.ResponseWriter, r *http.Request) {
@@ -45,7 +46,8 @@ func RefreshTokenHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+
 	w.Header().Set("Content-Type", "application/json")
 	_, _ = w.Write([]byte(`{"token":"` + authResponse.Token + `","refreshToken":"` + authResponse.RefreshToken + `"}`))
+	w.WriteHeader(http.StatusOK)
 }
