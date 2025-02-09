@@ -9,18 +9,13 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { HardDriveDownload, FileClock, Settings } from 'lucide-react';
+import { HardDriveDownload, Settings } from 'lucide-react';
 
 const items = [
   {
     title: 'Updates',
     url: '/',
     icon: HardDriveDownload,
-  },
-  {
-    title: 'Logs',
-    url: '/logs',
-    icon: FileClock,
   },
   {
     title: 'Settings',

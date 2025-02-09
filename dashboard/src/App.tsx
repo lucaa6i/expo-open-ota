@@ -1,13 +1,36 @@
 import { Layout } from '@/containers/Layout';
-import { Route, Routes } from 'react-router';
+import { Route, Routes, useNavigate } from 'react-router';
+import { isAuthenticated } from '@/lib/auth.ts';
+import { useEffect, ReactNode } from 'react';
+import { Login } from '@/pages/Login';
+import { Toaster } from '@/components/ui/toaster.tsx';
+
+function withLayout(children: ReactNode) {
+  return <Layout>{children}</Layout>;
+}
+
+const Home = () => <div>Home</div>;
+
+const Settings = () => <div>Settings</div>;
 
 export const App = () => {
+  const isLoggedIn = isAuthenticated();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      navigate('/login');
+    }
+  }, [isLoggedIn, navigate]);
+
   return (
-    <Layout>
+    <>
+      <Toaster />
       <Routes>
-        <Route path="/" element={<div />} />
-        <Route path="/settings" element={<div>Settings</div>} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/" element={withLayout(<Home />)} />
+        <Route path="/settings" element={withLayout(<Settings />)} />
       </Routes>
-    </Layout>
+    </>
   );
 };
