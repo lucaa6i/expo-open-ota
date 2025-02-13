@@ -28,7 +28,8 @@ func NewRouter() *mux.Router {
 
 	authSubrouter := r.PathPrefix("/dashboard").Subrouter()
 	authSubrouter.Use(middleware.AuthMiddleware)
-	authSubrouter.HandleFunc("/releaseChannels", handlers.GetReleaseChannelsHandler).Methods(http.MethodGet)
-
+	authSubrouter.HandleFunc("/branches", handlers.GetBranchesHandler).Methods(http.MethodGet)
+	authSubrouter.HandleFunc("/branch/{BRANCH}/runtimeVersions", handlers.GetRuntimeVersionsHandler).Methods(http.MethodGet)
+	authSubrouter.HandleFunc("/branch/{BRANCH}/runtimeVersion/{RUNTIME_VERSION}/updates", handlers.GetUpdatesHandler).Methods(http.MethodGet)
 	return r
 }

@@ -77,10 +77,10 @@ type NoUpdateAvailableDirective struct {
 }
 
 type Update struct {
-	Branch         string
-	RuntimeVersion string
-	UpdateId       string
-	CreatedAt      time.Duration
+	Branch         string        `json:"branch"`
+	RuntimeVersion string        `json:"runtimeVersion"`
+	UpdateId       string        `json:"updateId"`
+	CreatedAt      time.Duration `json:"createdAt"`
 }
 
 type BucketFile struct {

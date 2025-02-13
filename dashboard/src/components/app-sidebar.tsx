@@ -28,6 +28,7 @@ const items = [
 
 export function AppSidebar() {
   const location = useLocation();
+  const currentPath = location.pathname;
 
   return (
     <Sidebar className="w-64 bg-white border-r border-gray-200">
@@ -38,23 +39,29 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map(item => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <Link
-                      to={item.url}
-                      className={clsx(
-                        'flex items-center gap-2 px-4 py-2 rounded-lg transition',
-                        location.pathname === item.url
-                          ? 'bg-gray-200 text-black'
-                          : 'text-gray-500 hover:bg-gray-100'
-                      )}>
-                      <item.icon className="w-5 h-5" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {items.map(item => {
+                const isActive = currentPath === item.url;
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild disabled={isActive}>
+                      <Link
+                        to={item.url}
+                        onClick={e => {
+                          if (isActive) {
+                            e.preventDefault();
+                          }
+                        }}
+                        className={clsx(
+                          'flex items-center gap-2 px-4 py-2 rounded-lg transition',
+                          isActive ? 'bg-gray-200 text-black' : 'text-gray-500 hover:bg-gray-100'
+                        )}>
+                        <item.icon className="w-5 h-5" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
