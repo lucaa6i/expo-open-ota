@@ -10,7 +10,16 @@ import (
 	"sync"
 )
 
+type RuntimeVersionWithStats struct {
+	RuntimeVersion  string `json:"runtimeVersion"`
+	LastUpdatedAt   string `json:"lastUpdatedAt"`
+	CreatedAt       string `json:"createdAt"`
+	NumberOfUpdates int    `json:"numberOfUpdates"`
+}
+
 type Bucket interface {
+	GetBranches() ([]string, error)
+	GetRuntimeVersions(branch string) ([]RuntimeVersionWithStats, error)
 	GetUpdates(branch string, runtimeVersion string) ([]types.Update, error)
 	GetFile(update types.Update, assetPath string) (types.BucketFile, error)
 	RequestUploadUrlForFileUpdate(branch string, runtimeVersion string, updateId string, fileName string) (string, error)

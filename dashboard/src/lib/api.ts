@@ -19,22 +19,18 @@ export class ApiClient {
     const headers = new Headers(options.headers);
     this.populateHeaders(headers);
 
-    try {
-      const response = await fetch(url, { ...options, headers });
-      const refreshToken = getRefreshToken();
-      if (response.status === 401 && refreshToken) {
-        await this.refreshTokens(refreshToken);
-        return this.request<T>(endpoint, options);
-      }
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-
-      return response.json() as Promise<T>;
-    } catch (error) {
-      throw error;
+    const response = await fetch(url, { ...options, headers });
+    const refreshToken = getRefreshToken();
+    if (response.status === 401 && refreshToken) {
+      await this.refreshTokens(refreshToken);
+      return this.request<T>(endpoint, options);
     }
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+
+    return response.json() as Promise<T>;
   }
 
   private async refreshTokens(refreshToken: string) {
@@ -72,8 +68,36 @@ export class ApiClient {
     });
   }
 
-  public async getReleaseChannels() {
-    return this.request<string[]>('/dashboard/releaseChannels', {
+  public async getBranches() {
+    return this.request<
+      {
+        branchName: string;
+        releaseChannel?: string | null;
+      }[]
+    >('/dashboard/branches', {
+      method: 'GET',
+    });
+  }
+  public async getRuntimeVersions(branch: string) {
+    return this.request<
+      {
+        runtimeVersion: string;
+        lastUpdatedAt: string;
+        createdAt: string;
+        numberOfUpdates: number;
+      }[]
+    >(`/dashboard/branch/${branch}/runtimeVersions`, {
+      method: 'GET',
+    });
+  }
+  public async getUpdates(branch: string, runtimeVersion: string) {
+    return this.request<
+      {
+        updateUUID: string;
+        createdAt: string;
+        updateId: string;
+      }[]
+    >(`/dashboard/branch/${branch}/runtimeVersion/${runtimeVersion}/updates`, {
       method: 'GET',
     });
   }

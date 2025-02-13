@@ -21,6 +21,19 @@ type ExpoChannelMapping struct {
 	BranchName string `json:"branchName"`
 }
 
+type ExpoBranchMapping struct {
+	BranchName  string `json:"branchName"`
+	ChannelName string `json:"channelName"`
+}
+
+type BranchMapping struct {
+	Version int `json:"version"`
+	Data    []struct {
+		BranchId           string          `json:"branchId"`
+		BranchMappingLogic json.RawMessage `json:"branchMappingLogic"`
+	}
+}
+
 func GetExpoAccessToken() string {
 	return config.GetEnv("EXPO_ACCESS_TOKEN")
 }
@@ -74,6 +87,54 @@ func makeGraphQLRequest(ctx context.Context, query string, variables map[string]
 	return json.NewDecoder(resp.Body).Decode(result)
 }
 
+func FetchExpoBranches() ([]string, error) {
+	query := `
+		query FetchAppChannel($appId: String!) {
+			app {
+				byId(appId: $appId) {
+					id
+					updateBranches(offset: 0, limit: 10000) {
+						id
+						name
+					}
+				}
+			}
+		}
+	`
+	appId := GetExpoAppId()
+	expoToken := GetExpoAccessToken()
+	variables := map[string]interface{}{
+		"appId": appId,
+	}
+	var resp struct {
+		Data struct {
+			App struct {
+				ById struct {
+					UpdateBranches []struct {
+						ID   string `json:"id"`
+						Name string `json:"name"`
+					} `json:"updateBranches"`
+				} `json:"byId"`
+			} `json:"app"`
+		} `json:"data"`
+	}
+	headers := map[string]string{}
+	if config.IsTestMode() {
+		headers["operationName"] = "FetchExpoBranches"
+	}
+	ctx := context.Background()
+	if err := makeGraphQLRequest(ctx, query, variables, types.ExpoAuth{
+		Token: &expoToken,
+	}, &resp, headers); err != nil {
+		return nil, err
+	}
+	var branches []string
+	for _, branch := range resp.Data.App.ById.UpdateBranches {
+		branches = append(branches, branch.Name)
+	}
+	return branches, nil
+}
+
 func FetchExpoUserAccountInformations(expoAuth types.ExpoAuth) (*ExpoUserAccount, error) {
 	query := `
 		query GetCurrentUserAccount {
@@ -113,55 +174,6 @@ func FetchSelfExpoUsername() string {
 		return ""
 	}
 	return expoAccount.Username
-}
-
-func FetchExpoChannels() ([]string, error) {
-	query := `
-		query FetchAppChannels($appId: String!) {
-			app {
-				byId(appId: $appId) {
-					id
-					name
-					updateChannels(offset: 0, limit: 10000) {
-						id
-						name
-					}
-				}
-			}
-		}
-	`
-	appId := GetExpoAppId()
-	expoToken := GetExpoAccessToken()
-	variables := map[string]interface{}{
-		"appId": appId,
-	}
-	var resp struct {
-		Data struct {
-			App struct {
-				ById struct {
-					UpdateChannels []struct {
-						ID   string `json:"id"`
-						Name string `json:"name"`
-					} `json:"updateChannels"`
-				} `json:"byId"`
-			} `json:"app"`
-		} `json:"data"`
-	}
-	headers := map[string]string{}
-	if config.IsTestMode() {
-		headers["operationName"] = "FetchExpoChannels"
-	}
-	ctx := context.Background()
-	if err := makeGraphQLRequest(ctx, query, variables, types.ExpoAuth{
-		Token: &expoToken,
-	}, &resp, headers); err != nil {
-		return nil, err
-	}
-	var channels []string
-	for _, channel := range resp.Data.App.ById.UpdateChannels {
-		channels = append(channels, channel.Name)
-	}
-	return channels, nil
 }
 
 func FetchExpoChannelMapping(channelName string) (*ExpoChannelMapping, error) {
@@ -217,13 +229,7 @@ func FetchExpoChannelMapping(channelName string) (*ExpoChannelMapping, error) {
 		return nil, err
 	}
 
-	var branchMapping struct {
-		Version int `json:"version"`
-		Data    []struct {
-			BranchId           string          `json:"branchId"`
-			BranchMappingLogic json.RawMessage `json:"branchMappingLogic"`
-		}
-	}
+	var branchMapping BranchMapping
 	if err := json.Unmarshal([]byte(resp.Data.App.ById.UpdateChannelByName.BranchMapping), &branchMapping); err != nil {
 		return nil, err
 	}
@@ -257,7 +263,7 @@ func FetchExpoChannelMapping(channelName string) (*ExpoChannelMapping, error) {
 	}, nil
 }
 
-func FetchExpoBranches() ([]string, error) {
+func FetchExpoBranchesMapping() ([]ExpoBranchMapping, error) {
 	query := `
 		query FetchAppChannel($appId: String!) {
 			app {
@@ -267,6 +273,11 @@ func FetchExpoBranches() ([]string, error) {
 						id
 						name
 					}
+					updateChannels(offset: 0, limit: 10000) {
+                		id
+                		name
+                		branchMapping
+            		}
 				}
 			}
 		}
@@ -284,6 +295,11 @@ func FetchExpoBranches() ([]string, error) {
 						ID   string `json:"id"`
 						Name string `json:"name"`
 					} `json:"updateBranches"`
+					UpdateChannels []struct {
+						ID            string `json:"id"`
+						Name          string `json:"name"`
+						BranchMapping string `json:"branchMapping"`
+					} `json:"updateChannels"`
 				} `json:"byId"`
 			} `json:"app"`
 		} `json:"data"`
@@ -298,11 +314,39 @@ func FetchExpoBranches() ([]string, error) {
 	}, &resp, headers); err != nil {
 		return nil, err
 	}
-	var branches []string
-	for _, branch := range resp.Data.App.ById.UpdateBranches {
-		branches = append(branches, branch.Name)
+	var branchMappings []ExpoBranchMapping
+	for _, channel := range resp.Data.App.ById.UpdateChannels {
+		var branchMapping BranchMapping
+		if err := json.Unmarshal([]byte(channel.BranchMapping), &branchMapping); err != nil {
+			return nil, err
+		}
+		var branchID string
+		for _, mapping := range branchMapping.Data {
+			var logic string
+			if json.Unmarshal(mapping.BranchMappingLogic, &logic) == nil && logic == "true" {
+				branchID = mapping.BranchId
+				break
+			}
+		}
+		if branchID == "" {
+			continue
+		}
+		var branchName string
+		for _, branch := range resp.Data.App.ById.UpdateBranches {
+			if branch.ID == branchID {
+				branchName = branch.Name
+				break
+			}
+		}
+		if branchName == "" {
+			continue
+		}
+		branchMappings = append(branchMappings, ExpoBranchMapping{
+			BranchName:  branchName,
+			ChannelName: channel.Name,
+		})
 	}
-	return branches, nil
+	return branchMappings, nil
 }
 
 func CreateBranch(branch string) error {

@@ -10,7 +10,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"io"
+	"sort"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -77,6 +79,92 @@ func (b *S3Bucket) DeleteUpdateFolder(branch, runtimeVersion, updateId string) e
 	}
 
 	return nil
+}
+
+func (b *S3Bucket) GetRuntimeVersions(branch string) ([]RuntimeVersionWithStats, error) {
+	if b.BucketName == "" {
+		return nil, errors.New("BucketName not set")
+	}
+	s3Client, errS3 := services.GetS3Client()
+	if errS3 != nil {
+		return nil, errS3
+	}
+
+	input := &s3.ListObjectsV2Input{
+		Bucket:    aws.String(b.BucketName),
+		Prefix:    aws.String(branch + "/"),
+		Delimiter: aws.String("/"),
+	}
+	resp, err := s3Client.ListObjectsV2(context.TODO(), input)
+	if err != nil {
+		return nil, fmt.Errorf("ListObjectsV2 error: %w", err)
+	}
+
+	var runtimeVersions []RuntimeVersionWithStats
+	prefixLen := len(branch) + 1
+
+	for _, commonPrefix := range resp.CommonPrefixes {
+		runtimeVersion := (*commonPrefix.Prefix)[prefixLen : len(*commonPrefix.Prefix)-1]
+		updatesPath := *commonPrefix.Prefix
+		updateInput := &s3.ListObjectsV2Input{
+			Bucket:    aws.String(b.BucketName),
+			Prefix:    aws.String(updatesPath),
+			Delimiter: aws.String("/"),
+		}
+		updateResp, err := s3Client.ListObjectsV2(context.TODO(), updateInput)
+		if err != nil {
+			return nil, fmt.Errorf("ListObjectsV2 error in updates: %w", err)
+		}
+
+		var updateTimestamps []int64
+		for _, commonPrefix := range updateResp.CommonPrefixes {
+			updateID := strings.TrimSuffix((*commonPrefix.Prefix)[len(updatesPath):], "/")
+			timestamp, err := strconv.ParseInt(updateID, 10, 64)
+			if err != nil {
+				continue
+			}
+			updateTimestamps = append(updateTimestamps, timestamp)
+		}
+
+		if len(updateTimestamps) == 0 {
+			continue
+		}
+
+		sort.Slice(updateTimestamps, func(i, j int) bool { return updateTimestamps[i] < updateTimestamps[j] })
+
+		runtimeVersions = append(runtimeVersions, RuntimeVersionWithStats{
+			RuntimeVersion:  runtimeVersion,
+			CreatedAt:       time.UnixMilli(updateTimestamps[0]).Format(time.RFC3339),
+			LastUpdatedAt:   time.UnixMilli(updateTimestamps[len(updateTimestamps)-1]).Format(time.RFC3339),
+			NumberOfUpdates: len(updateTimestamps),
+		})
+	}
+
+	return runtimeVersions, nil
+}
+
+func (b *S3Bucket) GetBranches() ([]string, error) {
+	if b.BucketName == "" {
+		return nil, errors.New("BucketName not set")
+	}
+	s3Client, errS3 := services.GetS3Client()
+	if errS3 != nil {
+		return nil, errS3
+	}
+	input := &s3.ListObjectsV2Input{
+		Bucket:    aws.String(b.BucketName),
+		Delimiter: aws.String("/"),
+	}
+	resp, err := s3Client.ListObjectsV2(context.TODO(), input)
+	if err != nil {
+		return nil, fmt.Errorf("ListObjectsV2 error: %w", err)
+	}
+	var branches []string
+	for _, commonPrefix := range resp.CommonPrefixes {
+		prefix := *commonPrefix.Prefix
+		branches = append(branches, prefix[:len(prefix)-1])
+	}
+	return branches, nil
 }
 
 func (b *S3Bucket) GetUpdates(branch string, runtimeVersion string) ([]types.Update, error) {
