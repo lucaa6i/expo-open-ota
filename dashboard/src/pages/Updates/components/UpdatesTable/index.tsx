@@ -63,18 +63,10 @@ export const UpdatesTable = ({
             accessorKey: 'updateId',
             cell: value => {
               return (
-                <button
-                  className="flex flex-row gap-2 items-center cursor-pointer w-full underline"
-                  onClick={() => {
-                    setSearchParams({
-                      branch,
-                      runtimeVersion,
-                      updateId: value.row.original.updateId,
-                    });
-                  }}>
+                <span className="flex flex-row gap-2 items-center w-full">
                   <Rss className="w-4" />
                   {value.row.original.updateId}
-                </button>
+                </span>
               );
             },
           },

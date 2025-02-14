@@ -8,45 +8,39 @@ import (
 )
 
 var (
-	updateDownloadsVec = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "update_downloads_total",
-			Help: "Total number of update downloads per runtime version, branch and update",
-		},
-		[]string{"runtime", "branch", "update", "updateType"},
-	)
-	runtimeVersionsUsedVec = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: "runtime_versions_total",
-			Help: "Total number of runtime versions used per runtime version and branch",
-		},
-		[]string{"runtime", "branch"},
-	)
 	activeUsersVec = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "active_users_total",
-			Help: "Total number of active users per runtime version, branch and update",
+			Help: "Total number of unique active users per clientId, platform, runtime version, branch and update",
 		},
-		[]string{"runtime", "branch", "update"},
+		[]string{"clientId", "platform", "runtime", "branch", "update"},
+	)
+	updateDownloadsVec = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "update_downloads_total",
+			Help: "Total number of update downloads per platform, runtime version, branch and update",
+		},
+		[]string{"platform", "runtime", "branch", "update", "updateType"},
 	)
 )
 
 func InitMetrics() {
-	prometheus.MustRegister(updateDownloadsVec)
-	prometheus.MustRegister(runtimeVersionsUsedVec)
 	prometheus.MustRegister(activeUsersVec)
+	prometheus.MustRegister(updateDownloadsVec)
 }
 
-func TrackUpdateDownload(runtime, branch, update, updateType string) {
-	updateDownloadsVec.WithLabelValues(runtime, branch, update, updateType).Inc()
+func TrackActiveUser(clientId, platform, runtime, branch, update string) {
+	if clientId == "" || update == "" || platform == "" || branch == "" {
+		return
+	}
+	activeUsersVec.WithLabelValues(clientId, platform, runtime, branch, update).Set(1)
 }
 
-func TrackRuntimeVersion(runtime, branch string) {
-	runtimeVersionsUsedVec.WithLabelValues(runtime, branch).Inc()
-}
-
-func TrackActiveUser(runtime, branch, update string) {
-	activeUsersVec.WithLabelValues(runtime, branch, update).Inc()
+func TrackUpdateDownload(platform, runtime, branch, update, updateType string) {
+	if update == "" || platform == "" || branch == "" {
+		return
+	}
+	updateDownloadsVec.WithLabelValues(platform, runtime, branch, update, updateType).Inc()
 }
 
 func PrometheusHandler() http.Handler {
@@ -54,25 +48,18 @@ func PrometheusHandler() http.Handler {
 }
 
 func ResetMetricsForTest() {
-	updateDownloadsVec = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "update_downloads_total",
-			Help: "Total number of update downloads per runtime version, branch and update",
-		},
-		[]string{"runtime", "branch", "update", "updateType"},
-	)
-	runtimeVersionsUsedVec = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: "runtime_versions_total",
-			Help: "Total number of runtime versions used per runtime version and branch",
-		},
-		[]string{"runtime", "branch"},
-	)
 	activeUsersVec = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "active_users_total",
-			Help: "Total number of active users per runtime version, branch and update",
+			Help: "Total number of unique active users per clientId, platform, runtime version, branch and update",
 		},
-		[]string{"runtime", "branch", "update"},
+		[]string{"clientId", "platform", "runtime", "branch", "update"},
+	)
+	updateDownloadsVec = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "update_downloads_total",
+			Help: "Total number of update downloads per platform, runtime version, branch and update",
+		},
+		[]string{"platform", "runtime", "branch", "update", "updateType"},
 	)
 }
