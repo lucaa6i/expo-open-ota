@@ -6,6 +6,7 @@ import (
 	cache2 "expo-open-ota/internal/cache"
 	"expo-open-ota/internal/cdn"
 	"expo-open-ota/internal/handlers"
+	"expo-open-ota/internal/metrics"
 	"expo-open-ota/internal/types"
 	"github.com/jarcoal/httpmock"
 	"net/http"
@@ -20,6 +21,7 @@ func setup(t *testing.T) func() {
 	GlobalBeforeEach()
 	httpmock.Activate()
 	SetValidConfiguration()
+	metrics.InitMetrics()
 	return func() {
 		GlobalAfterEach(t)
 		defer httpmock.DeactivateAndReset()
@@ -27,6 +29,7 @@ func setup(t *testing.T) func() {
 }
 
 func GlobalBeforeEach() {
+	metrics.CleanupMetrics()
 	cache := cache2.GetCache()
 	_ = cache.Clear()
 	newTime := time.Date(1990, time.January, 1, 0, 0, 0, 0, time.UTC)
@@ -100,6 +103,20 @@ func findProjectRoot() (string, error) {
 }
 
 func MockExpoChannelMapping(updateBranches []map[string]interface{}, updateChannelByName map[string]interface{}) (*http.Response, error) {
+	return httpmock.NewJsonResponse(http.StatusOK, map[string]interface{}{
+		"data": map[string]interface{}{
+			"app": map[string]interface{}{
+				"byId": map[string]interface{}{
+					"id":                  "EXPO_APP_ID",
+					"updateBranches":      updateBranches,
+					"updateChannelByName": updateChannelByName,
+				},
+			},
+		},
+	})
+}
+
+func MockExpoBranchesMappingResponse(updateBranches []map[string]interface{}, updateChannelByName []map[string]interface{}) (*http.Response, error) {
 	return httpmock.NewJsonResponse(http.StatusOK, map[string]interface{}{
 		"data": map[string]interface{}{
 			"app": map[string]interface{}{
@@ -405,4 +422,6 @@ func SetValidConfiguration() {
 	os.Setenv("PRIVATE_CLOUDFRONT_KEY_PATH", "")
 	os.Setenv("CLOUDFRONT_DOMAIN", "")
 	os.Setenv("CLOUDFRONT_KEY_PAIR_ID", "")
+	os.Setenv("USE_DASHBOARD", "true")
+	os.Setenv("ADMIN_PASSWORD", "admin")
 }

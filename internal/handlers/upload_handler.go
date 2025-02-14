@@ -213,18 +213,18 @@ func RequestUploadUrlHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := branch.UpsertBranch(branchName)
-	if err != nil {
-		log.Printf("[RequestID: %s] Error upserting branch: %v", requestID, err)
-		http.Error(w, "Error upserting branch", http.StatusInternalServerError)
-		return
-	}
-
 	expoAuth := helpers.GetExpoAuth(r)
 	expoAccount, err := services.FetchExpoUserAccountInformations(expoAuth)
 	if err != nil {
 		log.Printf("[RequestID: %s] Error fetching expo account informations: %v", requestID, err)
 		http.Error(w, "Error fetching expo account informations", http.StatusUnauthorized)
+		return
+	}
+
+	err = branch.UpsertBranch(branchName)
+	if err != nil {
+		log.Printf("[RequestID: %s] Error upserting branch: %v", requestID, err)
+		http.Error(w, "Error upserting branch", http.StatusInternalServerError)
 		return
 	}
 
