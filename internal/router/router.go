@@ -1,6 +1,7 @@
 package infrastructure
 
 import (
+	"expo-open-ota/internal/dashboard"
 	"expo-open-ota/internal/handlers"
 	"expo-open-ota/internal/metrics"
 	"expo-open-ota/internal/middleware"
@@ -31,26 +32,28 @@ func NewRouter() *mux.Router {
 	corsSubrouter.HandleFunc("/login", handlers.LoginHandler).Methods(http.MethodPost)
 	corsSubrouter.HandleFunc("/refreshToken", handlers.RefreshTokenHandler).Methods(http.MethodPost)
 
-	r.PathPrefix("/dashboard").Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/dashboard" {
-			target := "/dashboard/"
-			if r.URL.RawQuery != "" {
-				target += "?" + r.URL.RawQuery
-			}
-			http.Redirect(w, r, target, http.StatusMovedPermanently)
-			return
-		}
-
-		staticExtensions := []string{".css", ".js", ".svg", ".png", ".json", ".ico"}
-		for _, ext := range staticExtensions {
-			if len(r.URL.Path) > len(ext) && r.URL.Path[len(r.URL.Path)-len(ext):] == ext {
-				http.ServeFile(w, r, "./dashboard/dist/"+r.URL.Path[len("/dashboard/"):])
+	if dashboard.IsDashboardEnabled() {
+		r.PathPrefix("/dashboard").Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path == "/dashboard" {
+				target := "/dashboard/"
+				if r.URL.RawQuery != "" {
+					target += "?" + r.URL.RawQuery
+				}
+				http.Redirect(w, r, target, http.StatusMovedPermanently)
 				return
 			}
-		}
 
-		http.ServeFile(w, r, "./dashboard/dist/index.html")
-	}))
+			staticExtensions := []string{".css", ".js", ".svg", ".png", ".json", ".ico"}
+			for _, ext := range staticExtensions {
+				if len(r.URL.Path) > len(ext) && r.URL.Path[len(r.URL.Path)-len(ext):] == ext {
+					http.ServeFile(w, r, "./dashboard/dist/"+r.URL.Path[len("/dashboard/"):])
+					return
+				}
+			}
+
+			http.ServeFile(w, r, "./dashboard/dist/index.html")
+		}))
+	}
 
 	authSubrouter := r.PathPrefix("/api").Subrouter()
 	authSubrouter.Use(middleware.AuthMiddleware)
