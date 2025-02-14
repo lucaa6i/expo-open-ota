@@ -440,3 +440,21 @@ func CreateNoUpdateAvailableDirective() types.NoUpdateAvailableDirective {
 		Type: "noUpdateAvailable",
 	}
 }
+
+func RetrieveUpdateCommitHashAndPlatform(update types.Update) (string, string, error) {
+	resolvedBucket := bucket.GetBucket()
+	file, err := resolvedBucket.GetFile(update, "update-metadata.json")
+	if err != nil {
+		return "", "", err
+	}
+	defer file.Reader.Close()
+	var metadata struct {
+		Platform   string `json:"platform"`
+		CommitHash string `json:"commitHash"`
+	}
+	err = json.NewDecoder(file.Reader).Decode(&metadata)
+	if err != nil {
+		return "", "", err
+	}
+	return metadata.CommitHash, metadata.Platform, nil
+}
