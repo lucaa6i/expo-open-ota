@@ -3,7 +3,6 @@ import { api } from '@/lib/api.ts';
 import { ApiError } from '@/components/APIError';
 import { DataTable } from '@/components/DataTable';
 import { GitBranch, Milestone, Rss } from 'lucide-react';
-import { useSearchParams } from 'react-router';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -21,7 +20,6 @@ export const UpdatesTable = ({
   branch: string;
   runtimeVersion: string;
 }) => {
-  const [, setSearchParams] = useSearchParams();
   const { data, isLoading, error } = useQuery({
     queryKey: ['updates'],
     queryFn: () => api.getUpdates(branch, runtimeVersion),
