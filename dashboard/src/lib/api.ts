@@ -74,7 +74,7 @@ export class ApiClient {
         branchName: string;
         releaseChannel?: string | null;
       }[]
-    >('/dashboard/branches', {
+    >('/api/branches', {
       method: 'GET',
     });
   }
@@ -86,7 +86,7 @@ export class ApiClient {
         createdAt: string;
         numberOfUpdates: number;
       }[]
-    >(`/dashboard/branch/${branch}/runtimeVersions`, {
+    >(`/api/branch/${branch}/runtimeVersions`, {
       method: 'GET',
     });
   }
@@ -99,7 +99,7 @@ export class ApiClient {
         platform: string;
         commitHash: string;
       }[]
-    >(`/dashboard/branch/${branch}/runtimeVersion/${runtimeVersion}/updates`, {
+    >(`/api/branch/${branch}/runtimeVersion/${runtimeVersion}/updates`, {
       method: 'GET',
     });
   }
@@ -128,7 +128,7 @@ export class ApiClient {
       AWSSM_CLOUDFRONT_PRIVATE_KEY_SECRET_ID: string;
       PRIVATE_LOCAL_CLOUDFRONT_KEY_PATH: string;
       PROMETHEUS_ENABLED: string;
-    }>(`/dashboard/settings`, {
+    }>(`/api/settings`, {
       method: 'GET',
     });
   }

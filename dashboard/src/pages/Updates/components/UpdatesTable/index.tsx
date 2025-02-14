@@ -30,7 +30,7 @@ export const UpdatesTable = ({
       <Breadcrumb className="mb-2">
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink href="/" className="flex items-center gap-2 underline">
+            <BreadcrumbLink href="/dashboard" className="flex items-center gap-2 underline">
               <GitBranch className="w-4" />
             </BreadcrumbLink>
           </BreadcrumbItem>
@@ -41,7 +41,7 @@ export const UpdatesTable = ({
           <BreadcrumbSeparator />
           <BreadcrumbItem>
             <BreadcrumbLink
-              href={`/?branch=${branch}`}
+              href={`/dashboard?branch=${branch}`}
               className="flex items-center gap-2 underline">
               <Milestone className="w-4" />
             </BreadcrumbLink>
@@ -83,8 +83,8 @@ export const UpdatesTable = ({
               const isAndroid = value.row.original.platform === 'android';
               return (
                 <div className="flex flex-row items-center gap-2">
-                  {isIos && <img src="/apple.svg" className="w-4" alt="apple" />}
-                  {isAndroid && <img src="/android.svg" className="w-4" alt="android" />}
+                  {isIos && <img src="@/assets/apple.svg" className="w-4" alt="apple" />}
+                  {isAndroid && <img src="@/assets/android.svg" className="w-4" alt="android" />}
                 </div>
               );
             },

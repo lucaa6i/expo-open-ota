@@ -10,7 +10,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { HardDriveDownload, Settings } from 'lucide-react';
+import {HardDriveDownload, PowerOff, Settings} from 'lucide-react';
 import clsx from 'clsx';
 
 const items = [
@@ -24,6 +24,11 @@ const items = [
     url: '/settings',
     icon: Settings,
   },
+  {
+    title: 'Logout',
+    url: '/logout',
+    icon: PowerOff,
+  }
 ];
 
 export function AppSidebar() {

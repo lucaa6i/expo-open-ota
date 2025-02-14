@@ -26,7 +26,7 @@ export const RuntimeVersionsTable = ({ branch }: { branch: string }) => {
       <Breadcrumb className="mb-2">
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink href="/" className="flex items-center gap-2">
+            <BreadcrumbLink href="/dashboard" className="flex items-center gap-2">
               <GitBranch className="w-4" />
             </BreadcrumbLink>
           </BreadcrumbItem>
