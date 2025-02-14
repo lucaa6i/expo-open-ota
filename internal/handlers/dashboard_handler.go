@@ -3,7 +3,9 @@ package handlers
 import (
 	"encoding/json"
 	"expo-open-ota/internal/bucket"
+	cache2 "expo-open-ota/internal/cache"
 	"expo-open-ota/internal/crypto"
+	"expo-open-ota/internal/dashboard"
 	"expo-open-ota/internal/services"
 	update2 "expo-open-ota/internal/update"
 	"github.com/gorilla/mux"
@@ -31,6 +33,16 @@ func GetBranchesHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	cacheKey := dashboard.ComputeGetBranchesCacheKey()
+	cache := cache2.GetCache()
+	if cacheValue := cache.Get(cacheKey); cacheValue != "" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		var branches []BranchMapping
+		json.Unmarshal([]byte(cacheValue), &branches)
+		json.NewEncoder(w).Encode(branches)
+		return
+	}
 	branchesMapping, err := services.FetchExpoBranchesMapping()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -53,12 +65,23 @@ func GetBranchesHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
-
+	marshaledResponse, _ := json.Marshal(response)
+	cache.Set(cacheKey, string(marshaledResponse), nil)
 }
 
 func GetRuntimeVersionsHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	branchName := vars["BRANCH"]
+	cacheKey := dashboard.ComputeGetRuntimeVersionsCacheKey(branchName)
+	cache := cache2.GetCache()
+	if cacheValue := cache.Get(cacheKey); cacheValue != "" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		var runtimeVersions []bucket.RuntimeVersionWithStats
+		json.Unmarshal([]byte(cacheValue), &runtimeVersions)
+		json.NewEncoder(w).Encode(runtimeVersions)
+		return
+	}
 	resolvedBucket := bucket.GetBucket()
 	runtimeVersions, err := resolvedBucket.GetRuntimeVersions(branchName)
 	if err != nil {
@@ -74,12 +97,24 @@ func GetRuntimeVersionsHandler(w http.ResponseWriter, r *http.Request) {
 		return timeI.After(timeJ)
 	})
 	json.NewEncoder(w).Encode(runtimeVersions)
+	marshaledResponse, _ := json.Marshal(runtimeVersions)
+	cache.Set(cacheKey, string(marshaledResponse), nil)
 }
 
 func GetUpdatesHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	branchName := vars["BRANCH"]
 	runtimeVersion := vars["RUNTIME_VERSION"]
+	cacheKey := dashboard.ComputeGetUpdatesCacheKey(branchName, runtimeVersion)
+	cache := cache2.GetCache()
+	if cacheValue := cache.Get(cacheKey); cacheValue != "" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		var updatesResponse []UpdateItem
+		json.Unmarshal([]byte(cacheValue), &updatesResponse)
+		json.NewEncoder(w).Encode(updatesResponse)
+		return
+	}
 	resolvedBucket := bucket.GetBucket()
 	updates, err := resolvedBucket.GetUpdates(branchName, runtimeVersion)
 	if err != nil {
@@ -108,4 +143,6 @@ func GetUpdatesHandler(w http.ResponseWriter, r *http.Request) {
 		return timeI.After(timeJ)
 	})
 	json.NewEncoder(w).Encode(updatesResponse)
+	marshaledResponse, _ := json.Marshal(updatesResponse)
+	cache.Set(cacheKey, string(marshaledResponse), nil)
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"expo-open-ota/internal/crypto"
 	"expo-open-ota/internal/keyStore"
+	"expo-open-ota/internal/metrics"
 	"expo-open-ota/internal/services"
 	"expo-open-ota/internal/types"
 	"expo-open-ota/internal/update"
@@ -19,21 +20,17 @@ import (
 func createMultipartResponse(headers map[string][]string, jsonContent interface{}) (*multipart.Writer, *bytes.Buffer, error) {
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
-
 	field, err := writer.CreatePart(headers)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error creating multipart field: %w", err)
 	}
-
 	contentJSON, err := json.Marshal(jsonContent)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error marshaling JSON: %w", err)
 	}
-
 	if _, err := field.Write(contentJSON); err != nil {
 		return nil, nil, fmt.Errorf("error writing JSON content: %w", err)
 	}
-
 	return writer, &buf, nil
 }
 
@@ -46,12 +43,10 @@ func signDirectiveOrManifest(content interface{}, expectSignatureHeader string) 
 	if err != nil {
 		return "", fmt.Errorf("error stringifying content: %w", err)
 	}
-
 	signedHash, err := crypto.SignRSASHA256(string(contentJSON), privateKey)
 	if err != nil {
 		return "", fmt.Errorf("error signing content hash: %w", err)
 	}
-
 	return signedHash, nil
 }
 
@@ -60,14 +55,11 @@ func writeResponse(w http.ResponseWriter, writer *multipart.Writer, buf *bytes.B
 	w.Header().Set("expo-sfv-version", "0")
 	w.Header().Set("cache-control", "private, max-age=0")
 	w.Header().Set("content-type", "multipart/mixed; boundary="+writer.Boundary())
-	// w.Header().Set("expo-manifest-filters", fmt.Sprintf("runtimeVersion=\"%s\"", runtimeVersion))
-
 	if err := writer.Close(); err != nil {
 		log.Printf("[RequestID: %s] Error closing multipart writer: %v", requestID, err)
 		http.Error(w, "Error closing multipart writer", http.StatusInternalServerError)
 		return
 	}
-
 	if _, err := w.Write(buf.Bytes()); err != nil {
 		log.Printf("[RequestID: %s] Error writing response: %v", requestID, err)
 	}
@@ -80,7 +72,6 @@ func putResponse(w http.ResponseWriter, r *http.Request, content interface{}, fi
 		http.Error(w, "Error signing content", http.StatusInternalServerError)
 		return
 	}
-
 	headers := map[string][]string{
 		"Content-Disposition": {fmt.Sprintf("form-data; name=\"%s\"", fieldName)},
 		"Content-Type":        {"application/json"},
@@ -89,14 +80,12 @@ func putResponse(w http.ResponseWriter, r *http.Request, content interface{}, fi
 	if signedHash != "" {
 		headers["expo-signature"] = []string{fmt.Sprintf("sig=\"%s\", keyid=\"main\"", signedHash)}
 	}
-
 	writer, buf, err := createMultipartResponse(headers, content)
 	if err != nil {
 		log.Printf("[RequestID: %s] Error creating multipart response: %v", requestID, err)
 		http.Error(w, "Error creating multipart response", http.StatusInternalServerError)
 		return
 	}
-
 	writeResponse(w, writer, buf, protocolVersion, runtimeVersion, requestID)
 }
 
@@ -108,19 +97,16 @@ func putUpdateInResponse(w http.ResponseWriter, r *http.Request, lastUpdate type
 		http.Error(w, "Error getting metadata", http.StatusInternalServerError)
 		return
 	}
-
 	if currentUpdateId != "" && currentUpdateId == crypto.ConvertSHA256HashToUUID(metadata.ID) && protocolVersion == 1 {
 		putNoUpdateAvailableInResponse(w, r, lastUpdate.RuntimeVersion, protocolVersion, requestID)
 		return
 	}
-
 	manifest, err := update.ComposeUpdateManifest(&metadata, lastUpdate, platform)
 	if err != nil {
 		log.Printf("[RequestID: %s] Error composing manifest: %v", requestID, err)
 		http.Error(w, "Error composing manifest", http.StatusInternalServerError)
 		return
 	}
-
 	putResponse(w, r, manifest, "manifest", lastUpdate.RuntimeVersion, protocolVersion, requestID)
 }
 
@@ -129,26 +115,22 @@ func putRollbackInResponse(w http.ResponseWriter, r *http.Request, lastUpdate ty
 		http.Error(w, "Rollback not supported in protocol version 0", http.StatusBadRequest)
 		return
 	}
-
 	embeddedUpdateId := r.Header.Get("expo-embedded-update-id")
 	if embeddedUpdateId == "" {
 		http.Error(w, "No embedded update id provided", http.StatusBadRequest)
 		return
 	}
-
 	currentUpdateId := r.Header.Get("expo-current-update-id")
 	if currentUpdateId != "" && currentUpdateId == embeddedUpdateId {
 		putNoUpdateAvailableInResponse(w, r, lastUpdate.RuntimeVersion, protocolVersion, requestID)
 		return
 	}
-
 	directive, err := update.CreateRollbackDirective(lastUpdate)
 	if err != nil {
 		log.Printf("[RequestID: %s] Error creating rollback directive: %v", requestID, err)
 		http.Error(w, "Error creating rollback directive", http.StatusInternalServerError)
 		return
 	}
-
 	putResponse(w, r, directive, "directive", lastUpdate.RuntimeVersion, protocolVersion, requestID)
 }
 
@@ -157,13 +139,13 @@ func putNoUpdateAvailableInResponse(w http.ResponseWriter, r *http.Request, runt
 		http.Error(w, "NoUpdateAvailable directive not available in protocol version 0", http.StatusNoContent)
 		return
 	}
-
 	directive := update.CreateNoUpdateAvailableDirective()
 	putResponse(w, r, directive, "directive", runtimeVersion, protocolVersion, requestID)
 }
 
 func ManifestHandler(w http.ResponseWriter, r *http.Request) {
 	requestID := uuid.New().String()
+	metrics.TrackActiveUser()
 	channelName := r.Header.Get("expo-channel-name")
 	if channelName == "" {
 		log.Printf("[RequestID: %s] No channel name provided", requestID)
@@ -182,14 +164,12 @@ func ManifestHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	branch := branchMap.BranchName
-
 	protocolVersion, err := strconv.ParseInt(r.Header.Get("expo-protocol-version"), 10, 64)
 	if err != nil {
 		log.Printf("[RequestID: %s] Invalid protocol version: %v", requestID, err)
 		http.Error(w, "Invalid protocol version", http.StatusBadRequest)
 		return
 	}
-
 	platform := r.Header.Get("expo-platform")
 	if platform == "" {
 		platform = r.URL.Query().Get("platform")
@@ -199,7 +179,6 @@ func ManifestHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid platform", http.StatusBadRequest)
 		return
 	}
-
 	runtimeVersion := r.Header.Get("expo-runtime-version")
 	if runtimeVersion == "" {
 		runtimeVersion = r.URL.Query().Get("runtimeVersion")
@@ -209,7 +188,7 @@ func ManifestHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "No runtime version provided", http.StatusBadRequest)
 		return
 	}
-
+	metrics.TrackRuntimeVersion()
 	lastUpdate, err := update.GetLatestUpdateBundlePathForRuntimeVersion(branch, runtimeVersion)
 	if err != nil {
 		log.Printf("[RequestID: %s] Error getting latest update: %v", requestID, err)
@@ -221,9 +200,10 @@ func ManifestHandler(w http.ResponseWriter, r *http.Request) {
 		putNoUpdateAvailableInResponse(w, r, runtimeVersion, protocolVersion, requestID)
 		return
 	}
-
+	metrics.TrackUpdateDownload()
 	updateType := update.GetUpdateType(*lastUpdate)
 	if updateType == types.NormalUpdate {
+		metrics.TrackClientOnUpdate()
 		putUpdateInResponse(w, r, *lastUpdate, platform, protocolVersion, requestID)
 	} else {
 		putRollbackInResponse(w, r, *lastUpdate, protocolVersion, requestID)

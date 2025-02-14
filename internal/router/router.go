@@ -2,6 +2,7 @@ package infrastructure
 
 import (
 	"expo-open-ota/internal/handlers"
+	"expo-open-ota/internal/metrics"
 	"expo-open-ota/internal/middleware"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -14,6 +15,10 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 func NewRouter() *mux.Router {
 	r := mux.NewRouter()
 	r.Use(middleware.LoggingMiddleware)
+
+	r.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
+		metrics.PrometheusHandler().ServeHTTP(w, r)
+	}).Methods(http.MethodGet)
 
 	r.HandleFunc("/hc", HealthCheck).Methods(http.MethodGet)
 	r.HandleFunc("/manifest", handlers.ManifestHandler).Methods(http.MethodGet)
