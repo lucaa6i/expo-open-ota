@@ -117,11 +117,21 @@ func TestSettings(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/api/settings", nil)
 	req.Header.Set("Authorization", "Bearer "+login().Token)
 	router.ServeHTTP(respRec, req)
+
 	assert.Equal(t, http.StatusOK, respRec.Code)
-	var response handlers.SettingsEnv
-	err := json.Unmarshal(respRec.Body.Bytes(), &response)
+
+	projectRoot, err := os.Getwd()
 	assert.Nil(t, err)
-	assert.Equal(t, "{\"BASE_URL\":\"http://localhost:3000\",\"EXPO_APP_ID\":\"EXPO_APP_ID\",\"EXPO_ACCESS_TOKEN\":\"***EXPO_\",\"CACHE_MODE\":\"\",\"REDIS_HOST\":\"\",\"REDIS_PORT\":\"\",\"STORAGE_MODE\":\"local\",\"S3_BUCKET_NAME\":\"\",\"LOCAL_BUCKET_BASE_PATH\":\"/Users/axelmarciano/Workspace/expo-open-ota/test/test-updates\",\"KEYS_STORAGE_TYPE\":\"local\",\"AWSSM_EXPO_PUBLIC_KEY_SECRET_ID\":\"\",\"AWSSM_EXPO_PRIVATE_KEY_SECRET_ID\":\"\",\"PUBLIC_EXPO_KEY_B64\":\"\",\"PUBLIC_LOCAL_EXPO_KEY_PATH\":\"/Users/axelmarciano/Workspace/expo-open-ota/test/keys/public-key-test.pem\",\"PRIVATE_LOCAL_EXPO_KEY_PATH\":\"/Users/axelmarciano/Workspace/expo-open-ota/test/keys/private-key-test.pem\",\"AWS_REGION\":\"eu-west-3\",\"AWS_ACCESS_KEY_ID\":\"\",\"CLOUDFRONT_DOMAIN\":\"\",\"CLOUDFRONT_KEY_PAIR_ID\":\"\",\"CLOUDFRONT_PRIVATE_KEY_B64\":\"\",\"AWSSM_CLOUDFRONT_PRIVATE_KEY_SECRET_ID\":\"\",\"PRIVATE_LOCAL_CLOUDFRONT_KEY_PATH\":\"\",\"PROMETHEUS_ENABLED\":\"\"}", strings.TrimSpace(string(respRec.Body.Bytes())))
+
+	responseBody := strings.TrimSpace(string(respRec.Body.Bytes()))
+
+	responseBody = strings.ReplaceAll(responseBody, projectRoot+"/test-updates", "{PROJECT_ROOT}/test/test-updates")
+	responseBody = strings.ReplaceAll(responseBody, projectRoot+"/keys/public-key-test.pem", "{PROJECT_ROOT}/test/keys/public-key-test.pem")
+	responseBody = strings.ReplaceAll(responseBody, projectRoot+"/keys/private-key-test.pem", "{PROJECT_ROOT}/test/keys/private-key-test.pem")
+
+	expectedSnapshot := `{"BASE_URL":"http://localhost:3000","EXPO_APP_ID":"EXPO_APP_ID","EXPO_ACCESS_TOKEN":"***EXPO_","CACHE_MODE":"","REDIS_HOST":"","REDIS_PORT":"","STORAGE_MODE":"local","S3_BUCKET_NAME":"","LOCAL_BUCKET_BASE_PATH":"{PROJECT_ROOT}/test/test-updates","KEYS_STORAGE_TYPE":"local","AWSSM_EXPO_PUBLIC_KEY_SECRET_ID":"","AWSSM_EXPO_PRIVATE_KEY_SECRET_ID":"","PUBLIC_EXPO_KEY_B64":"","PUBLIC_LOCAL_EXPO_KEY_PATH":"{PROJECT_ROOT}/test/keys/public-key-test.pem","PRIVATE_LOCAL_EXPO_KEY_PATH":"{PROJECT_ROOT}/test/keys/private-key-test.pem","AWS_REGION":"eu-west-3","AWS_ACCESS_KEY_ID":"","CLOUDFRONT_DOMAIN":"","CLOUDFRONT_KEY_PAIR_ID":"","CLOUDFRONT_PRIVATE_KEY_B64":"","AWSSM_CLOUDFRONT_PRIVATE_KEY_SECRET_ID":"","PRIVATE_LOCAL_CLOUDFRONT_KEY_PATH":"","PROMETHEUS_ENABLED":""}`
+
+	assert.Equal(t, expectedSnapshot, responseBody)
 }
 
 func TestSettingsWithoutAuth(t *testing.T) {
