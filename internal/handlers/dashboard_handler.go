@@ -186,6 +186,10 @@ func GetUpdatesHandler(w http.ResponseWriter, r *http.Request) {
 
 	var updatesResponse []UpdateItem
 	for _, update := range updates {
+		isValid := update2.IsUpdateValid(update)
+		if !isValid {
+			continue
+		}
 		metadata, err := update2.GetMetadata(update)
 		if err != nil {
 			continue

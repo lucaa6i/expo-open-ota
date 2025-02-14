@@ -524,14 +524,12 @@ func TestDifferentUpload(t *testing.T) {
 	branch := "DO_NOT_USE"
 	runtimeVersion := "1"
 	updateId1 := performUpload(t, projectRoot, branch, runtimeVersion, sampleUpdatePath)
-	fmt.Println(updateId1)
 	w := markUpdateAsUploaded(t, branch, runtimeVersion, updateId1)
 	if w.Code != 200 {
 		t.Fatalf("First mark as uploaded failed with status %d", w.Code)
 	}
 	sampleOtherUpdatePath := filepath.Join(projectRoot, "test", "test-updates", "branch-4", "1", "1674170951")
 	updateId2 := performUpload(t, projectRoot, branch, runtimeVersion, sampleOtherUpdatePath)
-	fmt.Println(updateId2)
 	w2 := markUpdateAsUploaded(t, branch, runtimeVersion, updateId2)
 	assert.Equal(t, 200, w2.Code, "Expected status code 200")
 	lastUpdate, err := update.GetLatestUpdateBundlePathForRuntimeVersion(branch, runtimeVersion)

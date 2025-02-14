@@ -147,7 +147,6 @@ func AreUpdatesIdentical(update1, update2 types.Update, platform string) (bool, 
 	}
 	for i, asset := range update1Manifest.Assets {
 		if asset.Hash != update2Manifest.Assets[i].Hash {
-			fmt.Println(asset.Hash, update2Manifest.Assets[i].Hash)
 			return false, nil
 		}
 	}
