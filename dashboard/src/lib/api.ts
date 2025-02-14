@@ -103,6 +103,35 @@ export class ApiClient {
       method: 'GET',
     });
   }
+  public async getSettings() {
+    return this.request<{
+      BASE_URL: string;
+      EXPO_APP_ID: string;
+      EXPO_ACCESS_TOKEN: string;
+      CACHE_MODE: string;
+      REDIS_HOST: string;
+      REDIS_PORT: string;
+      STORAGE_MODE: string;
+      S3_BUCKET_NAME: string;
+      LOCAL_BUCKET_BASE_PATH: string;
+      KEYS_STORAGE_TYPE: string;
+      AWSSM_EXPO_PUBLIC_KEY_SECRET_ID: string;
+      AWSSM_EXPO_PRIVATE_KEY_SECRET_ID: string;
+      PUBLIC_EXPO_KEY_B64: string;
+      PUBLIC_LOCAL_EXPO_KEY_PATH: string;
+      PRIVATE_LOCAL_EXPO_KEY_PATH: string;
+      AWS_REGION: string;
+      AWS_ACCESS_KEY_ID: string;
+      CLOUDFRONT_DOMAIN: string;
+      CLOUDFRONT_KEY_PAIR_ID: string;
+      CLOUDFRONT_PRIVATE_KEY_B64: string;
+      AWSSM_CLOUDFRONT_PRIVATE_KEY_SECRET_ID: string;
+      PRIVATE_LOCAL_CLOUDFRONT_KEY_PATH: string;
+      PROMETHEUS_ENABLED: string;
+    }>(`/dashboard/settings`, {
+      method: 'GET',
+    });
+  }
 }
 
 export const api = new ApiClient();
