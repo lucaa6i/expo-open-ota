@@ -11,10 +11,10 @@ import (
 
 func init() {
 	config.LoadConfig()
+	metrics.InitMetrics()
 }
 
 func main() {
-	metrics.InitMetrics()
 	router := infrastructure.NewRouter()
 	log.Println("Server is running on port 3000")
 	corsOptions := handlers.CORS(

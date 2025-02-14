@@ -107,10 +107,11 @@ func putUpdateInResponse(w http.ResponseWriter, r *http.Request, lastUpdate type
 		http.Error(w, "Error composing manifest", http.StatusInternalServerError)
 		return
 	}
+	metrics.TrackUpdateDownload(platform, lastUpdate.RuntimeVersion, lastUpdate.Branch, metadata.ID, "update")
 	putResponse(w, r, manifest, "manifest", lastUpdate.RuntimeVersion, protocolVersion, requestID)
 }
 
-func putRollbackInResponse(w http.ResponseWriter, r *http.Request, lastUpdate types.Update, protocolVersion int64, requestID string) {
+func putRollbackInResponse(w http.ResponseWriter, r *http.Request, lastUpdate types.Update, platform string, protocolVersion int64, requestID string) {
 	if protocolVersion == 0 {
 		http.Error(w, "Rollback not supported in protocol version 0", http.StatusBadRequest)
 		return
@@ -131,6 +132,7 @@ func putRollbackInResponse(w http.ResponseWriter, r *http.Request, lastUpdate ty
 		http.Error(w, "Error creating rollback directive", http.StatusInternalServerError)
 		return
 	}
+	metrics.TrackUpdateDownload(platform, lastUpdate.RuntimeVersion, lastUpdate.Branch, lastUpdate.UpdateId, "rollback")
 	putResponse(w, r, directive, "directive", lastUpdate.RuntimeVersion, protocolVersion, requestID)
 }
 
@@ -183,13 +185,14 @@ func ManifestHandler(w http.ResponseWriter, r *http.Request) {
 	if runtimeVersion == "" {
 		runtimeVersion = r.URL.Query().Get("runtimeVersion")
 	}
-	metrics.TrackActiveUser(runtimeVersion, branch, r.Header.Get("expo-current-update-id"))
+	clientId := r.Header.Get("EAS-Client-ID")
+	currentUpdateId := r.Header.Get("expo-current-update-id")
+	metrics.TrackActiveUser(clientId, platform, runtimeVersion, branch, currentUpdateId)
 	if runtimeVersion == "" {
 		log.Printf("[RequestID: %s] No runtime version provided", requestID)
 		http.Error(w, "No runtime version provided", http.StatusBadRequest)
 		return
 	}
-	metrics.TrackRuntimeVersion(runtimeVersion, branch)
 	lastUpdate, err := update.GetLatestUpdateBundlePathForRuntimeVersion(branch, runtimeVersion)
 	if err != nil {
 		log.Printf("[RequestID: %s] Error getting latest update: %v", requestID, err)
@@ -203,16 +206,9 @@ func ManifestHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	updateType := update.GetUpdateType(*lastUpdate)
-	var stringUpdateType string
-	if updateType == types.NormalUpdate {
-		stringUpdateType = "normal"
-	} else {
-		stringUpdateType = "rollback"
-	}
-	metrics.TrackUpdateDownload(runtimeVersion, branch, lastUpdate.UpdateId, stringUpdateType)
 	if updateType == types.NormalUpdate {
 		putUpdateInResponse(w, r, *lastUpdate, platform, protocolVersion, requestID)
 	} else {
-		putRollbackInResponse(w, r, *lastUpdate, protocolVersion, requestID)
+		putRollbackInResponse(w, r, *lastUpdate, platform, protocolVersion, requestID)
 	}
 }
