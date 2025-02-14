@@ -121,9 +121,9 @@ func MockExpoBranchesMappingResponse(updateBranches []map[string]interface{}, up
 		"data": map[string]interface{}{
 			"app": map[string]interface{}{
 				"byId": map[string]interface{}{
-					"id":                  "EXPO_APP_ID",
-					"updateBranches":      updateBranches,
-					"updateChannelByName": updateChannelByName,
+					"id":             "EXPO_APP_ID",
+					"updateBranches": updateBranches,
+					"updateChannels": updateChannelByName,
 				},
 			},
 		},

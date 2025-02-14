@@ -142,7 +142,7 @@ func (b *LocalBucket) GetRuntimeVersions(branch string) ([]RuntimeVersionWithSta
 			continue
 		}
 		runtimeVersion := entry.Name()
-		updatesPath := filepath.Join(dirPath, runtimeVersion, "updates")
+		updatesPath := filepath.Join(dirPath, runtimeVersion)
 		updates, err := os.ReadDir(updatesPath)
 		if err != nil {
 			continue
