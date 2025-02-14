@@ -97,20 +97,34 @@ export interface RequestUploadUrlItem {
   filePath: string;
 }
 
-export async function requestUploadUrls(
-  body: { fileNames: string[] },
-  requestUploadUrl: string,
-  auth: ExpoCredentials,
-  runtimeVersion: string
-): Promise<{ uploadRequests: RequestUploadUrlItem[]; updateId: string }> {
-  const response = await fetch(`${requestUploadUrl}?runtimeVersion=${runtimeVersion}`, {
-    method: 'POST',
-    headers: {
-      ...getAuthExpoHeaders(auth),
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
+export async function requestUploadUrls({
+  body,
+  requestUploadUrl,
+  auth,
+  runtimeVersion,
+  platform,
+  commitHash,
+}: {
+  body: { fileNames: string[] };
+  requestUploadUrl: string;
+  auth: ExpoCredentials;
+  runtimeVersion: string;
+  platform: string;
+  commitHash?: string;
+}): Promise<{ uploadRequests: RequestUploadUrlItem[]; updateId: string }> {
+  const response = await fetch(
+    `${requestUploadUrl}?runtimeVersion=${runtimeVersion}&platform=${platform}&commitHash=${
+      commitHash || ''
+    }`,
+    {
+      method: 'POST',
+      headers: {
+        ...getAuthExpoHeaders(auth),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    }
+  );
   if (!response.ok) {
     throw new Error(`Failed to request upload URL`);
   }

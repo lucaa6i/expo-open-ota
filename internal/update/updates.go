@@ -6,6 +6,7 @@ import (
 	"expo-open-ota/internal/bucket"
 	cache2 "expo-open-ota/internal/cache"
 	"expo-open-ota/internal/crypto"
+	"expo-open-ota/internal/dashboard"
 	"expo-open-ota/internal/types"
 	"fmt"
 	"mime"
@@ -36,8 +37,13 @@ func GetAllUpdatesForRuntimeVersion(branch string, runtimeVersion string) ([]typ
 
 func MarkUpdateAsChecked(update types.Update) error {
 	cache := cache2.GetCache()
-	cacheKey := ComputeLastUpdateCacheKey(update.Branch, update.RuntimeVersion)
-	cache.Delete(cacheKey)
+	branchesCacheKey := dashboard.ComputeGetBranchesCacheKey()
+	runTimeVersionsCacheKey := dashboard.ComputeGetRuntimeVersionsCacheKey(update.Branch)
+	updatesCacheKey := dashboard.ComputeGetUpdatesCacheKey(update.Branch, update.RuntimeVersion)
+	cacheKeys := []string{ComputeLastUpdateCacheKey(update.Branch, update.RuntimeVersion), branchesCacheKey, runTimeVersionsCacheKey, updatesCacheKey}
+	for _, cacheKey := range cacheKeys {
+		cache.Delete(cacheKey)
+	}
 	resolvedBucket := bucket.GetBucket()
 	reader := strings.NewReader(".check")
 	_ = resolvedBucket.UploadFileIntoUpdate(update, ".check", reader)

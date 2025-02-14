@@ -1,12 +1,14 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
 	"expo-open-ota/internal/branch"
 	"expo-open-ota/internal/bucket"
 	cache2 "expo-open-ota/internal/cache"
 	"expo-open-ota/internal/helpers"
 	"expo-open-ota/internal/services"
+	"expo-open-ota/internal/types"
 	"expo-open-ota/internal/update"
 	"fmt"
 	"github.com/google/uuid"
@@ -238,7 +240,12 @@ func RequestUploadUrlHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid expo account", http.StatusUnauthorized)
 		return
 	}
-
+	platform := r.URL.Query().Get("platform")
+	if platform != "" && (platform != "ios" && platform != "android") {
+		log.Printf("[RequestID: %s] Invalid platform: %s", requestID, platform)
+		http.Error(w, "Invalid platform", http.StatusBadRequest)
+	}
+	commitHash := r.URL.Query().Get("commitHash")
 	runtimeVersion := r.URL.Query().Get("runtimeVersion")
 	if runtimeVersion == "" {
 		log.Printf("[RequestID: %s] No runtime version provided", requestID)
@@ -266,6 +273,24 @@ func RequestUploadUrlHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error requesting upload urls", http.StatusInternalServerError)
 		return
 	}
+	fileUpdateMetadata := map[string]interface{}{
+		"platform":   platform,
+		"commitHash": commitHash,
+	}
+	marshalledMetadata, err := json.Marshal(fileUpdateMetadata)
+	if err != nil {
+		log.Printf("[RequestID: %s] Error marshalling file update metadata: %v", requestID, err)
+		http.Error(w, "Error marshalling file update metadata", http.StatusInternalServerError)
+		return
+	}
+	metadataReader := bytes.NewReader(marshalledMetadata)
+	resolvedBucket := bucket.GetBucket()
+	err = resolvedBucket.UploadFileIntoUpdate(types.Update{
+		Branch:         branchName,
+		RuntimeVersion: runtimeVersion,
+		UpdateId:       fmt.Sprintf("%d", updateId),
+		CreatedAt:      time.Duration(updateId) * time.Millisecond,
+	}, "update-metadata.json", metadataReader)
 
 	cache := cache2.GetCache()
 	cacheKey := update.ComputeLastUpdateCacheKey(branchName, runtimeVersion)

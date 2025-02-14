@@ -80,6 +80,7 @@ export default class Publish extends Command {
     }
     const vcsClient = resolveVcsClient(true);
     await vcsClient.ensureRepoExistsAsync();
+    const commitHash = await vcsClient.getCommitHashAsync();
     await ensureRepoIsCleanAsync(vcsClient, nonInteractive);
     const projectDir = process.cwd();
     const hasExpo = isExpoInstalled(projectDir);
@@ -214,14 +215,16 @@ export default class Publish extends Command {
             throw new Error('Runtime version is not resolved');
           }
           return {
-            ...(await requestUploadUrls(
-              {
+            ...(await requestUploadUrls({
+              body: {
                 fileNames: files.map(file => file.path),
               },
-              `${baseUrl}/requestUploadUrl/${branch}`,
-              credentials,
-              runtimeVersion
-            )),
+              requestUploadUrl: `${baseUrl}/requestUploadUrl/${branch}`,
+              auth: credentials,
+              runtimeVersion,
+              platform,
+              commitHash,
+            })),
             runtimeVersion,
             platform,
           };
