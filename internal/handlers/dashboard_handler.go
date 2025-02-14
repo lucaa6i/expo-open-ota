@@ -199,7 +199,7 @@ func GetUpdatesHandler(w http.ResponseWriter, r *http.Request) {
 		updatesResponse = append(updatesResponse, UpdateItem{
 			UpdateUUID: crypto.ConvertSHA256HashToUUID(metadata.ID),
 			UpdateId:   update.UpdateId,
-			CreatedAt:  time.UnixMilli(numberUpdate).Format(time.RFC3339),
+			CreatedAt:  time.UnixMilli(numberUpdate).UTC().Format(time.RFC3339),
 			CommitHash: commitHash,
 			Platform:   platform,
 		})

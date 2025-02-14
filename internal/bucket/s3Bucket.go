@@ -134,8 +134,8 @@ func (b *S3Bucket) GetRuntimeVersions(branch string) ([]RuntimeVersionWithStats,
 
 		runtimeVersions = append(runtimeVersions, RuntimeVersionWithStats{
 			RuntimeVersion:  runtimeVersion,
-			CreatedAt:       time.UnixMilli(updateTimestamps[0]).Format(time.RFC3339),
-			LastUpdatedAt:   time.UnixMilli(updateTimestamps[len(updateTimestamps)-1]).Format(time.RFC3339),
+			CreatedAt:       time.UnixMilli(updateTimestamps[0]).UTC().Format(time.RFC3339),
+			LastUpdatedAt:   time.UnixMilli(updateTimestamps[len(updateTimestamps)-1]).UTC().Format(time.RFC3339),
 			NumberOfUpdates: len(updateTimestamps),
 		})
 	}
