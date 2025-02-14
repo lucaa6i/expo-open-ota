@@ -145,7 +145,7 @@ func putNoUpdateAvailableInResponse(w http.ResponseWriter, r *http.Request, runt
 
 func ManifestHandler(w http.ResponseWriter, r *http.Request) {
 	requestID := uuid.New().String()
-	metrics.TrackActiveUser()
+
 	channelName := r.Header.Get("expo-channel-name")
 	if channelName == "" {
 		log.Printf("[RequestID: %s] No channel name provided", requestID)
@@ -183,12 +183,13 @@ func ManifestHandler(w http.ResponseWriter, r *http.Request) {
 	if runtimeVersion == "" {
 		runtimeVersion = r.URL.Query().Get("runtimeVersion")
 	}
+	metrics.TrackActiveUser(runtimeVersion, branch, r.Header.Get("expo-current-update-id"))
 	if runtimeVersion == "" {
 		log.Printf("[RequestID: %s] No runtime version provided", requestID)
 		http.Error(w, "No runtime version provided", http.StatusBadRequest)
 		return
 	}
-	metrics.TrackRuntimeVersion()
+	metrics.TrackRuntimeVersion(runtimeVersion, branch)
 	lastUpdate, err := update.GetLatestUpdateBundlePathForRuntimeVersion(branch, runtimeVersion)
 	if err != nil {
 		log.Printf("[RequestID: %s] Error getting latest update: %v", requestID, err)
@@ -200,10 +201,16 @@ func ManifestHandler(w http.ResponseWriter, r *http.Request) {
 		putNoUpdateAvailableInResponse(w, r, runtimeVersion, protocolVersion, requestID)
 		return
 	}
-	metrics.TrackUpdateDownload()
+
 	updateType := update.GetUpdateType(*lastUpdate)
+	var stringUpdateType string
 	if updateType == types.NormalUpdate {
-		metrics.TrackClientOnUpdate()
+		stringUpdateType = "normal"
+	} else {
+		stringUpdateType = "rollback"
+	}
+	metrics.TrackUpdateDownload(runtimeVersion, branch, lastUpdate.UpdateId, stringUpdateType)
+	if updateType == types.NormalUpdate {
 		putUpdateInResponse(w, r, *lastUpdate, platform, protocolVersion, requestID)
 	} else {
 		putRollbackInResponse(w, r, *lastUpdate, protocolVersion, requestID)

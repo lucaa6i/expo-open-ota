@@ -2,6 +2,7 @@ package main
 
 import (
 	"expo-open-ota/config"
+	"expo-open-ota/internal/metrics"
 	"expo-open-ota/internal/router"
 	"github.com/gorilla/handlers"
 	"log"
@@ -13,6 +14,7 @@ func init() {
 }
 
 func main() {
+	metrics.InitMetrics()
 	router := infrastructure.NewRouter()
 	log.Println("Server is running on port 3000")
 	corsOptions := handlers.CORS(
