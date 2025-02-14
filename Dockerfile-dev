@@ -26,7 +26,6 @@ COPY keys ./keys
 COPY config ./config
 COPY updates ./updates
 COPY test ./test
-COPY commands ./commands
 RUN if [ -f .env ]; then cp .env /app/.env; fi
 
 
