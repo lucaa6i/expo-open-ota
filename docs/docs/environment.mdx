@@ -80,3 +80,14 @@ You can set these variables in a `.env` file for local development or in your de
 | `CLOUDFRONT_PRIVATE_KEY_B64` | ✅ if using `environment` & CLOUDFRONT_DOMAIN is set | Base64 CloudFront private key | `Base64 string` | [Ref](/docs/cdn/cloudfront) |
 | `AWSSM_CLOUDFRONT_PRIVATE_KEY_SECRET_ID` | ✅ if using `aws-secrets-manager` & CLOUDFRONT_DOMAIN is set | CloudFront private key in AWS Secrets Manager | `my-cloudfront-private-key` | [Ref](/docs/cdn/cloudfront) |
 | `PRIVATE_LOCAL_CLOUDFRONT_KEY_PATH` | ✅ if using `local` & CLOUDFRONT_DOMAIN is set | Path to CloudFront private key | `/path/to/cloudfront-private-key.pem` | [Ref](/docs/cdn/cloudfront) |
+
+#### **Prometheus Configuration**
+| Name | Required | Description | Example | Reference |
+| --- | --- | --- | --- | --- |
+| `PROMETHEUS_ENABLED` | ❌ (Automatic) | Automatically set to `true` if `prometheus.io/scrape: "true"` is present in `podAnnotations`, otherwise must be explicitly set to `true` | `true` | |
+
+#### **Dashboard Configuration**
+| Name | Required | Description | Example | Reference |
+| --- | --- | --- | --- | --- |
+| `USE_DASHBOARD` | ❌ | Enable the dashboard | `true` | [Ref](/docs/dashboard) |
+| `ADMIN_PASSWORD` | ✅ if USE_DASHBOARD is set | Admin password | `Random string` | [Ref](/docs/dashboard) |
