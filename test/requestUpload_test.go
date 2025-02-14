@@ -445,7 +445,7 @@ func TestShouldClearCache(t *testing.T) {
 	cache := cache2.GetCache()
 	cacheKey := update.ComputeLastUpdateCacheKey("branch-1", "1")
 	value := cache.Get(cacheKey)
-	expectedValue := "{\"Branch\":\"branch-1\",\"RuntimeVersion\":\"1\",\"UpdateId\":\"1674170951\",\"CreatedAt\":1674170951000000}"
+	expectedValue := "{\"branch\":\"branch-1\",\"runtimeVersion\":\"1\",\"updateId\":\"1674170951\",\"createdAt\":1674170951000000}"
 	assert.Equal(t, expectedValue, value, "Expected a specific cache value")
 	uploadRequestsInput := ComputeUploadRequestsInput(sampleUpdatePath)
 	uploadRequestsInputJSON, err := json.Marshal(uploadRequestsInput)
