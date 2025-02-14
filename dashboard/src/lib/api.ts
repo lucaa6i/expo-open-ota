@@ -96,6 +96,8 @@ export class ApiClient {
         updateUUID: string;
         createdAt: string;
         updateId: string;
+        platform: string;
+        commitHash: string;
       }[]
     >(`/dashboard/branch/${branch}/runtimeVersion/${runtimeVersion}/updates`, {
       method: 'GET',

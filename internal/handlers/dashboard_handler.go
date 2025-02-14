@@ -6,7 +6,6 @@ import (
 	cache2 "expo-open-ota/internal/cache"
 	"expo-open-ota/internal/crypto"
 	"expo-open-ota/internal/dashboard"
-	"expo-open-ota/internal/metrics"
 	"expo-open-ota/internal/services"
 	update2 "expo-open-ota/internal/update"
 	"github.com/gorilla/mux"
@@ -22,13 +21,11 @@ type BranchMapping struct {
 }
 
 type UpdateItem struct {
-	UpdateUUID     string `json:"updateUUID"`
-	UpdateId       string `json:"updateId"`
-	CreatedAt      string `json:"createdAt"`
-	CommitHash     string `json:"commitHash"`
-	Platform       string `json:"platform"`
-	ActiveUsers    int    `json:"activeUsers"`
-	TotalDownloads int    `json:"totalDownloads"`
+	UpdateUUID string `json:"updateUUID"`
+	UpdateId   string `json:"updateId"`
+	CreatedAt  string `json:"createdAt"`
+	CommitHash string `json:"commitHash"`
+	Platform   string `json:"platform"`
 }
 
 func GetBranchesHandler(w http.ResponseWriter, r *http.Request) {
@@ -136,13 +133,11 @@ func GetUpdatesHandler(w http.ResponseWriter, r *http.Request) {
 		numberUpdate, _ := strconv.ParseInt(update.UpdateId, 10, 64)
 		commitHash, platform, _ := update2.RetrieveUpdateCommitHashAndPlatform(update)
 		updatesResponse = append(updatesResponse, UpdateItem{
-			UpdateUUID:     crypto.ConvertSHA256HashToUUID(metadata.ID),
-			UpdateId:       update.UpdateId,
-			CreatedAt:      time.UnixMilli(numberUpdate).Format(time.RFC3339),
-			CommitHash:     commitHash,
-			Platform:       platform,
-			ActiveUsers:    metrics.GetActiveUsers(runtimeVersion, branchName, update.UpdateId),
-			TotalDownloads: metrics.GetTotalUpdateDownloadsByUpdate(runtimeVersion, branchName, update.UpdateId),
+			UpdateUUID: crypto.ConvertSHA256HashToUUID(metadata.ID),
+			UpdateId:   update.UpdateId,
+			CreatedAt:  time.UnixMilli(numberUpdate).Format(time.RFC3339),
+			CommitHash: commitHash,
+			Platform:   platform,
 		})
 	}
 	w.Header().Set("Content-Type", "application/json")

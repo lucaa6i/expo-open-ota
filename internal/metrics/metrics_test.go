@@ -6,39 +6,90 @@ import (
 	"strings"
 	"testing"
 
-	"expo-open-ota/internal/cache"
 	"expo-open-ota/internal/metrics"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func setupMetrics(t *testing.T) func() {
-	r := prometheus.NewRegistry()
-	prometheus.DefaultRegisterer = r
-	prometheus.DefaultGatherer = r
-
-	os.Setenv("CACHE_MODE", "local")
 	os.Setenv("PROMETHEUS_ENABLED", "true")
-	c := cache.GetCache()
-	if err := c.Clear(); err != nil {
-		t.Fatalf("failed to clear cache: %v", err)
-	}
+	reg := prometheus.NewRegistry()
+	prometheus.DefaultRegisterer = reg
+	prometheus.DefaultGatherer = reg
+	metrics.ResetMetricsForTest()
 	metrics.InitMetrics()
-	return func() {
-		if err := c.Clear(); err != nil {
-			t.Errorf("failed to clear cache on teardown: %v", err)
+	return func() {}
+}
+
+func getMetricValue(metricName string, labelFilter map[string]string) float64 {
+	mfs, err := prometheus.DefaultGatherer.Gather()
+	if err != nil {
+		return 0
+	}
+	for _, mf := range mfs {
+		if mf.GetName() == metricName {
+			for _, m := range mf.Metric {
+				match := true
+				for key, value := range labelFilter {
+					found := false
+					for _, label := range m.Label {
+						if label.GetName() == key && label.GetValue() == value {
+							found = true
+							break
+						}
+					}
+					if !found {
+						match = false
+						break
+					}
+				}
+				if match {
+					if m.Counter != nil {
+						return m.Counter.GetValue()
+					}
+					if m.Gauge != nil {
+						return m.Gauge.GetValue()
+					}
+				}
+			}
 		}
 	}
+	return 0
+}
+
+func getActiveUsers(runtime, branch, update string) float64 {
+	return getMetricValue("active_users_total", map[string]string{
+		"runtime": runtime,
+		"branch":  branch,
+		"update":  update,
+	})
+}
+
+func getTotalActiveUsersByBranchAndRuntime(runtime, branch string, updates []string) float64 {
+	total := 0.0
+	for _, update := range updates {
+		total += getActiveUsers(runtime, branch, update)
+	}
+	return total
+}
+
+func getTotalUpdateDownloads(runtime, branch, update, updateType string) float64 {
+	return getMetricValue("update_downloads_total", map[string]string{
+		"runtime":    runtime,
+		"branch":     branch,
+		"update":     update,
+		"updateType": updateType,
+	})
 }
 
 func TestTrackUpdateDownload(t *testing.T) {
 	teardown := setupMetrics(t)
 	defer teardown()
 	metrics.TrackUpdateDownload("1.0.0", "stable", "update42", "normal")
-	c := cache.GetCache()
-	expectedKey := "update:downloads:1.0.0:stable:update42"
-	if c.Get(expectedKey) != "1" {
-		t.Errorf("Expected %s to be 1, got %s", expectedKey, c.Get(expectedKey))
+	val := getTotalUpdateDownloads("1.0.0", "stable", "update42", "normal")
+	if val != 1 {
+		t.Errorf("Expected update_downloads_total to be 1, got %v", val)
 	}
 }
 
@@ -46,10 +97,12 @@ func TestTrackRuntimeVersion(t *testing.T) {
 	teardown := setupMetrics(t)
 	defer teardown()
 	metrics.TrackRuntimeVersion("1.0.0", "stable")
-	c := cache.GetCache()
-	expectedKey := "runtime:versions:1.0.0:stable"
-	if c.Get(expectedKey) != "1" {
-		t.Errorf("Expected %s to be 1, got %s", expectedKey, c.Get(expectedKey))
+	val := getMetricValue("runtime_versions_total", map[string]string{
+		"runtime": "1.0.0",
+		"branch":  "stable",
+	})
+	if val != 1 {
+		t.Errorf("Expected runtime_versions_total to be 1, got %v", val)
 	}
 }
 
@@ -57,26 +110,25 @@ func TestTrackActiveUser(t *testing.T) {
 	teardown := setupMetrics(t)
 	defer teardown()
 	metrics.TrackActiveUser("1.0.0", "stable", "update42")
-	c := cache.GetCache()
-	expectedKey := "active_users:1.0.0:stable:update42"
-	if c.Get(expectedKey) != "1" {
-		t.Errorf("Expected %s to be 1, got %s", expectedKey, c.Get(expectedKey))
+	val := getActiveUsers("1.0.0", "stable", "update42")
+	if val != 1 {
+		t.Errorf("Expected active_users_total to be 1, got %v", val)
 	}
 }
 
 func TestGetActiveUsers(t *testing.T) {
 	teardown := setupMetrics(t)
 	defer teardown()
-	if got := metrics.GetActiveUsers("1.0.0", "stable", "update42"); got != 0 {
-		t.Errorf("Expected GetActiveUsers to return 0, got %d", got)
+	if got := getActiveUsers("1.0.0", "stable", "update42"); got != 0 {
+		t.Errorf("Expected getActiveUsers to return 0, got %v", got)
 	}
 	metrics.TrackActiveUser("1.0.0", "stable", "update42")
-	if got := metrics.GetActiveUsers("1.0.0", "stable", "update42"); got != 1 {
-		t.Errorf("Expected GetActiveUsers to return 1, got %d", got)
+	if got := getActiveUsers("1.0.0", "stable", "update42"); got != 1 {
+		t.Errorf("Expected getActiveUsers to return 1, got %v", got)
 	}
 	metrics.TrackActiveUser("1.0.0", "stable", "update42")
-	if got := metrics.GetActiveUsers("1.0.0", "stable", "update42"); got != 2 {
-		t.Errorf("Expected GetActiveUsers to return 2, got %d", got)
+	if got := getActiveUsers("1.0.0", "stable", "update42"); got != 2 {
+		t.Errorf("Expected getActiveUsers to return 2, got %v", got)
 	}
 }
 
@@ -84,38 +136,39 @@ func TestGetTotalActiveUsersByBranchAndRuntime(t *testing.T) {
 	teardown := setupMetrics(t)
 	defer teardown()
 	updates := []string{"update42", "update43"}
-	if got := metrics.GetTotalActiveUsersByBranchAndRuntime("stable", "1.0.0", updates); got != 0 {
-		t.Errorf("Expected total active users to be 0, got %d", got)
+	if got := getTotalActiveUsersByBranchAndRuntime("1.0.0", "stable", updates); got != 0 {
+		t.Errorf("Expected total active users to be 0, got %v", got)
 	}
 	metrics.TrackActiveUser("1.0.0", "stable", "update42")
 	metrics.TrackActiveUser("1.0.0", "stable", "update43")
-	if got := metrics.GetTotalActiveUsersByBranchAndRuntime("stable", "1.0.0", updates); got != 2 {
-		t.Errorf("Expected total active users to be 2, got %d", got)
+	if got := getTotalActiveUsersByBranchAndRuntime("1.0.0", "stable", updates); got != 2 {
+		t.Errorf("Expected total active users to be 2, got %v", got)
 	}
 }
 
 func TestGetTotalUpdateDownloadsByUpdate(t *testing.T) {
 	teardown := setupMetrics(t)
 	defer teardown()
-	if got := metrics.GetTotalUpdateDownloadsByUpdate("stable", "1.0.0", "update42"); got != 0 {
-		t.Errorf("Expected total update downloads to be 0, got %d", got)
+	if got := getTotalUpdateDownloads("1.0.0", "stable", "update42", "normal"); got != 0 {
+		t.Errorf("Expected total update downloads to be 0, got %v", got)
 	}
 	metrics.TrackUpdateDownload("1.0.0", "stable", "update42", "normal")
-	if got := metrics.GetTotalUpdateDownloadsByUpdate("stable", "1.0.0", "update42"); got != 1 {
-		t.Errorf("Expected total update downloads to be 1, got %d", got)
+	if got := getTotalUpdateDownloads("1.0.0", "stable", "update42", "normal"); got != 1 {
+		t.Errorf("Expected total update downloads to be 1, got %v", got)
 	}
 	metrics.TrackUpdateDownload("1.0.0", "stable", "update42", "normal")
-	if got := metrics.GetTotalUpdateDownloadsByUpdate("stable", "1.0.0", "update42"); got != 2 {
-		t.Errorf("Expected total update downloads to be 2, got %d", got)
+	if got := getTotalUpdateDownloads("1.0.0", "stable", "update42", "normal"); got != 2 {
+		t.Errorf("Expected total update downloads to be 2, got %v", got)
 	}
 }
 
 func TestPrometheusHandler(t *testing.T) {
 	teardown := setupMetrics(t)
 	defer teardown()
+	metrics.TrackUpdateDownload("1.0.0", "stable", "update42", "normal")
 	req := httptest.NewRequest("GET", "/metrics", nil)
 	rr := httptest.NewRecorder()
-	handler := metrics.PrometheusHandler()
+	handler := promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{})
 	handler.ServeHTTP(rr, req)
 	body := rr.Body.String()
 	if !strings.Contains(body, "update_downloads_total") {
