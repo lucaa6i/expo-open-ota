@@ -18,6 +18,11 @@ func getAdminPassword() string {
 }
 
 func isPasswordValid(password string) bool {
+	adminPassword := getAdminPassword()
+	if adminPassword == "" {
+		fmt.Errorf("admin password is not set, all requests will be rejected")
+		return false
+	}
 	return password == getAdminPassword()
 }
 

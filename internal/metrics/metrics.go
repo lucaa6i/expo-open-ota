@@ -29,6 +29,11 @@ func InitMetrics() {
 	prometheus.MustRegister(updateDownloadsVec)
 }
 
+func CleanupMetrics() {
+	prometheus.Unregister(activeUsersVec)
+	prometheus.Unregister(updateDownloadsVec)
+}
+
 func TrackActiveUser(clientId, platform, runtime, branch, update string) {
 	if clientId == "" || update == "" || platform == "" || branch == "" {
 		return
