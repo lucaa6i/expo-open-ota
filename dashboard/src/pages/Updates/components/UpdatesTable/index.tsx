@@ -86,6 +86,31 @@ export const UpdatesTable = ({
             },
           },
           {
+            header: 'Platform',
+            accessorKey: 'platform',
+            cell: value => {
+              const isIos = value.row.original.platform === 'ios';
+              const isAndroid = value.row.original.platform === 'android';
+              return (
+                <div className="flex flex-row items-center gap-2">
+                  {isIos && <img src="/apple.svg" className="w-4" alt="apple" />}
+                  {isAndroid && <img src="/android.svg" className="w-4" alt="android" />}
+                </div>
+              );
+            },
+          },
+          {
+            header: 'Commit',
+            accessorKey: 'commitHash',
+            cell: value => {
+              return (
+                <Badge variant="secondary" className="text-xs">
+                  {value.row.original.commitHash.slice(0, 7)}
+                </Badge>
+              );
+            },
+          },
+          {
             header: 'Published at',
             accessorKey: 'createdAt',
             cell: ({ row }) => {
