@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -52,6 +53,26 @@ func GlobalAfterEach(t *testing.T) {
 				err = os.RemoveAll(filepath.Join(updatesPath, update.Name()))
 				if err != nil {
 					t.Errorf("Error removing update directory: %v", err)
+				}
+			}
+		}
+		// Also remove all folders > 1674170951 in ./test/test-updates/branch-1/1
+		updatesPath = filepath.Join(projectRoot, "./test/test-updates/branch-1/1")
+		updates, err = os.ReadDir(updatesPath)
+		if err != nil {
+			t.Errorf("Error reading updates directory: %v", err)
+		}
+		for _, update := range updates {
+			if update.IsDir() {
+				updateTime, err := strconv.Atoi(update.Name())
+				if err != nil {
+					continue
+				}
+				if updateTime > 1674170951 {
+					err = os.RemoveAll(filepath.Join(updatesPath, update.Name()))
+					if err != nil {
+						t.Errorf("Error removing update directory: %v", err)
+					}
 				}
 			}
 		}
