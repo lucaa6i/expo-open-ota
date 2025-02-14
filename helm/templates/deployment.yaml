@@ -46,6 +46,13 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           env:
+            {{- if eq (index .Values.podAnnotations "prometheus.io/scrape") "true" }}
+            - name: PROMETHEUS_ENABLED
+              value: "true"
+              {{- else }}
+            - name: PROMETHEUS_ENABLED
+              value: "false"
+              {{- end }}
             {{- range $env := .Values.environment }}
               {{- $isRequired := true }}
               {{- if eq (typeOf $env.required) "bool" }}
