@@ -4,7 +4,11 @@ export class ApiClient {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = import.meta.env.VITE_OTA_API_URL;
+    // @ts-ignore
+    this.baseUrl = window?.env?.VITE_OTA_API_URL || import.meta.env.VITE_OTA_API_URL;
+    if (!this.baseUrl) {
+      throw new Error('Missing VITE_OTA_API_URL environment variable');
+    }
   }
 
   private populateHeaders(headers: Headers) {
@@ -15,7 +19,6 @@ export class ApiClient {
   }
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
-
     const headers = new Headers(options.headers);
     this.populateHeaders(headers);
 
@@ -61,7 +64,7 @@ export class ApiClient {
   public async login(password: string) {
     const form = new URLSearchParams();
     form.append('password', password);
-    return this.request<{ token: string; refreshToken: string }>('/auth/login', {
+    return this.request<{ token: string; refreshToken: string }>(`/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: form.toString(),
