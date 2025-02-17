@@ -25,7 +25,7 @@ endif
 
 test_app:
 ifeq ($(DOCKER_FLAG),docker)
-	docker-compose exec ota-server sh -c "$(MAKE_COVERAGE_CMD)"
+	docker-compose --profile test run --rm -e "" ota-server-test go test -v -coverprofile=coverage.out ./...
 else
 	$(MAKE_COVERAGE_CMD)
 endif
@@ -42,9 +42,9 @@ endef
 
 define CLEAN_COVERAGE
 	if [ "$(shell uname -s)" = "Darwin" ]; then \
-		sed -i '' -e '/test/d' -e '/commands/d' -e '/cmd/d' -e '/lambda/d' coverage.out; \
+		sed -i '' -e '/test/d' -e '/cmd/d' coverage.out; \
 	else \
-		sed -i '/test/d;/commands/d;/cmd/d;/lambda/d' coverage.out; \
+		sed -i '/test/d;/cmd/d;' coverage.out; \
 	fi
 endef
 

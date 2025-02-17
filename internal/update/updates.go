@@ -6,6 +6,7 @@ import (
 	"expo-open-ota/internal/bucket"
 	cache2 "expo-open-ota/internal/cache"
 	"expo-open-ota/internal/crypto"
+	"expo-open-ota/internal/dashboard"
 	"expo-open-ota/internal/types"
 	"fmt"
 	"mime"
@@ -36,8 +37,13 @@ func GetAllUpdatesForRuntimeVersion(branch string, runtimeVersion string) ([]typ
 
 func MarkUpdateAsChecked(update types.Update) error {
 	cache := cache2.GetCache()
-	cacheKey := ComputeLastUpdateCacheKey(update.Branch, update.RuntimeVersion)
-	cache.Delete(cacheKey)
+	branchesCacheKey := dashboard.ComputeGetBranchesCacheKey()
+	runTimeVersionsCacheKey := dashboard.ComputeGetRuntimeVersionsCacheKey(update.Branch)
+	updatesCacheKey := dashboard.ComputeGetUpdatesCacheKey(update.Branch, update.RuntimeVersion)
+	cacheKeys := []string{ComputeLastUpdateCacheKey(update.Branch, update.RuntimeVersion), branchesCacheKey, runTimeVersionsCacheKey, updatesCacheKey}
+	for _, cacheKey := range cacheKeys {
+		cache.Delete(cacheKey)
+	}
 	resolvedBucket := bucket.GetBucket()
 	reader := strings.NewReader(".check")
 	_ = resolvedBucket.UploadFileIntoUpdate(update, ".check", reader)
@@ -141,7 +147,6 @@ func AreUpdatesIdentical(update1, update2 types.Update, platform string) (bool, 
 	}
 	for i, asset := range update1Manifest.Assets {
 		if asset.Hash != update2Manifest.Assets[i].Hash {
-			fmt.Println(asset.Hash, update2Manifest.Assets[i].Hash)
 			return false, nil
 		}
 	}
@@ -433,4 +438,22 @@ func CreateNoUpdateAvailableDirective() types.NoUpdateAvailableDirective {
 	return types.NoUpdateAvailableDirective{
 		Type: "noUpdateAvailable",
 	}
+}
+
+func RetrieveUpdateCommitHashAndPlatform(update types.Update) (string, string, error) {
+	resolvedBucket := bucket.GetBucket()
+	file, err := resolvedBucket.GetFile(update, "update-metadata.json")
+	if err != nil {
+		return "", "", err
+	}
+	defer file.Reader.Close()
+	var metadata struct {
+		Platform   string `json:"platform"`
+		CommitHash string `json:"commitHash"`
+	}
+	err = json.NewDecoder(file.Reader).Decode(&metadata)
+	if err != nil {
+		return "", "", err
+	}
+	return metadata.CommitHash, metadata.Platform, nil
 }

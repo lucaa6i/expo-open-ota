@@ -1,12 +1,14 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
 	"expo-open-ota/internal/branch"
 	"expo-open-ota/internal/bucket"
 	cache2 "expo-open-ota/internal/cache"
 	"expo-open-ota/internal/helpers"
 	"expo-open-ota/internal/services"
+	"expo-open-ota/internal/types"
 	"expo-open-ota/internal/update"
 	"fmt"
 	"github.com/google/uuid"
@@ -138,6 +140,7 @@ func RequestUploadLocalFileHandler(w http.ResponseWriter, r *http.Request) {
 	if bucketType != bucket.LocalBucketType {
 		log.Printf("Invalid bucket type: %s", bucketType)
 		http.Error(w, "Invalid bucket type", http.StatusInternalServerError)
+		return
 	}
 	requestID := uuid.New().String()
 	expoAuth := helpers.GetExpoAuth(r)
@@ -210,18 +213,18 @@ func RequestUploadUrlHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := branch.UpsertBranch(branchName)
-	if err != nil {
-		log.Printf("[RequestID: %s] Error upserting branch: %v", requestID, err)
-		http.Error(w, "Error upserting branch", http.StatusInternalServerError)
-		return
-	}
-
 	expoAuth := helpers.GetExpoAuth(r)
 	expoAccount, err := services.FetchExpoUserAccountInformations(expoAuth)
 	if err != nil {
 		log.Printf("[RequestID: %s] Error fetching expo account informations: %v", requestID, err)
 		http.Error(w, "Error fetching expo account informations", http.StatusUnauthorized)
+		return
+	}
+
+	err = branch.UpsertBranch(branchName)
+	if err != nil {
+		log.Printf("[RequestID: %s] Error upserting branch: %v", requestID, err)
+		http.Error(w, "Error upserting branch", http.StatusInternalServerError)
 		return
 	}
 
@@ -237,7 +240,12 @@ func RequestUploadUrlHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid expo account", http.StatusUnauthorized)
 		return
 	}
-
+	platform := r.URL.Query().Get("platform")
+	if platform != "" && (platform != "ios" && platform != "android") {
+		log.Printf("[RequestID: %s] Invalid platform: %s", requestID, platform)
+		http.Error(w, "Invalid platform", http.StatusBadRequest)
+	}
+	commitHash := r.URL.Query().Get("commitHash")
 	runtimeVersion := r.URL.Query().Get("runtimeVersion")
 	if runtimeVersion == "" {
 		log.Printf("[RequestID: %s] No runtime version provided", requestID)
@@ -265,6 +273,24 @@ func RequestUploadUrlHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error requesting upload urls", http.StatusInternalServerError)
 		return
 	}
+	fileUpdateMetadata := map[string]interface{}{
+		"platform":   platform,
+		"commitHash": commitHash,
+	}
+	marshalledMetadata, err := json.Marshal(fileUpdateMetadata)
+	if err != nil {
+		log.Printf("[RequestID: %s] Error marshalling file update metadata: %v", requestID, err)
+		http.Error(w, "Error marshalling file update metadata", http.StatusInternalServerError)
+		return
+	}
+	metadataReader := bytes.NewReader(marshalledMetadata)
+	resolvedBucket := bucket.GetBucket()
+	err = resolvedBucket.UploadFileIntoUpdate(types.Update{
+		Branch:         branchName,
+		RuntimeVersion: runtimeVersion,
+		UpdateId:       fmt.Sprintf("%d", updateId),
+		CreatedAt:      time.Duration(updateId) * time.Millisecond,
+	}, "update-metadata.json", metadataReader)
 
 	cache := cache2.GetCache()
 	cacheKey := update.ComputeLastUpdateCacheKey(branchName, runtimeVersion)
@@ -277,9 +303,9 @@ func RequestUploadUrlHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("expo-update-id", fmt.Sprintf("%d", updateId))
-	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		log.Printf("[RequestID: %s] Error encoding response: %v", requestID, err)
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
 	}
+	w.WriteHeader(http.StatusOK)
 }

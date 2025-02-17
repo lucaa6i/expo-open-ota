@@ -3,15 +3,7 @@ package test
 import (
 	"bytes"
 	"encoding/json"
-	"expo-open-ota/internal/bucket"
-	cache2 "expo-open-ota/internal/cache"
-	"expo-open-ota/internal/handlers"
-	"expo-open-ota/internal/services"
-	"expo-open-ota/internal/update"
 	"fmt"
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/gorilla/mux"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -21,11 +13,20 @@ import (
 	"path/filepath"
 	"sync"
 	"testing"
+
+	"expo-open-ota/internal/bucket"
+	cache2 "expo-open-ota/internal/cache"
+	"expo-open-ota/internal/handlers"
+	"expo-open-ota/internal/services"
+	"expo-open-ota/internal/update"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/gorilla/mux"
+	"github.com/stretchr/testify/assert"
 )
 
 func createUploadRequest(t *testing.T, projectRoot, branch, runtimeVersion, sampleUpdatePath, headerKey, headerValue string) (*httptest.ResponseRecorder, *mux.Router, *mux.Route, *http.Request) {
 	os.Setenv("LOCAL_BUCKET_BASE_PATH", filepath.Join(projectRoot, "./updates"))
-	q := fmt.Sprintf("http://localhost:3000/requestUploadUrl/%s?runtimeVersion=%s", branch, runtimeVersion)
+	q := fmt.Sprintf("http://localhost:3000/requestUploadUrl/%s?runtimeVersion=%s&platform=android&commitHash=abc123", branch, runtimeVersion)
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest("POST", q, nil)
 	r = mux.SetURLVars(r, map[string]string{"BRANCH": branch})
@@ -41,12 +42,11 @@ func createUploadRequest(t *testing.T, projectRoot, branch, runtimeVersion, samp
 
 func performUpload(t *testing.T, projectRoot, branch, runtimeVersion, sampleUpdatePath string) string {
 	os.Setenv("LOCAL_BUCKET_BASE_PATH", filepath.Join(projectRoot, "./updates"))
-	requestURL := fmt.Sprintf("http://localhost:3000/requestUploadUrl/%s?runtimeVersion=%s", branch, runtimeVersion)
+	requestURL := fmt.Sprintf("http://localhost:3000/requestUploadUrl/%s?runtimeVersion=%s&platform=android&commitHash=abc123", branch, runtimeVersion)
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest("POST", requestURL, nil)
 	r = mux.SetURLVars(r, map[string]string{"BRANCH": branch})
 	r.Header.Set("Authorization", "Bearer expo_test_token")
-
 	uploadRequestsInput := ComputeUploadRequestsInput(sampleUpdatePath)
 	uploadRequestsInputJSON, err := json.Marshal(uploadRequestsInput)
 	if err != nil {
@@ -57,7 +57,6 @@ func performUpload(t *testing.T, projectRoot, branch, runtimeVersion, sampleUpda
 	if w.Code != 200 {
 		t.Fatalf("RequestUploadUrlHandler returned status %d instead of 200", w.Code)
 	}
-
 	var responseBody struct {
 		UpdateId       int64                      `json:"updateId"`
 		UploadRequests []bucket.FileUploadRequest `json:"uploadRequests"`
@@ -66,12 +65,10 @@ func performUpload(t *testing.T, projectRoot, branch, runtimeVersion, sampleUpda
 		t.Fatalf("Error decoding response body: %v", err)
 	}
 	updateId := fmt.Sprintf("%d", responseBody.UpdateId)
-
 	fileUploadRequests := responseBody.UploadRequests
 	ws := make([]*httptest.ResponseRecorder, len(fileUploadRequests))
 	errs := make(chan error, len(fileUploadRequests))
 	var wg sync.WaitGroup
-
 	for i, uploadRequest := range fileUploadRequests {
 		wg.Add(1)
 		go func(index int, req bucket.FileUploadRequest) {
@@ -86,7 +83,6 @@ func performUpload(t *testing.T, projectRoot, branch, runtimeVersion, sampleUpda
 				return
 			}
 			defer fileBuffer.Close()
-
 			part, err := writer.CreateFormFile(req.FileName, req.FileName)
 			if err != nil {
 				errs <- fmt.Errorf("Error creating multipart form file: %w", err)
@@ -100,7 +96,6 @@ func performUpload(t *testing.T, projectRoot, branch, runtimeVersion, sampleUpda
 				errs <- fmt.Errorf("Error closing multipart writer: %w", err)
 				return
 			}
-
 			parsedUrl, err := url.Parse(req.RequestUploadUrl)
 			if err != nil {
 				errs <- fmt.Errorf("Error parsing URL %s: %w", req.RequestUploadUrl, err)
@@ -131,6 +126,18 @@ func performUpload(t *testing.T, projectRoot, branch, runtimeVersion, sampleUpda
 			t.Fatalf("Error opening uploaded file %s: %v", expectedFilePath, err)
 		}
 	}
+	metadataPath := filepath.Join(projectRoot, "updates", branch, runtimeVersion, updateId, "update-metadata.json")
+	metadataContent, err := os.ReadFile(metadataPath)
+	if err != nil {
+		t.Fatalf("Error opening update-metadata.json file at %s: %v", metadataPath, err)
+	}
+	var metadata map[string]interface{}
+	if err := json.Unmarshal(metadataContent, &metadata); err != nil {
+		t.Fatalf("Error unmarshalling update-metadata.json: %v", err)
+	}
+	if metadata["platform"] != "android" || metadata["commitHash"] != "abc123" {
+		t.Fatalf("Metadata values not as expected, got: %v", metadata)
+	}
 	return updateId
 }
 
@@ -148,7 +155,6 @@ func TestRequestUploadUrlWithoutBearer(t *testing.T) {
 	teardown := setup(t)
 	defer teardown()
 	mockExpoForRequestUploadUrlTest("staging")
-
 	projectRoot, err := findProjectRoot()
 	if err != nil {
 		t.Fatalf("Error finding project root: %v", err)
@@ -164,7 +170,6 @@ func TestRequestUploadUrlWithBadBearer(t *testing.T) {
 	teardown := setup(t)
 	defer teardown()
 	mockExpoForRequestUploadUrlTest("staging")
-
 	projectRoot, err := findProjectRoot()
 	if err != nil {
 		t.Fatalf("Error finding project root: %v", err)
@@ -180,7 +185,6 @@ func TestRequestUploadUrlWithoutRuntimeVersion(t *testing.T) {
 	teardown := setup(t)
 	defer teardown()
 	mockExpoForRequestUploadUrlTest("staging")
-
 	projectRoot, err := findProjectRoot()
 	if err != nil {
 		t.Fatalf("Error finding project root: %v", err)
@@ -207,7 +211,6 @@ func TestRequestUploadUrlWithBadRequestBody(t *testing.T) {
 	teardown := setup(t)
 	defer teardown()
 	mockExpoForRequestUploadUrlTest("staging")
-
 	projectRoot, err := findProjectRoot()
 	if err != nil {
 		t.Fatalf("Error finding project root: %v", err)
@@ -232,7 +235,6 @@ func TestRequestUploadUrlWithBadFilenamesType(t *testing.T) {
 	teardown := setup(t)
 	defer teardown()
 	mockExpoForRequestUploadUrlTest("staging")
-
 	projectRoot, err := findProjectRoot()
 	if err != nil {
 		t.Fatalf("Error finding project root: %v", err)
@@ -257,13 +259,12 @@ func TestRequestUploadUrlWithSampleUpdate(t *testing.T) {
 	teardown := setup(t)
 	defer teardown()
 	mockExpoForRequestUploadUrlTest("staging")
-
 	projectRoot, err := findProjectRoot()
 	if err != nil {
 		t.Fatalf("Error finding project root: %v", err)
 	}
 	os.Setenv("LOCAL_BUCKET_BASE_PATH", filepath.Join(projectRoot, "./updates"))
-	q := "http://localhost:3000/requestUploadUrl/DO_NOT_USE?runtimeVersion=1"
+	q := "http://localhost:3000/requestUploadUrl/DO_NOT_USE?runtimeVersion=1&platform=android&commitHash=abc123"
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest("POST", q, nil)
 	r = mux.SetURLVars(r, map[string]string{"BRANCH": "DO_NOT_USE"})
@@ -277,7 +278,6 @@ func TestRequestUploadUrlWithSampleUpdate(t *testing.T) {
 	r.Body = io.NopCloser(bytes.NewReader(uploadRequestsInputJSON))
 	handlers.RequestUploadUrlHandler(w, r)
 	assert.Equal(t, 200, w.Code, "Expected status code 200")
-
 	var responseBody struct {
 		UpdateId       int64                      `json:"updateId"`
 		UploadRequests []bucket.FileUploadRequest `json:"uploadRequests"`
@@ -289,7 +289,6 @@ func TestRequestUploadUrlWithSampleUpdate(t *testing.T) {
 	assert.Len(t, uploadRequests, 4, "Expected 4 file upload requests")
 	updateIdHeader := w.Header().Get("expo-update-id")
 	assert.NotEmpty(t, updateIdHeader, "Expected non-empty update ID")
-
 	for _, req := range uploadRequests {
 		parsedUrl, err := url.Parse(req.RequestUploadUrl)
 		assert.Nil(t, err, "Expected valid URL")
@@ -311,7 +310,6 @@ func TestRequestUploadUrlWithSampleUpdate(t *testing.T) {
 		assert.True(t, ok, "Expected sub to be a string")
 		assert.Equal(t, "test_username", sub, "Expected test_username sub")
 	}
-
 	var (
 		ws   = make([]*httptest.ResponseRecorder, len(uploadRequests))
 		errs = make(chan error, len(uploadRequests))
@@ -392,13 +390,12 @@ func TestRequestUploadUrlWithValidExpoSession(t *testing.T) {
 	teardown := setup(t)
 	defer teardown()
 	mockExpoForRequestUploadUrlTest("staging")
-
 	projectRoot, err := findProjectRoot()
 	if err != nil {
 		t.Fatalf("Error finding project root: %v", err)
 	}
 	os.Setenv("LOCAL_BUCKET_BASE_PATH", filepath.Join(projectRoot, "./updates"))
-	q := "http://localhost:3000/requestUploadUrl/DO_NOT_USE?runtimeVersion=1"
+	q := "http://localhost:3000/requestUploadUrl/DO_NOT_USE?runtimeVersion=1&platform=android&commitHash=abc123"
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest("POST", q, nil)
 	r = mux.SetURLVars(r, map[string]string{"BRANCH": "DO_NOT_USE"})
@@ -436,7 +433,7 @@ func TestShouldClearCache(t *testing.T) {
 	assert.Equal(t, 200, wManifest.Code, "Expected status code 200")
 
 	os.Setenv("LOCAL_BUCKET_BASE_PATH", filepath.Join(projectRoot, "./updates"))
-	q := "http://localhost:3000/requestUploadUrl/branch-1?runtimeVersion=1"
+	q := "http://localhost:3000/requestUploadUrl/branch-1?runtimeVersion=1&platform=android&commitHash=abc123"
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest("POST", q, nil)
 	r = mux.SetURLVars(r, map[string]string{"BRANCH": "branch-1"})
@@ -445,7 +442,7 @@ func TestShouldClearCache(t *testing.T) {
 	cache := cache2.GetCache()
 	cacheKey := update.ComputeLastUpdateCacheKey("branch-1", "1")
 	value := cache.Get(cacheKey)
-	expectedValue := "{\"Branch\":\"branch-1\",\"RuntimeVersion\":\"1\",\"UpdateId\":\"1674170951\",\"CreatedAt\":1674170951000000}"
+	expectedValue := "{\"branch\":\"branch-1\",\"runtimeVersion\":\"1\",\"updateId\":\"1674170951\",\"createdAt\":1674170951000000}"
 	assert.Equal(t, expectedValue, value, "Expected a specific cache value")
 	uploadRequestsInput := ComputeUploadRequestsInput(sampleUpdatePath)
 	uploadRequestsInputJSON, err := json.Marshal(uploadRequestsInput)
@@ -464,13 +461,12 @@ func TestRequestUploadUrlWithInvalidExpoSession(t *testing.T) {
 	teardown := setup(t)
 	defer teardown()
 	mockExpoForRequestUploadUrlTest("staging")
-
 	projectRoot, err := findProjectRoot()
 	if err != nil {
 		t.Fatalf("Error finding project root: %v", err)
 	}
 	os.Setenv("LOCAL_BUCKET_BASE_PATH", filepath.Join(projectRoot, "./updates"))
-	q := "http://localhost:3000/requestUploadUrl/DO_NOT_USE?runtimeVersion=1"
+	q := "http://localhost:3000/requestUploadUrl/DO_NOT_USE?runtimeVersion=1&platform=android&commitHash=abc123"
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest("POST", q, nil)
 	r = mux.SetURLVars(r, map[string]string{"BRANCH": "DO_NOT_USE"})
@@ -491,7 +487,6 @@ func TestIdenticalUpload(t *testing.T) {
 	teardown := setup(t)
 	defer teardown()
 	mockExpoForRequestUploadUrlTest("staging")
-
 	projectRoot, err := findProjectRoot()
 	if err != nil {
 		t.Fatalf("Error finding project root: %v", err)
@@ -499,19 +494,16 @@ func TestIdenticalUpload(t *testing.T) {
 	sampleUpdatePath := filepath.Join(projectRoot, "test", "test-updates", "branch-4", "1", "1674170952")
 	branch := "DO_NOT_USE"
 	runtimeVersion := "1"
-
 	updateId1 := performUpload(t, projectRoot, branch, runtimeVersion, sampleUpdatePath)
 	w := markUpdateAsUploaded(t, branch, runtimeVersion, updateId1)
 	if w.Code != 200 {
 		t.Fatalf("First mark as uploaded failed with status %d", w.Code)
 	}
-
 	updateId2 := performUpload(t, projectRoot, branch, runtimeVersion, sampleUpdatePath)
 	w2 := markUpdateAsUploaded(t, branch, runtimeVersion, updateId2)
 	if w2.Code == 200 {
 		t.Fatalf("Second mark as uploaded should have failed (non-200), got %d", w2.Code)
 	}
-	// Should return first update ID
 	lastUpdate, err := update.GetLatestUpdateBundlePathForRuntimeVersion(branch, runtimeVersion)
 	if err != nil {
 		t.Fatalf("Error getting latest update: %v", err)
@@ -532,17 +524,14 @@ func TestDifferentUpload(t *testing.T) {
 	branch := "DO_NOT_USE"
 	runtimeVersion := "1"
 	updateId1 := performUpload(t, projectRoot, branch, runtimeVersion, sampleUpdatePath)
-	fmt.Println(updateId1)
 	w := markUpdateAsUploaded(t, branch, runtimeVersion, updateId1)
 	if w.Code != 200 {
 		t.Fatalf("First mark as uploaded failed with status %d", w.Code)
 	}
 	sampleOtherUpdatePath := filepath.Join(projectRoot, "test", "test-updates", "branch-4", "1", "1674170951")
 	updateId2 := performUpload(t, projectRoot, branch, runtimeVersion, sampleOtherUpdatePath)
-	fmt.Println(updateId2)
 	w2 := markUpdateAsUploaded(t, branch, runtimeVersion, updateId2)
 	assert.Equal(t, 200, w2.Code, "Expected status code 200")
-	// Should return latest update ID
 	lastUpdate, err := update.GetLatestUpdateBundlePathForRuntimeVersion(branch, runtimeVersion)
 	if err != nil {
 		t.Fatalf("Error getting latest update: %v", err)

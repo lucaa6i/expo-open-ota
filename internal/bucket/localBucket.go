@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"time"
 )
@@ -107,6 +108,71 @@ func (b *LocalBucket) GetFile(update types.Update, assetPath string) (types.Buck
 		Reader:    file,
 		CreatedAt: fileInfo.ModTime(),
 	}, nil
+}
+
+func (b *LocalBucket) GetBranches() ([]string, error) {
+	if b.BasePath == "" {
+		return nil, errors.New("BasePath not set")
+	}
+	entries, err := os.ReadDir(b.BasePath)
+	if err != nil {
+		return nil, err
+	}
+	var branches []string
+	for _, entry := range entries {
+		if entry.IsDir() {
+			branches = append(branches, entry.Name())
+		}
+	}
+	return branches, nil
+}
+
+func (b *LocalBucket) GetRuntimeVersions(branch string) ([]RuntimeVersionWithStats, error) {
+	if b.BasePath == "" {
+		return nil, errors.New("BasePath not set")
+	}
+	dirPath := filepath.Join(b.BasePath, branch)
+	entries, err := os.ReadDir(dirPath)
+	if err != nil {
+		return nil, err
+	}
+	var runtimeVersions []RuntimeVersionWithStats
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		runtimeVersion := entry.Name()
+		updatesPath := filepath.Join(dirPath, runtimeVersion)
+		updates, err := os.ReadDir(updatesPath)
+		if err != nil {
+			continue
+		}
+		var updateTimestamps []int64
+		for _, update := range updates {
+			if !update.IsDir() {
+				continue
+			}
+			timestamp, err := strconv.ParseInt(update.Name(), 10, 64)
+			if err != nil {
+				continue
+			}
+			updateTimestamps = append(updateTimestamps, timestamp)
+		}
+		if len(updateTimestamps) == 0 {
+			continue
+		}
+
+		sort.Slice(updateTimestamps, func(i, j int) bool { return updateTimestamps[i] < updateTimestamps[j] })
+
+		runtimeVersions = append(runtimeVersions, RuntimeVersionWithStats{
+			RuntimeVersion:  runtimeVersion,
+			CreatedAt:       time.UnixMilli(updateTimestamps[0]).UTC().Format(time.RFC3339),
+			LastUpdatedAt:   time.UnixMilli(updateTimestamps[len(updateTimestamps)-1]).UTC().Format(time.RFC3339),
+			NumberOfUpdates: len(updateTimestamps),
+		})
+	}
+
+	return runtimeVersions, nil
 }
 
 func (b *LocalBucket) UploadFileIntoUpdate(update types.Update, fileName string, file io.Reader) error {

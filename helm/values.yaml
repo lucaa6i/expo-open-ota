@@ -29,8 +29,18 @@ keysStorageType: "aws-secrets-manager"
 useCloudfrontRedirect: "false"
 useAWSAccessKeys: "false"
 cacheMode: "redis"
+useDashboard: "false"
 
 environment:
+  - name: "USE_DASHBOARD"
+    key: "useDashboard"
+    required: true
+    computed: true
+  - name: "ADMIN_PASSWORD"
+    value: ""
+    required:
+      - key: "useDashboard"
+        is: "true"
   - name: "CACHE_MODE"
     key: "cacheMode"
     required: true
@@ -157,6 +167,9 @@ environment:
 
 
 podAnnotations: {}
+    # prometheus.io/scrape: "true"
+    # prometheus.io/path: "/metrics"
+    # prometheus.io/port: "3000"
 
 podSecurityContext: {}
 # fsGroup: 2000
@@ -176,7 +189,7 @@ service:
 ingress:
   enabled: true
   className: ""
-  annotations: {}
+  annotations:
       # kubernetes.io/ingress.class: nginx
       # nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
       # nginx.ingress.kubernetes.io/proxy-body-size: 100m

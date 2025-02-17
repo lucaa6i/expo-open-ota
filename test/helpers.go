@@ -6,11 +6,13 @@ import (
 	cache2 "expo-open-ota/internal/cache"
 	"expo-open-ota/internal/cdn"
 	"expo-open-ota/internal/handlers"
+	"expo-open-ota/internal/metrics"
 	"expo-open-ota/internal/types"
 	"github.com/jarcoal/httpmock"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -19,6 +21,7 @@ func setup(t *testing.T) func() {
 	GlobalBeforeEach()
 	httpmock.Activate()
 	SetValidConfiguration()
+	metrics.InitMetrics()
 	return func() {
 		GlobalAfterEach(t)
 		defer httpmock.DeactivateAndReset()
@@ -26,6 +29,7 @@ func setup(t *testing.T) func() {
 }
 
 func GlobalBeforeEach() {
+	metrics.CleanupMetrics()
 	cache := cache2.GetCache()
 	_ = cache.Clear()
 	newTime := time.Date(1990, time.January, 1, 0, 0, 0, 0, time.UTC)
@@ -52,6 +56,26 @@ func GlobalAfterEach(t *testing.T) {
 				err = os.RemoveAll(filepath.Join(updatesPath, update.Name()))
 				if err != nil {
 					t.Errorf("Error removing update directory: %v", err)
+				}
+			}
+		}
+		// Also remove all folders > 1674170951 in ./test/test-updates/branch-1/1
+		updatesPath = filepath.Join(projectRoot, "./test/test-updates/branch-1/1")
+		updates, err = os.ReadDir(updatesPath)
+		if err != nil {
+			t.Errorf("Error reading updates directory: %v", err)
+		}
+		for _, update := range updates {
+			if update.IsDir() {
+				updateTime, err := strconv.Atoi(update.Name())
+				if err != nil {
+					continue
+				}
+				if updateTime > 1674170951 {
+					err = os.RemoveAll(filepath.Join(updatesPath, update.Name()))
+					if err != nil {
+						t.Errorf("Error removing update directory: %v", err)
+					}
 				}
 			}
 		}
@@ -86,6 +110,20 @@ func MockExpoChannelMapping(updateBranches []map[string]interface{}, updateChann
 					"id":                  "EXPO_APP_ID",
 					"updateBranches":      updateBranches,
 					"updateChannelByName": updateChannelByName,
+				},
+			},
+		},
+	})
+}
+
+func MockExpoBranchesMappingResponse(updateBranches []map[string]interface{}, updateChannelByName []map[string]interface{}) (*http.Response, error) {
+	return httpmock.NewJsonResponse(http.StatusOK, map[string]interface{}{
+		"data": map[string]interface{}{
+			"app": map[string]interface{}{
+				"byId": map[string]interface{}{
+					"id":             "EXPO_APP_ID",
+					"updateBranches": updateBranches,
+					"updateChannels": updateChannelByName,
 				},
 			},
 		},
@@ -384,4 +422,6 @@ func SetValidConfiguration() {
 	os.Setenv("PRIVATE_CLOUDFRONT_KEY_PATH", "")
 	os.Setenv("CLOUDFRONT_DOMAIN", "")
 	os.Setenv("CLOUDFRONT_KEY_PAIR_ID", "")
+	os.Setenv("USE_DASHBOARD", "true")
+	os.Setenv("ADMIN_PASSWORD", "admin")
 }
