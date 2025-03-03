@@ -178,8 +178,8 @@ export default class Publish extends Command {
       });
       exportSpinner.succeed('🚀 Project exported successfully');
       Log.withInfo(stdout);
-    } catch {
-      exportSpinner.fail('❌ Failed to export the project');
+    } catch (e) {
+      exportSpinner.fail(`❌ Failed to export the project, ${e}`);
       process.exit(1);
     }
     const publicConfig = await getPublicExpoConfigAsync(projectDir, {
