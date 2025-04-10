@@ -30,6 +30,7 @@ useCloudfrontRedirect: "false"
 useAWSAccessKeys: "false"
 cacheMode: "redis"
 useDashboard: "false"
+useRedisTLS: "false"
 
 environment:
   - name: "USE_DASHBOARD"
@@ -55,6 +56,13 @@ environment:
     required:
       - key: "cacheMode"
         is: "redis"
+  - name: "REDIS_USE_TLS"
+    value: "true"
+    required:
+      - key: "cacheMode"
+        is: "redis"
+      - key: "useRedisTLS"
+        is: "true"
   - name: "REDIS_PASSWORD"
     value: ""
     required:

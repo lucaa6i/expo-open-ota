@@ -92,9 +92,10 @@ jobs:
       - name: Publish NPM package
         run: |
           cd eoas
+          VERSION=$(echo "${{ github.ref_name }}" | sed 's/^v//')
           npm ci
           npm run build
-          npm version ${{ github.ref_name }} --no-git-tag-version
+          npm version "$VERSION" --no-git-tag-version
           npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
