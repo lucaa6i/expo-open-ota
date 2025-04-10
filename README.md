@@ -26,3 +26,7 @@ The full documentation is available at:
 ## 📜 License
 
 This project is licensed under the MIT License - see the [LICENSE](./LICENSE.md) file for details.
+
+## Contact
+
+✉️ [expoopenota@gmail.com](mailto:expoopenota@gmail.com)
