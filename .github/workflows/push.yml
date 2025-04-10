@@ -15,7 +15,7 @@ jobs:
     container:
       image: ghcr.io/axelmarciano/expo-open-ota:latest
       credentials:
-        username: ${{ github.actor }}
+        username: axelmarciano
         password: ${{  secrets.DOCKER_GITHUB_CONTAINER_REGISTRY_TOKEN }}
 
     steps:
