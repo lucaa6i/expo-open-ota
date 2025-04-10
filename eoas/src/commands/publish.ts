@@ -4,7 +4,7 @@ import { Command, Flags } from '@oclif/core';
 import FormData from 'form-data';
 import fs from 'fs-extra';
 import mime from 'mime';
-import fetch from 'node-fetch';
+import fetch, { RequestInit, Response } from 'node-fetch';
 import path from 'path';
 
 import { RequestUploadUrlItem, computeFilesRequests, requestUploadUrls } from '../lib/assets';
@@ -47,14 +47,15 @@ export default class Publish extends Command {
       description: 'Run command in non-interactive mode',
       default: false,
     }),
+    numUploadTries: Flags.integer({
+      description:
+        'Number of times to try to upload files. This can help with flaky networks or projects with a large number of files to upload',
+      default: 3,
+    }),
     outputDir: Flags.string({
       description:
         "Where to write build output. You can override the default dist output directory if it's being used by something else",
       default: 'dist',
-    }),
-    numUploadTries: Flags.integer({
-      description: 'Number of times to try to upload files. This can help with flaky networks',
-      default: 3,
     }),
   };
   private sanitizeFlags(flags: any): {
@@ -62,6 +63,7 @@ export default class Publish extends Command {
     branch: string;
     nonInteractive: boolean;
     channel: string;
+    numUploadTries: number;
     outputDir: string;
   } {
     return {
@@ -69,6 +71,7 @@ export default class Publish extends Command {
       branch: flags.branch,
       nonInteractive: flags.nonInteractive,
       channel: flags.channel,
+      numUploadTries: flags.numUploadTries,
       outputDir: flags.outputDir,
     };
   }
@@ -80,7 +83,8 @@ export default class Publish extends Command {
       process.exit(1);
     }
     const { flags } = await this.parse(Publish);
-    const { platform, nonInteractive, branch, channel, outputDir } = this.sanitizeFlags(flags);
+    const { platform, nonInteractive, branch, channel, outputDir, numUploadTries } =
+      this.sanitizeFlags(flags);
     if (!branch) {
       Log.error('Branch name is required');
       process.exit(1);
@@ -256,13 +260,14 @@ export default class Publish extends Command {
           }
           formData.append(itm.fileName, file);
           if (isLocalBucketFileUpload) {
-            const response = await fetch(itm.requestUploadUrl, {
+            const response = await fetchWithRetries(itm.requestUploadUrl, {
               method: 'PUT',
               headers: {
                 ...formData.getHeaders(),
                 ...getAuthExpoHeaders(credentials),
               },
               body: formData,
+              numTries: numUploadTries,
             });
             if (!response.ok) {
               Log.error('Failed to upload file', await response.text());
@@ -281,13 +286,14 @@ export default class Publish extends Command {
             contentType = 'application/octet-stream';
           }
           const buffer = await fs.readFile(path.join(projectDir, outputDir, itm.filePath));
-          const response = await fetch(itm.requestUploadUrl, {
+          const response = await fetchWithRetries(itm.requestUploadUrl, {
             method: 'PUT',
             headers: {
               'Content-Type': contentType,
               'Cache-Control': 'max-age=31556926',
             },
             body: buffer,
+            numTries: numUploadTries,
           });
           if (!response.ok) {
             Log.error('❌ File upload failed', await response.text());
@@ -354,4 +360,30 @@ export default class Publish extends Command {
       Log.withInfo('🔥 Your users will receive the latest update automatically!');
     }
   }
+}
+
+/** Helps with flaky networks or projects with a large number of bundles by retrying uploads */
+async function fetchWithRetries(
+  url: string,
+  options: RequestInit & { numTries: number }
+): Promise<Response> {
+  const { numTries, ...fetchOptions } = options;
+
+  let response: Response | null = null;
+  for (let attempt = 0; attempt < numTries; attempt++) {
+    try {
+      response = await fetch(url, fetchOptions);
+      if (response.ok || attempt === numTries - 1) {
+        return response;
+      }
+    } catch (error) {
+      if (attempt < numTries) {
+        Log.warn(`Failed to fetch ${url} with message ${(error as Error).message}, retrying...`);
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  throw new Error(`Failed to fetch ${url} after ${numTries} attempts`);
 }
