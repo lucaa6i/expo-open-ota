@@ -2,6 +2,7 @@ package cache
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"time"
 
@@ -15,14 +16,21 @@ type RedisCache struct {
 	port     string
 }
 
-func NewRedisCache(host, password, port string) *RedisCache {
-	client := redis.NewClient(&redis.Options{
+func NewRedisCache(host, password, port string, useTLS bool) *RedisCache {
+	opts := &redis.Options{
 		Addr:     host + ":" + port,
 		Password: password,
-	})
+	}
+
+	if useTLS {
+		opts.TLSConfig = &tls.Config{}
+	}
+
+	client := redis.NewClient(opts)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
+
 	if _, err := client.Ping(ctx).Result(); err != nil {
 		panic(err)
 	}
