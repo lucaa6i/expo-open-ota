@@ -12,6 +12,8 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
 import { Badge } from '@/components/ui/badge.tsx';
+import apple from '@/assets/apple.svg';
+import android from '@/assets/android.svg';
 
 export const UpdatesTable = ({
   branch,
@@ -83,8 +85,8 @@ export const UpdatesTable = ({
               const isAndroid = value.row.original.platform === 'android';
               return (
                 <div className="flex flex-row items-center gap-2">
-                  {isIos && <img src="@/assets/apple.svg" className="w-4" alt="apple" />}
-                  {isAndroid && <img src="@/assets/android.svg" className="w-4" alt="android" />}
+                  {isIos && <img src={apple} className="w-4" alt="apple" />}
+                  {isAndroid && <img src={android} className="w-4" alt="android" />}
                 </div>
               );
             },
