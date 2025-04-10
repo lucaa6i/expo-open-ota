@@ -33,7 +33,7 @@ openssl rsa -in private_key.pem -pubout -out public_key.pem
 + Enter a name for your key group and select the public key you created in the previous step.
 + You fill find the key group ID in the key groups table. This ID will be used as environment variable by the server:
 ```bash title=".env"
-CLOUDFRONT_KEY_PAIR_ID=your-key-group-id
+CLOUDFRONT_KEY_PAIR_ID=your-public-key-id
 ```
 ## Create Cloudfront Origin Access Control Settings (OAC)
 + Go to the [Cloudfront Origin Access Identity page](https://us-east-1.console.aws.amazon.com/cloudfront/v4/home#/originAccess)
@@ -102,7 +102,7 @@ CLOUDFRONT_DOMAIN=your-cloudfront-domain
 
 ### General Environment Variables
 ```bash title=".env"
-CLOUDFRONT_KEY_PAIR_ID=your-key-group-id
+CLOUDFRONT_KEY_PAIR_ID=your-public-key-id
 CLOUDFRONT_DOMAIN=your-cloudfront-domain
 ```
 
