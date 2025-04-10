@@ -3,13 +3,22 @@ package config
 import (
 	"expo-open-ota/internal/helpers"
 	"flag"
-	"github.com/joho/godotenv"
 	"log"
 	"os"
+
+	"github.com/joho/godotenv"
 )
 
 func validateStorageMode(storageMode string) bool {
 	return storageMode == "local" || storageMode == "s3"
+}
+
+func GetPort() string {
+	port := GetEnv("PORT")
+	if port == "" {
+		port = "3000"
+	}
+	return port
 }
 
 func validateBucketParams(storageMode string) bool {
@@ -41,6 +50,15 @@ func validateBaseUrl(baseUrl string) bool {
 func IsTestMode() bool {
 	return flag.Lookup("test.v") != nil
 }
+
+func resolveDefaultBaseUrl() string {
+	port := os.Getenv("PORT")
+	if port == "" {
+		return "http://localhost:3000"
+	}
+	return "http://localhost:" + port
+}
+
 
 func LoadConfig() {
 	err := godotenv.Load()
@@ -76,13 +94,14 @@ func LoadConfig() {
 var DefaultEnvValues = map[string]string{
 	"LOCAL_BUCKET_BASE_PATH":      "./updates",
 	"STORAGE_MODE":                "local",
-	"BASE_URL":                    "http://localhost:3000",
+	"BASE_URL":                    resolveDefaultBaseUrl(),
 	"PUBLIC_LOCAL_EXPO_KEY_PATH":  "./keyStore/public-key.pem",
 	"PRIVATE_LOCAL_EXPO_KEY_PATH": "./keyStore/private-key.pem",
 	"KEYS_STORAGE_TYPE":           "local",
 	"JWT_SECRET":                  "",
 	"AWS_REGION":                  "eu-west-3",
 }
+
 
 func GetEnv(key string) string {
 	value := os.Getenv(key)
