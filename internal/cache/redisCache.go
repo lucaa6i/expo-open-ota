@@ -16,6 +16,10 @@ type RedisCache struct {
 	port     string
 }
 
+func appendKeyPrefix(key string) string {
+	return "expo-open-ota:" + key
+}
+
 func NewRedisCache(host, password, port string, useTLS bool) *RedisCache {
 	opts := &redis.Options{
 		Addr:     host + ":" + port,
@@ -42,7 +46,7 @@ func (c *RedisCache) Get(key string) string {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	val, err := c.client.Get(ctx, key).Result()
+	val, err := c.client.Get(ctx, appendKeyPrefix(key)).Result()
 	if errors.Is(err, redis.Nil) {
 		return ""
 	} else if err != nil {
@@ -60,14 +64,14 @@ func (c *RedisCache) Set(key string, value string, ttl *int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	return c.client.Set(ctx, key, value, expiration).Err()
+	return c.client.Set(ctx, appendKeyPrefix(key), value, expiration).Err()
 }
 
 func (c *RedisCache) Delete(key string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	c.client.Del(ctx, key)
+	c.client.Del(ctx, appendKeyPrefix(key))
 }
 
 func (c *RedisCache) Clear() error {
