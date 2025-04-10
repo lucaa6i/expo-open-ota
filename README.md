@@ -29,4 +29,4 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE.md)
 
 ## Contact
 
-✉️ [expoopenota@gmail.com](mailto:expoopenota@gmail.com)
+✉️ [E-mail](mailto:expoopenota@gmail.com)
