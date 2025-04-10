@@ -47,18 +47,29 @@ export default class Publish extends Command {
       description: 'Run command in non-interactive mode',
       default: false,
     }),
+    outputDir: Flags.string({
+      description:
+        "Where to write build output. You can override the default dist output directory if it's being used by something else",
+      default: 'dist',
+    }),
+    numUploadTries: Flags.integer({
+      description: 'Number of times to try to upload files. This can help with flaky networks',
+      default: 3,
+    }),
   };
   private sanitizeFlags(flags: any): {
     platform: RequestedPlatform;
     branch: string;
     nonInteractive: boolean;
     channel: string;
+    outputDir: string;
   } {
     return {
       platform: flags.platform,
       branch: flags.branch,
       nonInteractive: flags.nonInteractive,
       channel: flags.channel,
+      outputDir: flags.outputDir,
     };
   }
   public async run(): Promise<void> {
@@ -69,7 +80,7 @@ export default class Publish extends Command {
       process.exit(1);
     }
     const { flags } = await this.parse(Publish);
-    const { platform, nonInteractive, branch, channel } = this.sanitizeFlags(flags);
+    const { platform, nonInteractive, branch, channel, outputDir } = this.sanitizeFlags(flags);
     if (!branch) {
       Log.error('Branch name is required');
       process.exit(1);
@@ -168,8 +179,8 @@ export default class Publish extends Command {
 
     const exportSpinner = ora('📦 Exporting project files...').start();
     try {
-      await spawnAsync('rm', ['-rf', 'dist'], { cwd: projectDir });
-      const { stdout } = await spawnAsync('npx', ['expo', 'export', '--output-dir', 'dist'], {
+      await spawnAsync('rm', ['-rf', outputDir], { cwd: projectDir });
+      const { stdout } = await spawnAsync('npx', ['expo', 'export', '--output-dir', outputDir], {
         cwd: projectDir,
         env: {
           ...process.env,
@@ -192,12 +203,12 @@ export default class Publish extends Command {
       process.exit(1);
     }
     // eslint-disable-next-line
-    fs.writeJsonSync(path.join(projectDir, 'dist', 'expoConfig.json'), publicConfig, {
+    fs.writeJsonSync(path.join(projectDir, outputDir, 'expoConfig.json'), publicConfig, {
       spaces: 2,
     });
-    Log.withInfo('expoConfig.json file created in dist directory');
+    Log.withInfo(`expoConfig.json file created in ${outputDir} directory`);
     const uploadFilesSpinner = ora('📤 Uploading files...').start();
-    const files = computeFilesRequests(projectDir, platform || RequestedPlatform.All);
+    const files = computeFilesRequests(projectDir, outputDir, platform || RequestedPlatform.All);
     if (!files.length) {
       uploadFilesSpinner.fail('No files to upload');
       process.exit(1);
@@ -239,7 +250,7 @@ export default class Publish extends Command {
           const formData = new FormData();
           let file: fs.ReadStream;
           try {
-            file = fs.createReadStream(path.join(projectDir, 'dist', itm.filePath));
+            file = fs.createReadStream(path.join(projectDir, outputDir, itm.filePath));
           } catch {
             throw new Error(`Failed to read file ${itm.filePath}`);
           }
@@ -269,7 +280,7 @@ export default class Publish extends Command {
           if (!contentType) {
             contentType = 'application/octet-stream';
           }
-          const buffer = await fs.readFile(path.join(projectDir, 'dist', itm.filePath));
+          const buffer = await fs.readFile(path.join(projectDir, outputDir, itm.filePath));
           const response = await fetch(itm.requestUploadUrl, {
             method: 'PUT',
             headers: {
