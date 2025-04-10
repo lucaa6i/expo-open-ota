@@ -71,9 +71,10 @@ function loadMetadata(distRoot: string): Metadata {
 
 export function computeFilesRequests(
   projectDir: string,
+  outputDir: string,
   requestedPlatform: RequestedPlatform
 ): AssetToUpload[] {
-  const metadata = loadMetadata(path.join(projectDir, 'dist'));
+  const metadata = loadMetadata(path.join(projectDir, outputDir));
   const assets: AssetToUpload[] = [
     { path: 'metadata.json', name: 'metadata.json', ext: 'json' },
     { path: 'expoConfig.json', name: 'expoConfig.json', ext: 'json' },
