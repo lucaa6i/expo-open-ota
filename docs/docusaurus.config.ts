@@ -6,11 +6,16 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
   title: 'Expo Open OTA',
-  tagline: 'An open-source Go implementation of the Expo Updates protocol, designed for production with support for cloud storage like S3 and CDN integration, delivering fast and reliable OTA updates for React Native apps.',
+  tagline:
+    'An open-source Go implementation of the Expo Updates protocol, designed for production with support for cloud storage like S3 and CDN integration, delivering fast and reliable OTA updates for React Native apps.',
   favicon: 'img/favicon.ico',
-  scripts: [{
-    src: 'https://plausible.io/js/script.js', defer: true, 'data-domain': 'axelmarciano.github.io/expo-open-ota',
-  }],
+  scripts: [
+    {
+      src: 'https://plausible.io/js/script.js',
+      defer: true,
+      'data-domain': 'axelmarciano.github.io/expo-open-ota',
+    },
+  ],
   // Set the production url of your site here
   url: 'https://axelmarciano.github.io',
   // Set the /<baseUrl>/ pathname under which your site is served
@@ -84,6 +89,11 @@ const config: Config = {
           label: 'GitHub',
           position: 'right',
         },
+        {
+          href: 'mailto:expoopenota@gmail.com',
+          label: 'Contact',
+          position: 'right',
+        },
       ],
     },
     footer: {
@@ -96,6 +106,6 @@ const config: Config = {
       darkTheme: prismThemes.dracula,
     },
   } satisfies Preset.ThemeConfig,
-};
+}
 
 export default config;
