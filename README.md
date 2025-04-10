@@ -1,5 +1,3 @@
-[![Work with me](https://img.shields.io/badge/💼%20Work%20with%20me-Consulting%20available-brightgreen?style=for-the-badge)](mailto:expoopenota@gmail.com?subject=Expo%20Open%20OTA%20–%20Consulting%20Request)
-
 # Expo Open OTA
 ![Expo Open OTA Deployment](docs/static/img/social_card.png)
 
