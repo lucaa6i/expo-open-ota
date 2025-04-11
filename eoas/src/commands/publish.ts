@@ -1,10 +1,11 @@
 import { Platform } from '@expo/eas-build-job';
 import spawnAsync from '@expo/spawn-async';
 import { Command, Flags } from '@oclif/core';
+import fetchRetry from 'fetch-retry';
 import FormData from 'form-data';
 import fs from 'fs-extra';
 import mime from 'mime';
-import fetch, { RequestInit, Response } from 'node-fetch';
+import originalFetch, { RequestInit, Response } from 'node-fetch';
 import path from 'path';
 
 import { RequestUploadUrlItem, computeFilesRequests, requestUploadUrls } from '../lib/assets';
@@ -23,6 +24,8 @@ import { ensureRepoIsCleanAsync } from '../lib/repo';
 import { resolveRuntimeVersionAsync } from '../lib/runtimeVersion';
 import { resolveVcsClient } from '../lib/vcs';
 import { resolveWorkflowAsync } from '../lib/workflow';
+
+const fetch = fetchRetry(originalFetch);
 
 export default class Publish extends Command {
   static override args = {};
@@ -47,11 +50,6 @@ export default class Publish extends Command {
       description: 'Run command in non-interactive mode',
       default: false,
     }),
-    numUploadTries: Flags.integer({
-      description:
-        'Number of times to try to upload files. This can help with flaky networks or projects with a large number of files to upload',
-      default: 3,
-    }),
     outputDir: Flags.string({
       description:
         "Where to write build output. You can override the default dist output directory if it's being used by something else",
@@ -63,7 +61,6 @@ export default class Publish extends Command {
     branch: string;
     nonInteractive: boolean;
     channel: string;
-    numUploadTries: number;
     outputDir: string;
   } {
     return {
@@ -71,7 +68,6 @@ export default class Publish extends Command {
       branch: flags.branch,
       nonInteractive: flags.nonInteractive,
       channel: flags.channel,
-      numUploadTries: flags.numUploadTries,
       outputDir: flags.outputDir,
     };
   }
@@ -83,8 +79,7 @@ export default class Publish extends Command {
       process.exit(1);
     }
     const { flags } = await this.parse(Publish);
-    const { platform, nonInteractive, branch, channel, outputDir, numUploadTries } =
-      this.sanitizeFlags(flags);
+    const { platform, nonInteractive, branch, channel, outputDir } = this.sanitizeFlags(flags);
     if (!branch) {
       Log.error('Branch name is required');
       process.exit(1);
@@ -267,7 +262,6 @@ export default class Publish extends Command {
                 ...getAuthExpoHeaders(credentials),
               },
               body: formData,
-              numTries: numUploadTries,
             });
             if (!response.ok) {
               Log.error('Failed to upload file', await response.text());
@@ -293,7 +287,6 @@ export default class Publish extends Command {
               'Cache-Control': 'max-age=31556926',
             },
             body: buffer,
-            numTries: numUploadTries,
           });
           if (!response.ok) {
             Log.error('❌ File upload failed', await response.text());
@@ -312,7 +305,7 @@ export default class Publish extends Command {
     const markAsFinishedSpinner = ora('🔗 Marking the updates as finished...').start();
     const results = await Promise.all(
       uploadUrls.map(async ({ updateId, platform, runtimeVersion }) => {
-        const response = await fetch(
+        const response = await fetchWithRetries(
           `${baseUrl}/markUpdateAsUploaded/${branch}?platform=${platform}&updateId=${updateId}&runtimeVersion=${runtimeVersion}`,
           {
             method: 'POST',
@@ -362,28 +355,19 @@ export default class Publish extends Command {
   }
 }
 
-/** Helps with flaky networks or projects with a large number of bundles by retrying uploads */
-async function fetchWithRetries(
-  url: string,
-  options: RequestInit & { numTries: number }
-): Promise<Response> {
-  const { numTries, ...fetchOptions } = options;
-
-  let response: Response | null = null;
-  for (let attempt = 0; attempt < numTries; attempt++) {
-    try {
-      response = await fetch(url, fetchOptions);
-      if (response.ok || attempt === numTries - 1) {
-        return response;
+async function fetchWithRetries(url: string, options: RequestInit): Promise<Response> {
+  return await fetch(url, {
+    ...options,
+    retryDelay(attempt) {
+      return Math.pow(2, attempt) * 500;
+    },
+    retries: 3,
+    retryOn: (attempt, error) => {
+      if (error) {
+        Log.warn(`Retry ${attempt} after network error:`, error.message);
+        return true;
       }
-    } catch (error) {
-      if (attempt < numTries) {
-        Log.warn(`Failed to fetch ${url} with message ${(error as Error).message}, retrying...`);
-      } else {
-        throw error;
-      }
-    }
-  }
-
-  throw new Error(`Failed to fetch ${url} after ${numTries} attempts`);
+      return false;
+    },
+  });
 }
