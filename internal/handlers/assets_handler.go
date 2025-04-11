@@ -13,7 +13,11 @@ import (
 
 func AssetsHandler(w http.ResponseWriter, r *http.Request) {
 	requestID := uuid.New().String()
-	channelName := helpers.ResolveExpoChannel(r.Header, requestID)
+	channelName := helpers.ResolveExpoChannel(r.Header)
+	expoChannelOverride := r.URL.Query().Get("ow-expo-channel")
+	if expoChannelOverride != "" {
+		channelName = expoChannelOverride
+	}
 	preventCDNRedirection := r.Header.Get("prevent-cdn-redirection") == "true"
 	branchMap, err := services.FetchExpoChannelMapping(channelName)
 	if err != nil {
