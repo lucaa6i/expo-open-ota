@@ -14,7 +14,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
 	"hash"
 	"strings"
 )
@@ -56,10 +55,6 @@ func ConvertSHA256HashToUUID(value string) string {
 		value[16:20],
 		value[20:32],
 	)
-}
-
-func GenerateUUID() string {
-	return uuid.New().String()
 }
 
 func GetBase64URLEncoding(encodedString string) string {

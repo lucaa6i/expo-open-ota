@@ -347,8 +347,6 @@ func appendChannelOverrideToUrl(urlStr, channelOverride string) string {
 }
 
 func AppendChannelOverrideToAsset(manifest *types.UpdateManifest, channelOverride string) {
-	// Generate UUID Randomly
-	manifest.Id = crypto.ConvertSHA256HashToUUID(crypto.GenerateUUID())
 	manifest.LaunchAsset.Url = appendChannelOverrideToUrl(manifest.LaunchAsset.Url, channelOverride)
 	for i := range manifest.Assets {
 		manifest.Assets[i].Url = appendChannelOverrideToUrl(manifest.Assets[i].Url, channelOverride)
