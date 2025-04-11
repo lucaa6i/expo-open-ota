@@ -21,19 +21,28 @@ func ParseExpoExtraParams(header string) map[string]string {
 	return params
 }
 
-func ResolveExpoChannel(headers http.Header, requestID string) string {
-	channelName := headers.Get("expo-channel-name")
-	if channelName == "" {
-		return ""
-	}
-
+func GetChannelOverride(headers http.Header) string {
+	channelName := ""
 	extra := headers.Get("expo-extra-params")
 	if extra != "" {
 		params := ParseExpoExtraParams(extra)
 		if override, ok := params["ow-expo-channel"]; ok && override != "" {
-			channelName = override
+			if override != headers.Get("expo-channel-name") {
+				channelName = override
+			}
 		}
 	}
+	return channelName
+}
 
+func ResolveExpoChannel(headers http.Header) string {
+	channelName := headers.Get("expo-channel-name")
+	if channelName == "" {
+		return ""
+	}
+	channelOverride := GetChannelOverride(headers)
+	if channelOverride != "" {
+		channelName = channelOverride
+	}
 	return channelName
 }
