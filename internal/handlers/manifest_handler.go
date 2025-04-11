@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"expo-open-ota/internal/crypto"
+	"expo-open-ota/internal/helpers"
 	"expo-open-ota/internal/keyStore"
 	"expo-open-ota/internal/metrics"
 	"expo-open-ota/internal/services"
@@ -148,7 +149,7 @@ func putNoUpdateAvailableInResponse(w http.ResponseWriter, r *http.Request, runt
 func ManifestHandler(w http.ResponseWriter, r *http.Request) {
 	requestID := uuid.New().String()
 
-	channelName := r.Header.Get("expo-channel-name")
+	channelName := helpers.ResolveExpoChannel(r.Header, requestID)
 	if channelName == "" {
 		log.Printf("[RequestID: %s] No channel name provided", requestID)
 		http.Error(w, "No channel name provided", http.StatusBadRequest)
