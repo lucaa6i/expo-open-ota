@@ -2,11 +2,11 @@
 import { Platform } from '@expo/config';
 import fs from 'fs-extra';
 import Joi from 'joi';
-import fetch from 'node-fetch';
 import path from 'path';
 
 import { ExpoCredentials, getAuthExpoHeaders } from './auth';
 import { RequestedPlatform } from './expoConfig';
+import { fetchWithRetries } from './fetch';
 import Log from './log';
 
 const fileMetadataJoi = Joi.object({
@@ -71,9 +71,10 @@ function loadMetadata(distRoot: string): Metadata {
 
 export function computeFilesRequests(
   projectDir: string,
+  outputDir: string,
   requestedPlatform: RequestedPlatform
 ): AssetToUpload[] {
-  const metadata = loadMetadata(path.join(projectDir, 'dist'));
+  const metadata = loadMetadata(path.join(projectDir, outputDir));
   const assets: AssetToUpload[] = [
     { path: 'metadata.json', name: 'metadata.json', ext: 'json' },
     { path: 'expoConfig.json', name: 'expoConfig.json', ext: 'json' },
@@ -112,7 +113,7 @@ export async function requestUploadUrls({
   platform: string;
   commitHash?: string;
 }): Promise<{ uploadRequests: RequestUploadUrlItem[]; updateId: string }> {
-  const response = await fetch(
+  const response = await fetchWithRetries(
     `${requestUploadUrl}?runtimeVersion=${runtimeVersion}&platform=${platform}&commitHash=${
       commitHash || ''
     }`,
@@ -126,7 +127,8 @@ export async function requestUploadUrls({
     }
   );
   if (!response.ok) {
-    throw new Error(`Failed to request upload URL`);
+    const text = await response.text();
+    throw new Error(`Failed to request upload URL: ${text}`);
   }
   return await response.json();
 }

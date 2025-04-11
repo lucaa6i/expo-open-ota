@@ -4,7 +4,6 @@ import { Command, Flags } from '@oclif/core';
 import FormData from 'form-data';
 import fs from 'fs-extra';
 import mime from 'mime';
-import fetch from 'node-fetch';
 import path from 'path';
 
 import { RequestUploadUrlItem, computeFilesRequests, requestUploadUrls } from '../lib/assets';
@@ -15,6 +14,7 @@ import {
   getPrivateExpoConfigAsync,
   getPublicExpoConfigAsync,
 } from '../lib/expoConfig';
+import { fetchWithRetries } from '../lib/fetch';
 import Log from '../lib/log';
 import { ora } from '../lib/ora';
 import { isExpoInstalled } from '../lib/package';
@@ -47,18 +47,25 @@ export default class Publish extends Command {
       description: 'Run command in non-interactive mode',
       default: false,
     }),
+    outputDir: Flags.string({
+      description:
+        "Where to write build output. You can override the default dist output directory if it's being used by something else",
+      default: 'dist',
+    }),
   };
   private sanitizeFlags(flags: any): {
     platform: RequestedPlatform;
     branch: string;
     nonInteractive: boolean;
     channel: string;
+    outputDir: string;
   } {
     return {
       platform: flags.platform,
       branch: flags.branch,
       nonInteractive: flags.nonInteractive,
       channel: flags.channel,
+      outputDir: flags.outputDir,
     };
   }
   public async run(): Promise<void> {
@@ -69,7 +76,7 @@ export default class Publish extends Command {
       process.exit(1);
     }
     const { flags } = await this.parse(Publish);
-    const { platform, nonInteractive, branch, channel } = this.sanitizeFlags(flags);
+    const { platform, nonInteractive, branch, channel, outputDir } = this.sanitizeFlags(flags);
     if (!branch) {
       Log.error('Branch name is required');
       process.exit(1);
@@ -168,8 +175,8 @@ export default class Publish extends Command {
 
     const exportSpinner = ora('📦 Exporting project files...').start();
     try {
-      await spawnAsync('rm', ['-rf', 'dist'], { cwd: projectDir });
-      const { stdout } = await spawnAsync('npx', ['expo', 'export', '--output-dir', 'dist'], {
+      await spawnAsync('rm', ['-rf', outputDir], { cwd: projectDir });
+      const { stdout } = await spawnAsync('npx', ['expo', 'export', '--output-dir', outputDir], {
         cwd: projectDir,
         env: {
           ...process.env,
@@ -192,12 +199,12 @@ export default class Publish extends Command {
       process.exit(1);
     }
     // eslint-disable-next-line
-    fs.writeJsonSync(path.join(projectDir, 'dist', 'expoConfig.json'), publicConfig, {
+    fs.writeJsonSync(path.join(projectDir, outputDir, 'expoConfig.json'), publicConfig, {
       spaces: 2,
     });
-    Log.withInfo('expoConfig.json file created in dist directory');
+    Log.withInfo(`expoConfig.json file created in ${outputDir} directory`);
     const uploadFilesSpinner = ora('📤 Uploading files...').start();
-    const files = computeFilesRequests(projectDir, platform || RequestedPlatform.All);
+    const files = computeFilesRequests(projectDir, outputDir, platform || RequestedPlatform.All);
     if (!files.length) {
       uploadFilesSpinner.fail('No files to upload');
       process.exit(1);
@@ -239,13 +246,13 @@ export default class Publish extends Command {
           const formData = new FormData();
           let file: fs.ReadStream;
           try {
-            file = fs.createReadStream(path.join(projectDir, 'dist', itm.filePath));
+            file = fs.createReadStream(path.join(projectDir, outputDir, itm.filePath));
           } catch {
             throw new Error(`Failed to read file ${itm.filePath}`);
           }
           formData.append(itm.fileName, file);
           if (isLocalBucketFileUpload) {
-            const response = await fetch(itm.requestUploadUrl, {
+            const response = await fetchWithRetries(itm.requestUploadUrl, {
               method: 'PUT',
               headers: {
                 ...formData.getHeaders(),
@@ -269,8 +276,8 @@ export default class Publish extends Command {
           if (!contentType) {
             contentType = 'application/octet-stream';
           }
-          const buffer = await fs.readFile(path.join(projectDir, 'dist', itm.filePath));
-          const response = await fetch(itm.requestUploadUrl, {
+          const buffer = await fs.readFile(path.join(projectDir, outputDir, itm.filePath));
+          const response = await fetchWithRetries(itm.requestUploadUrl, {
             method: 'PUT',
             headers: {
               'Content-Type': contentType,
@@ -295,7 +302,7 @@ export default class Publish extends Command {
     const markAsFinishedSpinner = ora('🔗 Marking the updates as finished...').start();
     const results = await Promise.all(
       uploadUrls.map(async ({ updateId, platform, runtimeVersion }) => {
-        const response = await fetch(
+        const response = await fetchWithRetries(
           `${baseUrl}/markUpdateAsUploaded/${branch}?platform=${platform}&updateId=${updateId}&runtimeVersion=${runtimeVersion}`,
           {
             method: 'POST',
