@@ -1,11 +1,9 @@
 import { Platform } from '@expo/eas-build-job';
 import spawnAsync from '@expo/spawn-async';
 import { Command, Flags } from '@oclif/core';
-import fetchRetry from 'fetch-retry';
 import FormData from 'form-data';
 import fs from 'fs-extra';
 import mime from 'mime';
-import originalFetch, { RequestInit, Response } from 'node-fetch';
 import path from 'path';
 
 import { RequestUploadUrlItem, computeFilesRequests, requestUploadUrls } from '../lib/assets';
@@ -16,6 +14,7 @@ import {
   getPrivateExpoConfigAsync,
   getPublicExpoConfigAsync,
 } from '../lib/expoConfig';
+import { fetchWithRetries } from '../lib/fetch';
 import Log from '../lib/log';
 import { ora } from '../lib/ora';
 import { isExpoInstalled } from '../lib/package';
@@ -24,8 +23,6 @@ import { ensureRepoIsCleanAsync } from '../lib/repo';
 import { resolveRuntimeVersionAsync } from '../lib/runtimeVersion';
 import { resolveVcsClient } from '../lib/vcs';
 import { resolveWorkflowAsync } from '../lib/workflow';
-
-const fetch = fetchRetry(originalFetch);
 
 export default class Publish extends Command {
   static override args = {};
@@ -353,21 +350,4 @@ export default class Publish extends Command {
       Log.withInfo('🔥 Your users will receive the latest update automatically!');
     }
   }
-}
-
-async function fetchWithRetries(url: string, options: RequestInit): Promise<Response> {
-  return await fetch(url, {
-    ...options,
-    retryDelay(attempt) {
-      return Math.pow(2, attempt) * 500;
-    },
-    retries: 3,
-    retryOn: (attempt, error) => {
-      if (error) {
-        Log.warn(`Retry ${attempt} after network error:`, error.message);
-        return true;
-      }
-      return false;
-    },
-  });
 }
