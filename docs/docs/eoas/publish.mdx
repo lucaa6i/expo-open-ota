@@ -20,6 +20,11 @@ npx eoas publish --branch <branch-name> --channel <release-channel>
 This command will retrieve the expo credentials from your .expo/state.json file or an EXPO_TOKEN in your runtime environment to authenticate
 the request to the Expo API.
 
+You can also specify a custom build output directory using the --outputDir flag:
+
+```bash
+npx eoas publish --branch <branch-name> --channel <release-channel> --outputDir <your-dist-dir>
+```
 
 ## CI/CD
 
