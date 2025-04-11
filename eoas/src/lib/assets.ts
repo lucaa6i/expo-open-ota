@@ -2,11 +2,11 @@
 import { Platform } from '@expo/config';
 import fs from 'fs-extra';
 import Joi from 'joi';
-import fetch from 'node-fetch';
 import path from 'path';
 
 import { ExpoCredentials, getAuthExpoHeaders } from './auth';
 import { RequestedPlatform } from './expoConfig';
+import { fetchWithRetries } from './fetch';
 import Log from './log';
 
 const fileMetadataJoi = Joi.object({
@@ -113,7 +113,7 @@ export async function requestUploadUrls({
   platform: string;
   commitHash?: string;
 }): Promise<{ uploadRequests: RequestUploadUrlItem[]; updateId: string }> {
-  const response = await fetch(
+  const response = await fetchWithRetries(
     `${requestUploadUrl}?runtimeVersion=${runtimeVersion}&platform=${platform}&commitHash=${
       commitHash || ''
     }`,
@@ -127,7 +127,8 @@ export async function requestUploadUrls({
     }
   );
   if (!response.ok) {
-    throw new Error(`Failed to request upload URL`);
+    const text = await response.text();
+    throw new Error(`Failed to request upload URL: ${text}`);
   }
   return await response.json();
 }
