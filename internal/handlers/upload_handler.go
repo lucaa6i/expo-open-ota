@@ -96,7 +96,7 @@ func MarkUpdateAsUploadedHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Now we have to retrieve the latest update and compare hash changes
-	latestUpdate, err := update.GetLatestUpdateBundlePathForRuntimeVersion(branchName, runtimeVersion)
+	latestUpdate, err := update.GetLatestUpdateBundlePathForRuntimeVersion(branchName, runtimeVersion, platform)
 	if err != nil || latestUpdate == nil {
 		err = update.MarkUpdateAsChecked(*currentUpdate)
 		if err != nil {
@@ -293,7 +293,7 @@ func RequestUploadUrlHandler(w http.ResponseWriter, r *http.Request) {
 	}, "update-metadata.json", metadataReader)
 
 	cache := cache2.GetCache()
-	cacheKey := update.ComputeLastUpdateCacheKey(branchName, runtimeVersion)
+	cacheKey := update.ComputeLastUpdateCacheKey(branchName, runtimeVersion, platform)
 	cache.Delete(cacheKey)
 
 	response := map[string]interface{}{
