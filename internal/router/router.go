@@ -28,9 +28,9 @@ func getDashboardPath() string {
 
 	if strings.Contains(exePath, "/var/folders/") || strings.Contains(exePath, "Temp") {
 		workingDir, _ := os.Getwd()
-		return filepath.Join(workingDir, "dashboard", "dist")
+		return filepath.Join(workingDir, "apps", "dashboard", "dist")
 	}
-	return filepath.Join(exeDir, "dashboard", "dist")
+	return filepath.Join(exeDir, "apps", "dashboard", "dist")
 }
 
 func NewRouter() *mux.Router {

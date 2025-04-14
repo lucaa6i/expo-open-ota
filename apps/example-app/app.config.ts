@@ -1,0 +1,21 @@
+import { ExpoConfig } from '@expo/config-types'
+import { ConfigContext } from '@expo/config'
+
+export default ({ config }: ConfigContext): ExpoConfig => {
+  const isAndroid = process.env.EXPO_PLATFORM === 'android'
+  return {
+    ...(config as ExpoConfig),
+    updates: {
+      url: "http://localhost:3000",
+      codeSigningMetadata: {
+        keyid: 'main',
+        alg: 'rsa-v1_5-sha256',
+      },
+      codeSigningCertificate: './certs/certificate-dev.pem',
+      enabled: true,
+      requestHeaders: {
+        'expo-channel-name': process.env.RELEASE_CHANNEL,
+      },
+    },
+  }
+}

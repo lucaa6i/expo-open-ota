@@ -91,7 +91,7 @@ jobs:
 
       - name: Publish NPM package
         run: |
-          cd eoas
+          cd apps/eoas
           VERSION=$(echo "${{ github.ref_name }}" | sed 's/^v//')
           npm ci
           npm run build
