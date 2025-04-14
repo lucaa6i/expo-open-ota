@@ -1,0 +1,27 @@
+{
+  "id": "eoas/configure",
+  "title": "Configure your Expo Project",
+  "description": "Prerequisites",
+  "source": "@site/docs/eoas/configure.mdx",
+  "sourceDirName": "eoas",
+  "slug": "/eoas/configure",
+  "permalink": "/expo-open-ota/docs/eoas/configure",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/docs/eoas/configure.mdx",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 2,
+  "frontMatter": {
+    "sidebar_position": 2
+  },
+  "sidebar": "docSidebar",
+  "previous": {
+    "title": "EOAS",
+    "permalink": "/expo-open-ota/docs/eoas/intro"
+  },
+  "next": {
+    "title": "Update publishing",
+    "permalink": "/expo-open-ota/docs/eoas/publish"
+  }
+}

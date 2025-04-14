@@ -1,0 +1,27 @@
+{
+  "id": "keys-store",
+  "title": "Keys Store",
+  "description": "The Expo Open OTA server requires several keys and secrets to interact with the Expo API and your CDN.",
+  "source": "@site/docs/keys-store.mdx",
+  "sourceDirName": ".",
+  "slug": "/keys-store",
+  "permalink": "/expo-open-ota/docs/keys-store",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/docs/keys-store.mdx",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 5,
+  "frontMatter": {
+    "sidebar_position": 5
+  },
+  "sidebar": "docSidebar",
+  "previous": {
+    "title": "Storage",
+    "permalink": "/expo-open-ota/docs/storage"
+  },
+  "next": {
+    "title": "CDN",
+    "permalink": "/expo-open-ota/docs/cdn/intro"
+  }
+}

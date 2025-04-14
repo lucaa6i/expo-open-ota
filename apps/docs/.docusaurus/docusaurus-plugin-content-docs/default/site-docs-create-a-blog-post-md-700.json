@@ -1,0 +1,27 @@
+{
+  "id": "create-a-blog-post",
+  "title": "Create a Blog Post",
+  "description": "Docusaurus creates a page for each blog post, but also a blog index page, a tag system, an RSS feed...",
+  "source": "@site/docs/create-a-blog-post.md",
+  "sourceDirName": ".",
+  "slug": "/create-a-blog-post",
+  "permalink": "/expo-open-ota/docs/create-a-blog-post",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/docs/create-a-blog-post.md",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 3,
+  "frontMatter": {
+    "sidebar_position": 3
+  },
+  "sidebar": "docSidebar",
+  "previous": {
+    "title": "Prerequisites",
+    "permalink": "/expo-open-ota/docs/prerequisites"
+  },
+  "next": {
+    "title": "Storage",
+    "permalink": "/expo-open-ota/docs/storage"
+  }
+}

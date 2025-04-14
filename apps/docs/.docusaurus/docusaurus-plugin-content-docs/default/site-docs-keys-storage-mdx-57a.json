@@ -1,0 +1,20 @@
+{
+  "id": "keysStorage",
+  "title": "keysStorage",
+  "description": "",
+  "source": "@site/docs/keysStorage.mdx",
+  "sourceDirName": ".",
+  "slug": "/keysStorage",
+  "permalink": "/expo-open-ota/docs/keysStorage",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/docs/keysStorage.mdx",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "docSidebar",
+  "previous": {
+    "title": "Storage",
+    "permalink": "/expo-open-ota/docs/storage"
+  }
+}

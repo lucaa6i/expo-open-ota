@@ -1,0 +1,39 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <uses-permission android:name="android.permission.INTERNET"/>
+  <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+  <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+  <uses-permission android:name="android.permission.VIBRATE"/>
+  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+  <queries>
+    <intent>
+      <action android:name="android.intent.action.VIEW"/>
+      <category android:name="android.intent.category.BROWSABLE"/>
+      <data android:scheme="https"/>
+    </intent>
+  </queries>
+  <application android:name=".MainApplication" android:label="@string/app_name" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:allowBackup="true" android:theme="@style/AppTheme" android:supportsRtl="true">
+    <meta-data android:name="expo.modules.updates.CODE_SIGNING_CERTIFICATE" android:value="-----BEGIN CERTIFICATE-----&#xD;&#xA;MIIC3TCCAcWgAwIBAgIJJHg0XHu9/XeLMA0GCSqGSIb3DQEBCwUAMBgxFjAUBgNV&#xD;&#xA;BAMTDUV4cG8gT3BlbiBPVEEwHhcNMjUwNDE0MTQyMDMwWhcNMzUwNDE0MTQyMDMw&#xD;&#xA;WjAYMRYwFAYDVQQDEw1FeHBvIE9wZW4gT1RBMIIBIjANBgkqhkiG9w0BAQEFAAOC&#xD;&#xA;AQ8AMIIBCgKCAQEA0+PP6YZ5QoMp6p/lxXGn/tTQVSBnryyySJ0eEpcRQ0qBp39s&#xD;&#xA;r+ECn+kIDnb+4G4+8o2pNrpJTZJ3xgkyOBBPKOPmPE44sc7F7jXSFYpDWxkVYL5s&#xD;&#xA;jFZ8be91LGNB+bUXncYX+LHo812lXZUuux+B9t+S4A40p/bQpkDmpm3pdrIbORa1&#xD;&#xA;+ynIxH3IFWWIY2xI5xKNbd1cObE8EeamZrVmKLPdQniVx+TV3n6pDVBv1EI4Nu5D&#xD;&#xA;VciGU9dlN4HKvgsrpjmrLoJsqZkw+nP128Z2rlQqI+Q/Vq17sYQxScyI4ICuDLQj&#xD;&#xA;fOYE2dB6EHpiKVdndI8K7V6MULbmBqCsc592EQIDAQABoyowKDAOBgNVHQ8BAf8E&#xD;&#xA;BAMCB4AwFgYDVR0lAQH/BAwwCgYIKwYBBQUHAwMwDQYJKoZIhvcNAQELBQADggEB&#xD;&#xA;ACBM0B+/2vVFQa57nDFPlrEHmM4s6pw4dhCMz5KVFj7RkCD3B5a+iXwn2ZX+FWU7&#xD;&#xA;wCw4pVwhEusTP4KgyMihMwMwVRjXRcYm1MGSsLeHXZDQGOF9vVT/ZfZ0dvVEtcmN&#xD;&#xA;XBn9d0xHOLUuIFE9vezRDDfy7Su9jw2vciMevaNOyc/5KCMb/4ASMRtN66ZKZ9UK&#xD;&#xA;Zke2PQCKBzCVSO8e0ieEar4F8rXrbTPnwkcF8sQkOEZE9hm8WUHiCw2OZsOLwhpB&#xD;&#xA;CkQ7NOTv6hLFkmzaz/l5Oa1TLD9igT/iK6ardegwol62jA/M47s8z9nJZO0A3D3P&#xD;&#xA;YIX3NtCPzLNSC17h5lcDoPI=&#xD;&#xA;-----END CERTIFICATE-----&#xD;&#xA;"/>
+    <meta-data android:name="expo.modules.updates.CODE_SIGNING_METADATA" android:value="{&quot;keyid&quot;:&quot;main&quot;,&quot;alg&quot;:&quot;rsa-v1_5-sha256&quot;}"/>
+    <meta-data android:name="expo.modules.updates.DISABLE_ANTI_BRICKING_MEASURES" android:value="true"/>
+    <meta-data android:name="expo.modules.updates.ENABLED" android:value="true"/>
+    <meta-data android:name="expo.modules.updates.EXPO_RUNTIME_VERSION" android:value="@string/expo_runtime_version"/>
+    <meta-data android:name="expo.modules.updates.EXPO_UPDATES_CHECK_ON_LAUNCH" android:value="ALWAYS"/>
+    <meta-data android:name="expo.modules.updates.EXPO_UPDATES_LAUNCH_WAIT_MS" android:value="0"/>
+    <meta-data android:name="expo.modules.updates.EXPO_UPDATE_URL" android:value="http://10.0.2.2:3000/manifest"/>
+    <meta-data android:name="expo.modules.updates.UPDATES_CONFIGURATION_REQUEST_HEADERS_KEY" android:value="{&quot;expo-channel-name&quot;:&quot;production&quot;}"/>
+    <activity android:name=".MainActivity" android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|uiMode" android:launchMode="singleTask" android:windowSoftInputMode="adjustResize" android:theme="@style/Theme.App.SplashScreen" android:exported="true" android:screenOrientation="portrait">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN"/>
+        <category android:name="android.intent.category.LAUNCHER"/>
+      </intent-filter>
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+        <data android:scheme="myapp"/>
+        <data android:scheme="com.techskeat.exampleapp"/>
+        <data android:scheme="com.expoota.exampleapp"/>
+      </intent-filter>
+    </activity>
+  </application>
+</manifest>

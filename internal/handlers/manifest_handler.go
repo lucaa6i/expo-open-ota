@@ -98,6 +98,7 @@ func putUpdateInResponse(w http.ResponseWriter, r *http.Request, lastUpdate type
 		http.Error(w, "Error getting metadata", http.StatusInternalServerError)
 		return
 	}
+
 	if currentUpdateId != "" && currentUpdateId == crypto.ConvertSHA256HashToUUID(metadata.ID) && protocolVersion == 1 {
 		putNoUpdateAvailableInResponse(w, r, lastUpdate.RuntimeVersion, protocolVersion, requestID)
 		return
@@ -113,7 +114,7 @@ func putUpdateInResponse(w http.ResponseWriter, r *http.Request, lastUpdate type
 		update.AppendChannelOverrideToAsset(&manifest, channelOverride)
 	}
 	metrics.TrackUpdateDownload(platform, lastUpdate.RuntimeVersion, lastUpdate.Branch, metadata.ID, "update")
-	w.Header().Set("expo-manifest-filters", "branch="+lastUpdate.Branch)
+	w.Header().Set("expo-manifest-filters", `branch="`+lastUpdate.Branch+`"`)
 	putResponse(w, r, manifest, "manifest", lastUpdate.RuntimeVersion, protocolVersion, requestID)
 }
 

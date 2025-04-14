@@ -1,0 +1,23 @@
+{
+  "id": "congratulations",
+  "title": "Congratulations!",
+  "description": "You have just learned the basics of Docusaurus and made some changes to the initial template.",
+  "source": "@site/docs/congratulations.md",
+  "sourceDirName": ".",
+  "slug": "/congratulations",
+  "permalink": "/expo-open-ota/docs/congratulations",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/docs/congratulations.md",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 6,
+  "frontMatter": {
+    "sidebar_position": 6
+  },
+  "sidebar": "docSidebar",
+  "previous": {
+    "title": "Storage",
+    "permalink": "/expo-open-ota/docs/storage"
+  }
+}

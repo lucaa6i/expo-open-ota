@@ -1,0 +1,23 @@
+{
+  "id": "cdn",
+  "title": "CDN",
+  "description": "The CDN feature in Expo Open OTA allows you to serve your assets through a Content Delivery Network (CDN) to improve the performance of your app updates.",
+  "source": "@site/docs/cdn.mdx",
+  "sourceDirName": ".",
+  "slug": "/cdn",
+  "permalink": "/expo-open-ota/docs/cdn",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/docs/cdn.mdx",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 6,
+  "frontMatter": {
+    "sidebar_position": 6
+  },
+  "sidebar": "docSidebar",
+  "previous": {
+    "title": "Keys Store",
+    "permalink": "/expo-open-ota/docs/keys-store"
+  }
+}

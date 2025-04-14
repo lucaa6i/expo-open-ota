@@ -1,0 +1,451 @@
+{
+  "entrypoints": [
+    "main"
+  ],
+  "origins": {
+    "42": [
+      42
+    ],
+    "341": [
+      401,
+      442,
+      869,
+      341
+    ],
+    "17896441": [
+      341,
+      869,
+      401
+    ],
+    "main": [
+      354,
+      869,
+      792
+    ],
+    "runtime~main": [
+      792,
+      869,
+      354
+    ],
+    "00332358": [
+      869,
+      655
+    ],
+    "03455111": [
+      61
+    ],
+    "083979a2": [
+      869,
+      386
+    ],
+    "14eb3368": [
+      869,
+      969
+    ],
+    "18d66fd2": [
+      756
+    ],
+    "1df93b7f": [
+      869,
+      583
+    ],
+    "1f391b9e": [
+      341,
+      869,
+      442
+    ],
+    "30736fdb": [
+      869,
+      786
+    ],
+    "3341b62e": [
+      869,
+      119
+    ],
+    "393be207": [
+      134
+    ],
+    "43419e3e": [
+      351
+    ],
+    "43822dcf": [
+      855
+    ],
+    "5c406ced": [
+      285
+    ],
+    "5e95c892": [
+      647
+    ],
+    "77fcad13": [
+      869,
+      819
+    ],
+    "8a564d06": [
+      5
+    ],
+    "8c719ace": [
+      890
+    ],
+    "8ff71e41": [
+      763
+    ],
+    "972d9d57": [
+      66
+    ],
+    "9f03e426": [
+      422
+    ],
+    "a7456010": [
+      235
+    ],
+    "a7bd4aaa": [
+      98
+    ],
+    "a94703ab": [
+      869,
+      48
+    ],
+    "ab9c1c60": [
+      869,
+      180
+    ],
+    "aba21aa0": [
+      742
+    ],
+    "af7d3287": [
+      36
+    ],
+    "e7d3abf1": [
+      630
+    ],
+    "e876e5f6": [
+      561
+    ],
+    "styles": [
+      48,
+      119,
+      180,
+      341,
+      354,
+      386,
+      401,
+      442,
+      583,
+      655,
+      786,
+      792,
+      819,
+      969,
+      869
+    ]
+  },
+  "assets": {
+    "5": {
+      "js": [
+        {
+          "file": "assets/js/8a564d06.c4360703.js",
+          "hash": "5e0b5570ee665c38",
+          "publicPath": "/expo-open-ota/assets/js/8a564d06.c4360703.js"
+        }
+      ]
+    },
+    "36": {
+      "js": [
+        {
+          "file": "assets/js/af7d3287.4f3487d9.js",
+          "hash": "03b758fd30101018",
+          "publicPath": "/expo-open-ota/assets/js/af7d3287.4f3487d9.js"
+        }
+      ]
+    },
+    "42": {
+      "js": [
+        {
+          "file": "assets/js/42.aace83c8.js",
+          "hash": "4784688dde2b38e6",
+          "publicPath": "/expo-open-ota/assets/js/42.aace83c8.js"
+        }
+      ]
+    },
+    "48": {
+      "js": [
+        {
+          "file": "assets/js/a94703ab.a2b0312b.js",
+          "hash": "623a6a3e80467b49",
+          "publicPath": "/expo-open-ota/assets/js/a94703ab.a2b0312b.js"
+        }
+      ]
+    },
+    "61": {
+      "js": [
+        {
+          "file": "assets/js/03455111.e871c584.js",
+          "hash": "5530217d65243cb7",
+          "publicPath": "/expo-open-ota/assets/js/03455111.e871c584.js"
+        }
+      ]
+    },
+    "66": {
+      "js": [
+        {
+          "file": "assets/js/972d9d57.f02bac9a.js",
+          "hash": "5dfd79425e859671",
+          "publicPath": "/expo-open-ota/assets/js/972d9d57.f02bac9a.js"
+        }
+      ]
+    },
+    "98": {
+      "js": [
+        {
+          "file": "assets/js/a7bd4aaa.a5984bde.js",
+          "hash": "971a8717f8cd276f",
+          "publicPath": "/expo-open-ota/assets/js/a7bd4aaa.a5984bde.js"
+        }
+      ]
+    },
+    "119": {
+      "js": [
+        {
+          "file": "assets/js/3341b62e.954730e6.js",
+          "hash": "46631d9779fb27b4",
+          "publicPath": "/expo-open-ota/assets/js/3341b62e.954730e6.js"
+        }
+      ]
+    },
+    "134": {
+      "js": [
+        {
+          "file": "assets/js/393be207.59ba5ffd.js",
+          "hash": "6e9e9bce5142be69",
+          "publicPath": "/expo-open-ota/assets/js/393be207.59ba5ffd.js"
+        }
+      ]
+    },
+    "180": {
+      "js": [
+        {
+          "file": "assets/js/ab9c1c60.f0e1f05b.js",
+          "hash": "da848b1325a0e45d",
+          "publicPath": "/expo-open-ota/assets/js/ab9c1c60.f0e1f05b.js"
+        }
+      ]
+    },
+    "235": {
+      "js": [
+        {
+          "file": "assets/js/a7456010.47cad1bc.js",
+          "hash": "20d91780cf5acecb",
+          "publicPath": "/expo-open-ota/assets/js/a7456010.47cad1bc.js"
+        }
+      ]
+    },
+    "285": {
+      "js": [
+        {
+          "file": "assets/js/5c406ced.d47fe284.js",
+          "hash": "734244721b260221",
+          "publicPath": "/expo-open-ota/assets/js/5c406ced.d47fe284.js"
+        }
+      ]
+    },
+    "341": {
+      "js": [
+        {
+          "file": "assets/js/341.0ede52c4.js",
+          "hash": "c17509361f0dce24",
+          "publicPath": "/expo-open-ota/assets/js/341.0ede52c4.js"
+        }
+      ]
+    },
+    "351": {
+      "js": [
+        {
+          "file": "assets/js/43419e3e.57abcbbe.js",
+          "hash": "29e7f97355e759de",
+          "publicPath": "/expo-open-ota/assets/js/43419e3e.57abcbbe.js"
+        }
+      ]
+    },
+    "354": {
+      "js": [
+        {
+          "file": "assets/js/runtime~main.7b85acd8.js",
+          "hash": "d3a7aeb6f53a2d2a",
+          "publicPath": "/expo-open-ota/assets/js/runtime~main.7b85acd8.js"
+        }
+      ]
+    },
+    "386": {
+      "js": [
+        {
+          "file": "assets/js/083979a2.5ea54a6b.js",
+          "hash": "7242ae4f00a3d8ad",
+          "publicPath": "/expo-open-ota/assets/js/083979a2.5ea54a6b.js"
+        }
+      ]
+    },
+    "401": {
+      "js": [
+        {
+          "file": "assets/js/17896441.cc85a46f.js",
+          "hash": "d9d484ffaf54ec9c",
+          "publicPath": "/expo-open-ota/assets/js/17896441.cc85a46f.js"
+        }
+      ]
+    },
+    "422": {
+      "js": [
+        {
+          "file": "assets/js/9f03e426.9d4499b6.js",
+          "hash": "1cc60fcb96eac500",
+          "publicPath": "/expo-open-ota/assets/js/9f03e426.9d4499b6.js"
+        }
+      ]
+    },
+    "442": {
+      "js": [
+        {
+          "file": "assets/js/1f391b9e.8894c643.js",
+          "hash": "111453fe9662cd40",
+          "publicPath": "/expo-open-ota/assets/js/1f391b9e.8894c643.js"
+        }
+      ]
+    },
+    "561": {
+      "js": [
+        {
+          "file": "assets/js/e876e5f6.e13c103b.js",
+          "hash": "e421d2a7da34716d",
+          "publicPath": "/expo-open-ota/assets/js/e876e5f6.e13c103b.js"
+        }
+      ]
+    },
+    "583": {
+      "js": [
+        {
+          "file": "assets/js/1df93b7f.46212dab.js",
+          "hash": "b3f2871b67b82195",
+          "publicPath": "/expo-open-ota/assets/js/1df93b7f.46212dab.js"
+        }
+      ]
+    },
+    "630": {
+      "js": [
+        {
+          "file": "assets/js/e7d3abf1.b7c149ff.js",
+          "hash": "2c48a930e05ff314",
+          "publicPath": "/expo-open-ota/assets/js/e7d3abf1.b7c149ff.js"
+        }
+      ]
+    },
+    "647": {
+      "js": [
+        {
+          "file": "assets/js/5e95c892.10278fa7.js",
+          "hash": "0f556799cfed4af3",
+          "publicPath": "/expo-open-ota/assets/js/5e95c892.10278fa7.js"
+        }
+      ]
+    },
+    "655": {
+      "js": [
+        {
+          "file": "assets/js/00332358.9e520608.js",
+          "hash": "cbbaeabac0733b3a",
+          "publicPath": "/expo-open-ota/assets/js/00332358.9e520608.js"
+        }
+      ]
+    },
+    "742": {
+      "js": [
+        {
+          "file": "assets/js/aba21aa0.eb7bf6f2.js",
+          "hash": "fffcbc2abd5135e5",
+          "publicPath": "/expo-open-ota/assets/js/aba21aa0.eb7bf6f2.js"
+        }
+      ]
+    },
+    "756": {
+      "js": [
+        {
+          "file": "assets/js/18d66fd2.86e9cdc9.js",
+          "hash": "dae622ca89298759",
+          "publicPath": "/expo-open-ota/assets/js/18d66fd2.86e9cdc9.js"
+        }
+      ]
+    },
+    "763": {
+      "js": [
+        {
+          "file": "assets/js/8ff71e41.97ce46cf.js",
+          "hash": "245b413ecaa388b0",
+          "publicPath": "/expo-open-ota/assets/js/8ff71e41.97ce46cf.js"
+        }
+      ]
+    },
+    "786": {
+      "js": [
+        {
+          "file": "assets/js/30736fdb.65508a69.js",
+          "hash": "6899c19dde56971d",
+          "publicPath": "/expo-open-ota/assets/js/30736fdb.65508a69.js"
+        }
+      ]
+    },
+    "792": {
+      "js": [
+        {
+          "file": "assets/js/main.6194b0bc.js",
+          "hash": "6aa0e6fa74beb814",
+          "publicPath": "/expo-open-ota/assets/js/main.6194b0bc.js"
+        }
+      ]
+    },
+    "819": {
+      "js": [
+        {
+          "file": "assets/js/77fcad13.f3c459af.js",
+          "hash": "dfb7b4312b019f99",
+          "publicPath": "/expo-open-ota/assets/js/77fcad13.f3c459af.js"
+        }
+      ]
+    },
+    "855": {
+      "js": [
+        {
+          "file": "assets/js/43822dcf.363ccd76.js",
+          "hash": "2831654246002434",
+          "publicPath": "/expo-open-ota/assets/js/43822dcf.363ccd76.js"
+        }
+      ]
+    },
+    "869": {
+      "css": [
+        {
+          "file": "assets/css/styles.c15def08.css",
+          "hash": "fe3ecdec00aa9ade",
+          "publicPath": "/expo-open-ota/assets/css/styles.c15def08.css"
+        }
+      ]
+    },
+    "890": {
+      "js": [
+        {
+          "file": "assets/js/8c719ace.d0bd576f.js",
+          "hash": "a43494df982ee529",
+          "publicPath": "/expo-open-ota/assets/js/8c719ace.d0bd576f.js"
+        }
+      ]
+    },
+    "969": {
+      "js": [
+        {
+          "file": "assets/js/14eb3368.f5976702.js",
+          "hash": "1ee2d3ceae0c0670",
+          "publicPath": "/expo-open-ota/assets/js/14eb3368.f5976702.js"
+        }
+      ]
+    }
+  }
+}
