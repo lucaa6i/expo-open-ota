@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"expo-open-ota/internal/crypto"
-	"expo-open-ota/internal/helpers"
 	"expo-open-ota/internal/keyStore"
 	"expo-open-ota/internal/metrics"
 	"expo-open-ota/internal/services"
@@ -98,6 +97,7 @@ func putUpdateInResponse(w http.ResponseWriter, r *http.Request, lastUpdate type
 		http.Error(w, "Error getting metadata", http.StatusInternalServerError)
 		return
 	}
+
 	if currentUpdateId != "" && currentUpdateId == crypto.ConvertSHA256HashToUUID(metadata.ID) && protocolVersion == 1 {
 		putNoUpdateAvailableInResponse(w, r, lastUpdate.RuntimeVersion, protocolVersion, requestID)
 		return
@@ -108,11 +108,8 @@ func putUpdateInResponse(w http.ResponseWriter, r *http.Request, lastUpdate type
 		http.Error(w, "Error composing manifest", http.StatusInternalServerError)
 		return
 	}
-	channelOverride := helpers.GetChannelOverride(r.Header)
-	if channelOverride != "" {
-		update.AppendChannelOverrideToAsset(&manifest, channelOverride)
-	}
 	metrics.TrackUpdateDownload(platform, lastUpdate.RuntimeVersion, lastUpdate.Branch, metadata.ID, "update")
+	w.Header().Set("expo-manifest-filters", `branch="`+lastUpdate.Branch+`"`)
 	putResponse(w, r, manifest, "manifest", lastUpdate.RuntimeVersion, protocolVersion, requestID)
 }
 
@@ -153,7 +150,7 @@ func putNoUpdateAvailableInResponse(w http.ResponseWriter, r *http.Request, runt
 func ManifestHandler(w http.ResponseWriter, r *http.Request) {
 	requestID := uuid.New().String()
 
-	channelName := helpers.ResolveExpoChannel(r.Header)
+	channelName := r.Header.Get("expo-channel-name")
 	if channelName == "" {
 		log.Printf("[RequestID: %s] No channel name provided", requestID)
 		http.Error(w, "No channel name provided", http.StatusBadRequest)
@@ -198,7 +195,7 @@ func ManifestHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "No runtime version provided", http.StatusBadRequest)
 		return
 	}
-	lastUpdate, err := update.GetLatestUpdateBundlePathForRuntimeVersion(branch, runtimeVersion)
+	lastUpdate, err := update.GetLatestUpdateBundlePathForRuntimeVersion(branch, runtimeVersion, platform)
 	if err != nil {
 		log.Printf("[RequestID: %s] Error getting latest update: %v", requestID, err)
 		http.Error(w, "Error getting latest update", http.StatusInternalServerError)

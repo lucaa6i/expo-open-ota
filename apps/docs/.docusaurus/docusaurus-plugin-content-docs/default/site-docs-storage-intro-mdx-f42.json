@@ -1,0 +1,27 @@
+{
+  "id": "storage/intro",
+  "title": "Storage",
+  "description": "Expo Open OTA supports two storage solutions for hosting your update assets: Amazon S3 and Local File System. This guide will help you set up your storage solution and configure your server to use it.",
+  "source": "@site/docs/storage/intro.mdx",
+  "sourceDirName": "storage",
+  "slug": "/storage/intro",
+  "permalink": "/expo-open-ota/docs/storage/intro",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/docs/storage/intro.mdx",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 1,
+  "frontMatter": {
+    "sidebar_position": 1
+  },
+  "sidebar": "docSidebar",
+  "previous": {
+    "title": "Environment variables",
+    "permalink": "/expo-open-ota/docs/environment"
+  },
+  "next": {
+    "title": "Local File System",
+    "permalink": "/expo-open-ota/docs/storage/local"
+  }
+}

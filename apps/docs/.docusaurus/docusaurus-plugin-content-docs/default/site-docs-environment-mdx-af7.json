@@ -1,0 +1,27 @@
+{
+  "id": "environment",
+  "title": "Environment variables",
+  "description": "The Expo Open OTA server requires several environment variables to be set in order to function correctly. These variables are used to configure the server, interact with the Expo API, and manage the server's behavior.",
+  "source": "@site/docs/environment.mdx",
+  "sourceDirName": ".",
+  "slug": "/environment",
+  "permalink": "/expo-open-ota/docs/environment",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/docs/environment.mdx",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 9,
+  "frontMatter": {
+    "sidebar_position": 9
+  },
+  "sidebar": "docSidebar",
+  "previous": {
+    "title": "Local testing",
+    "permalink": "/expo-open-ota/docs/deployment/testing"
+  },
+  "next": {
+    "title": "EOAS",
+    "permalink": "/expo-open-ota/docs/eoas/intro"
+  }
+}

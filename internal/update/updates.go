@@ -25,13 +25,24 @@ func sortUpdates(updates []types.Update) []types.Update {
 	return updates
 }
 
-func GetAllUpdatesForRuntimeVersion(branch string, runtimeVersion string) ([]types.Update, error) {
+func filterPlatformUpdates(updates []types.Update, platform string) []types.Update {
+	filteredUpdates := make([]types.Update, 0)
+	for _, update := range updates {
+		_, platformUpdate, err := RetrieveUpdateCommitHashAndPlatform(update)
+		if err == nil && platformUpdate == platform {
+			filteredUpdates = append(filteredUpdates, update)
+		}
+	}
+	return filteredUpdates
+}
+
+func GetAllUpdatesForRuntimeVersion(branch string, runtimeVersion string, platform string) ([]types.Update, error) {
 	resolvedBucket := bucket.GetBucket()
 	updates, errGetUpdates := resolvedBucket.GetUpdates(branch, runtimeVersion)
 	if errGetUpdates != nil {
 		return nil, errGetUpdates
 	}
-	updates = sortUpdates(updates)
+	updates = sortUpdates(filterPlatformUpdates(updates, platform))
 	return updates, nil
 }
 
@@ -40,7 +51,11 @@ func MarkUpdateAsChecked(update types.Update) error {
 	branchesCacheKey := dashboard.ComputeGetBranchesCacheKey()
 	runTimeVersionsCacheKey := dashboard.ComputeGetRuntimeVersionsCacheKey(update.Branch)
 	updatesCacheKey := dashboard.ComputeGetUpdatesCacheKey(update.Branch, update.RuntimeVersion)
-	cacheKeys := []string{ComputeLastUpdateCacheKey(update.Branch, update.RuntimeVersion), branchesCacheKey, runTimeVersionsCacheKey, updatesCacheKey}
+	_, platformUpdate, err := RetrieveUpdateCommitHashAndPlatform(update)
+	if err != nil {
+		return err
+	}
+	cacheKeys := []string{ComputeLastUpdateCacheKey(update.Branch, update.RuntimeVersion, platformUpdate), branchesCacheKey, runTimeVersionsCacheKey, updatesCacheKey}
 	for _, cacheKey := range cacheKeys {
 		cache.Delete(cacheKey)
 	}
@@ -61,8 +76,8 @@ func IsUpdateValid(Update types.Update) bool {
 	return false
 }
 
-func ComputeLastUpdateCacheKey(branch string, runtimeVersion string) string {
-	return fmt.Sprintf("lastUpdate:%s:%s", branch, runtimeVersion)
+func ComputeLastUpdateCacheKey(branch string, runtimeVersion string, platform string) string {
+	return fmt.Sprintf("lastUpdate:%s:%s:%s", branch, runtimeVersion, platform)
 }
 
 func ComputeMetadataCacheKey(branch string, runtimeVersion string, updateId string) string {
@@ -153,9 +168,9 @@ func AreUpdatesIdentical(update1, update2 types.Update, platform string) (bool, 
 	return true, nil
 }
 
-func GetLatestUpdateBundlePathForRuntimeVersion(branch string, runtimeVersion string) (*types.Update, error) {
+func GetLatestUpdateBundlePathForRuntimeVersion(branch string, runtimeVersion string, platform string) (*types.Update, error) {
 	cache := cache2.GetCache()
-	cacheKey := fmt.Sprintf(ComputeLastUpdateCacheKey(branch, runtimeVersion))
+	cacheKey := fmt.Sprintf(ComputeLastUpdateCacheKey(branch, runtimeVersion, platform))
 	if cachedValue := cache.Get(cacheKey); cachedValue != "" {
 		var update types.Update
 		err := json.Unmarshal([]byte(cachedValue), &update)
@@ -164,7 +179,7 @@ func GetLatestUpdateBundlePathForRuntimeVersion(branch string, runtimeVersion st
 		}
 		return &update, nil
 	}
-	updates, err := GetAllUpdatesForRuntimeVersion(branch, runtimeVersion)
+	updates, err := GetAllUpdatesForRuntimeVersion(branch, runtimeVersion, platform)
 	if err != nil {
 		return nil, err
 	}
@@ -236,13 +251,16 @@ func GetMetadata(update types.Update) (types.UpdateMetadata, error) {
 		fmt.Println("error decoding metadata json:", err)
 		return types.UpdateMetadata{}, err
 	}
+
 	metadata.CreatedAt = createdAt.UTC().Format("2006-01-02T15:04:05.000Z")
 	metadata.MetadataJSON = metadataJson
 	stringifiedMetadata, err := json.Marshal(metadata.MetadataJSON)
 	if err != nil {
 		return types.UpdateMetadata{}, err
 	}
-	id, errHash := crypto.CreateHash(stringifiedMetadata, "sha256", "hex")
+	hashInput := string(stringifiedMetadata) + "::" + update.Branch + "::" + update.RuntimeVersion
+
+	id, errHash := crypto.CreateHash([]byte(hashInput), "sha256", "hex")
 
 	if errHash != nil {
 		return types.UpdateMetadata{}, errHash
@@ -335,22 +353,26 @@ func shapeManifestAsset(update types.Update, asset *types.Asset, isLaunchAsset b
 	return manifestAsset, nil
 }
 
-func appendChannelOverrideToUrl(urlStr, channelOverride string) string {
+func appendChannelOverrideToUrl(urlStr string) string {
 	parsedUrl, err := url.Parse(urlStr)
 	if err != nil {
 		return urlStr
 	}
 	query := parsedUrl.Query()
-	query.Set("ow-expo-channel", channelOverride)
 	parsedUrl.RawQuery = query.Encode()
 	return parsedUrl.String()
 }
 
-func AppendChannelOverrideToAsset(manifest *types.UpdateManifest, channelOverride string) {
-	manifest.LaunchAsset.Url = appendChannelOverrideToUrl(manifest.LaunchAsset.Url, channelOverride)
-	for i := range manifest.Assets {
-		manifest.Assets[i].Url = appendChannelOverrideToUrl(manifest.Assets[i].Url, channelOverride)
+func computeManifestMetadata(update types.Update) json.RawMessage {
+	metadataMap := map[string]string{
+		"branch": update.Branch,
 	}
+
+	metadataBytes, err := json.Marshal(metadataMap)
+	if err != nil {
+		return json.RawMessage("{}")
+	}
+	return json.RawMessage(metadataBytes)
 }
 
 func ComposeUpdateManifest(
@@ -379,6 +401,9 @@ func ComposeUpdateManifest(
 		platformSpecificMetadata = metadata.MetadataJSON.FileMetadata.IOS
 	case "android":
 		platformSpecificMetadata = metadata.MetadataJSON.FileMetadata.Android
+	}
+	if platformSpecificMetadata.Bundle == "" {
+		return types.UpdateManifest{}, fmt.Errorf("platform %s not supported", platform)
 	}
 	var (
 		assets = make([]types.ManifestAsset, len(platformSpecificMetadata.Assets))
@@ -418,7 +443,7 @@ func ComposeUpdateManifest(
 		Id:             crypto.ConvertSHA256HashToUUID(metadata.ID),
 		CreatedAt:      metadata.CreatedAt,
 		RunTimeVersion: update.RuntimeVersion,
-		Metadata:       json.RawMessage("{}"),
+		Metadata:       computeManifestMetadata(update),
 		Extra: types.ExtraManifestData{
 			ExpoClient: expoConfig,
 			Branch:     update.Branch,

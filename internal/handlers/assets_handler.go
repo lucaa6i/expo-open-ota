@@ -4,7 +4,6 @@ import (
 	"expo-open-ota/internal/assets"
 	cdn2 "expo-open-ota/internal/cdn"
 	"expo-open-ota/internal/compression"
-	"expo-open-ota/internal/helpers"
 	"expo-open-ota/internal/services"
 	"github.com/google/uuid"
 	"log"
@@ -13,11 +12,7 @@ import (
 
 func AssetsHandler(w http.ResponseWriter, r *http.Request) {
 	requestID := uuid.New().String()
-	channelName := helpers.ResolveExpoChannel(r.Header)
-	expoChannelOverride := r.URL.Query().Get("ow-expo-channel")
-	if expoChannelOverride != "" {
-		channelName = expoChannelOverride
-	}
+	channelName := r.Header.Get("expo-channel-name")
 	preventCDNRedirection := r.Header.Get("prevent-cdn-redirection") == "true"
 	branchMap, err := services.FetchExpoChannelMapping(channelName)
 	if err != nil {

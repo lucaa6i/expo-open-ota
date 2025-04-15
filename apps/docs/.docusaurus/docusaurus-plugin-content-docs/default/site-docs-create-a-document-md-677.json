@@ -1,0 +1,27 @@
+{
+  "id": "create-a-document",
+  "title": "Prerequisites",
+  "description": "Documents are groups of pages connected through:",
+  "source": "@site/docs/create-a-document.md",
+  "sourceDirName": ".",
+  "slug": "/create-a-document",
+  "permalink": "/expo-open-ota/docs/create-a-document",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/docs/create-a-document.md",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 2,
+  "frontMatter": {
+    "sidebar_position": 2
+  },
+  "sidebar": "docSidebar",
+  "previous": {
+    "title": "Introduction",
+    "permalink": "/expo-open-ota/docs/introduction"
+  },
+  "next": {
+    "title": "Create a Blog Post",
+    "permalink": "/expo-open-ota/docs/create-a-blog-post"
+  }
+}
