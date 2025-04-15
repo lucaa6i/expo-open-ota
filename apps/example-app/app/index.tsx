@@ -70,7 +70,9 @@ export default function HomeScreen() {
         <ThemedView style={styles.informations}>
           <ThemedText>Update ID: {Updates.updateId}</ThemedText>
           <ThemedText>Runtime version: {Updates.runtimeVersion}</ThemedText>
-          <ThemedText>Release channel: {Updates.channel}</ThemedText>
+          <ThemedText>
+            Release channel: {process.env.RELEASE_CHANNEL}
+          </ThemedText>
           <ThemedText>
             Update server url : {Constants.expoConfig?.updates?.url || ''}
           </ThemedText>
