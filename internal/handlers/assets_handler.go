@@ -21,7 +21,7 @@ func AssetsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if branchMap == nil {
-		log.Printf("[RequestID: %s] No brangit ch mapping found for channel: %s", requestID, channelName)
+		log.Printf("[RequestID: %s] No branch mapping found for channel: %s", requestID, channelName)
 		http.Error(w, "No branch mapping found", http.StatusNotFound)
 		return
 	}
