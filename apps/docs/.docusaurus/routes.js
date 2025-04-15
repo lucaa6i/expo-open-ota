@@ -3,6 +3,41 @@ import ComponentCreator from '@docusaurus/ComponentCreator';
 
 export default [
   {
+    path: '/expo-open-ota/__docusaurus/debug',
+    component: ComponentCreator('/expo-open-ota/__docusaurus/debug', '3e2'),
+    exact: true
+  },
+  {
+    path: '/expo-open-ota/__docusaurus/debug/config',
+    component: ComponentCreator('/expo-open-ota/__docusaurus/debug/config', '9e3'),
+    exact: true
+  },
+  {
+    path: '/expo-open-ota/__docusaurus/debug/content',
+    component: ComponentCreator('/expo-open-ota/__docusaurus/debug/content', '6c9'),
+    exact: true
+  },
+  {
+    path: '/expo-open-ota/__docusaurus/debug/globalData',
+    component: ComponentCreator('/expo-open-ota/__docusaurus/debug/globalData', 'd0d'),
+    exact: true
+  },
+  {
+    path: '/expo-open-ota/__docusaurus/debug/metadata',
+    component: ComponentCreator('/expo-open-ota/__docusaurus/debug/metadata', 'a1e'),
+    exact: true
+  },
+  {
+    path: '/expo-open-ota/__docusaurus/debug/registry',
+    component: ComponentCreator('/expo-open-ota/__docusaurus/debug/registry', 'd08'),
+    exact: true
+  },
+  {
+    path: '/expo-open-ota/__docusaurus/debug/routes',
+    component: ComponentCreator('/expo-open-ota/__docusaurus/debug/routes', 'fda'),
+    exact: true
+  },
+  {
     path: '/expo-open-ota/markdown-page',
     component: ComponentCreator('/expo-open-ota/markdown-page', '23e'),
     exact: true

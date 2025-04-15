@@ -5,18 +5,35 @@ import {
   Alert,
   StyleSheet,
   Button,
+  ActivityIndicator,
+  View,
 } from 'react-native'
 import * as Updates from '@latitudegames/expo-updates'
 import { Picker } from '@react-native-picker/picker'
 import { ThemedText } from '@/components/ThemedText'
 import { ThemedView } from '@/components/ThemedView'
 import Constants from 'expo-constants/src/Constants'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { UpdatesLogViewer } from '@/components/LogViewer'
 
 const RELEASE_CHANNELS = ['production', 'staging']
 
 export default function HomeScreen() {
   const [loading, load] = useState<boolean>(false)
+  const [logs, setLogs] = useState<Updates.UpdatesLogEntry[]>([])
+
+  useEffect(() => {
+    const fetchLogs = async () => {
+      try {
+        const logEntries = await Updates.readLogEntriesAsync()
+        setLogs(logEntries)
+      } catch (error) {
+        console.error('Error fetching logs:', error)
+      }
+    }
+
+    fetchLogs()
+  }, [])
 
   const onSelectReleaseChannel = async (channel: string) => {
     if (channel === Updates.channel) return
@@ -37,12 +54,17 @@ export default function HomeScreen() {
       return
     }
     try {
+      await Updates.clearLogEntriesAsync()
       const update = await Updates.checkForUpdateAsync()
+      const logEntries = await Updates.readLogEntriesAsync()
       if (update.isAvailable) {
         load(true)
         await Updates.fetchUpdateAsync()
-        return Updates.reloadAsync()
+        setLogs(logEntries)
+        load(false)
+        await Updates.reloadAsync()
       } else {
+        setLogs(logEntries)
         load(false)
         Alert.alert(
           'Update not available',
@@ -59,6 +81,18 @@ export default function HomeScreen() {
     } catch (e) {
       load(false)
     }
+  }
+
+  if (loading) {
+    return (
+      <SafeAreaView style={{ flex: 1 }}>
+        <View
+          style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
+        >
+          <ActivityIndicator size="large" color="#0000ff" />
+        </View>
+      </SafeAreaView>
+    )
   }
 
   return (
@@ -97,6 +131,7 @@ export default function HomeScreen() {
             onPress={() => checkUpdates()}
             disabled={loading}
           />
+          <UpdatesLogViewer logs={logs} />
         </ThemedView>
       </ScrollView>
     </SafeAreaView>
