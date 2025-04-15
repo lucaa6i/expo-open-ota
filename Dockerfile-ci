@@ -16,6 +16,6 @@ RUN go install github.com/cespare/reflex@latest
 
 ENV PATH="/go/bin:${PATH}"
 
-COPY --from=dashboard-builder /app/dashboard/dist /app/dashboard/dist
+COPY --from=dashboard-builder /app/apps/dashboard/dist /app/apps/dashboard/dist
 
 CMD ["bash"]

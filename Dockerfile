@@ -19,6 +19,6 @@ RUN GOOS=linux GOARCH=amd64 go build -o main ./cmd/api
 FROM alpine:latest
 RUN apk add --no-cache bash
 COPY --from=builder /app/main /app/main
-COPY --from=dashboard-builder /app/dashboard/dist /app/dashboard/dist
+COPY --from=dashboard-builder /app/apps/dashboard/dist /app/apps/dashboard/dist
 EXPOSE 3000
 CMD ["/app/main"]
