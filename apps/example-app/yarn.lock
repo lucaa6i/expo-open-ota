@@ -1533,8 +1533,10 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
-"@latitudegames/expo-updates@file:../../../expo/packages/expo-updates":
-  version "0.0.1"
+"@latitudegames/expo-updates@0.0.2":
+  version "0.0.2"
+  resolved "https://registry.yarnpkg.com/@latitudegames/expo-updates/-/expo-updates-0.0.2.tgz#eceff26499293bbdc66dcb889f115159d4b01bea"
+  integrity sha512-e4XsQw7KsjD6Gu+EWInhhQ/n8Af+tcPRz/LiDuDiU7weusqt+lPFNaQljjOwy9cbbJTEk7SWpoPjh7+UTDLt/w==
   dependencies:
     "@expo/code-signing-certificates" "0.0.5"
     "@expo/config" "~10.0.11"
