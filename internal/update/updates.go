@@ -251,13 +251,16 @@ func GetMetadata(update types.Update) (types.UpdateMetadata, error) {
 		fmt.Println("error decoding metadata json:", err)
 		return types.UpdateMetadata{}, err
 	}
+
 	metadata.CreatedAt = createdAt.UTC().Format("2006-01-02T15:04:05.000Z")
 	metadata.MetadataJSON = metadataJson
 	stringifiedMetadata, err := json.Marshal(metadata.MetadataJSON)
 	if err != nil {
 		return types.UpdateMetadata{}, err
 	}
-	id, errHash := crypto.CreateHash(stringifiedMetadata, "sha256", "hex")
+	hashInput := string(stringifiedMetadata) + "::" + update.Branch + "::" + update.RuntimeVersion
+
+	id, errHash := crypto.CreateHash([]byte(hashInput), "sha256", "hex")
 
 	if errHash != nil {
 		return types.UpdateMetadata{}, errHash
