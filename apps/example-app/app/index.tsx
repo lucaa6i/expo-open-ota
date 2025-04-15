@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   View,
 } from 'react-native'
-import * as Updates from '@latitudegames/expo-updates'
+import * as Updates from 'expo-updates'
 import { Picker } from '@react-native-picker/picker'
 import { ThemedText } from '@/components/ThemedText'
 import { ThemedView } from '@/components/ThemedView'
