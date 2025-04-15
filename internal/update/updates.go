@@ -353,22 +353,14 @@ func shapeManifestAsset(update types.Update, asset *types.Asset, isLaunchAsset b
 	return manifestAsset, nil
 }
 
-func appendChannelOverrideToUrl(urlStr, channelOverride string) string {
+func appendChannelOverrideToUrl(urlStr string) string {
 	parsedUrl, err := url.Parse(urlStr)
 	if err != nil {
 		return urlStr
 	}
 	query := parsedUrl.Query()
-	query.Set("ow-expo-channel", channelOverride)
 	parsedUrl.RawQuery = query.Encode()
 	return parsedUrl.String()
-}
-
-func AppendChannelOverrideToAsset(manifest *types.UpdateManifest, channelOverride string) {
-	manifest.LaunchAsset.Url = appendChannelOverrideToUrl(manifest.LaunchAsset.Url, channelOverride)
-	for i := range manifest.Assets {
-		manifest.Assets[i].Url = appendChannelOverrideToUrl(manifest.Assets[i].Url, channelOverride)
-	}
 }
 
 func computeManifestMetadata(update types.Update) json.RawMessage {
