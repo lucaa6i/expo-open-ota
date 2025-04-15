@@ -226,7 +226,7 @@ func TestUpdatesRegularBranch1(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+login().Token)
 	router.ServeHTTP(respRec, req)
 	assert.Equal(t, http.StatusOK, respRec.Code)
-	assert.Equal(t, "[{\"updateUUID\":\"b15ed6d8-f39b-04ad-a248-fa3b95fd7e0e\",\"updateId\":\"1674170951\",\"createdAt\":\"1970-01-20T09:02:50Z\",\"commitHash\":\"1674170951\",\"platform\":\"android\"}]", strings.TrimSpace(string(respRec.Body.Bytes())))
+	assert.Equal(t, "[{\"updateUUID\":\"04b793a0-b6ab-fd4f-308c-b91d812adec2\",\"updateId\":\"1674170951\",\"createdAt\":\"1970-01-20T09:02:50Z\",\"commitHash\":\"1674170951\",\"platform\":\"android\"}]", strings.TrimSpace(string(respRec.Body.Bytes())))
 }
 
 func TestUpdatesMultiBranch2(t *testing.T) {
@@ -242,7 +242,7 @@ func TestUpdatesMultiBranch2(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+login().Token)
 	router.ServeHTTP(respRec, req)
 	assert.Equal(t, http.StatusOK, respRec.Code)
-	assert.Equal(t, "[{\"updateUUID\":\"291580ca-a34f-73c4-fd82-7902c4129dda\",\"updateId\":\"1737455526\",\"createdAt\":\"1970-01-21T02:37:35Z\",\"commitHash\":\"\",\"platform\":\"ios\"},{\"updateUUID\":\"b15ed6d8-f39b-04ad-a248-fa3b95fd7e0e\",\"updateId\":\"1674170951\",\"createdAt\":\"1970-01-20T09:02:50Z\",\"commitHash\":\"\",\"platform\":\"android\"},{\"updateUUID\":\"187e74b7-9dd7-e43e-75d0-64a843ffa00b\",\"updateId\":\"1666629107\",\"createdAt\":\"1970-01-20T06:57:09Z\",\"commitHash\":\"1674170951\",\"platform\":\"android\"}]", strings.TrimSpace(string(respRec.Body.Bytes())))
+	assert.Equal(t, "[{\"updateUUID\":\"68e096e2-a619-9d56-7f7c-89f97bc27312\",\"updateId\":\"1737455526\",\"createdAt\":\"1970-01-21T02:37:35Z\",\"commitHash\":\"\",\"platform\":\"ios\"},{\"updateUUID\":\"fdc14544-9e15-732f-cd9c-e3e26c55cbea\",\"updateId\":\"1674170951\",\"createdAt\":\"1970-01-20T09:02:50Z\",\"commitHash\":\"\",\"platform\":\"android\"},{\"updateUUID\":\"d100f19f-e0be-45c4-212a-27d1f067552b\",\"updateId\":\"1666629107\",\"createdAt\":\"1970-01-20T06:57:09Z\",\"commitHash\":\"1674170951\",\"platform\":\"android\"}]", strings.TrimSpace(string(respRec.Body.Bytes())))
 }
 
 func TestUpdatesSomeNotValidBranch4(t *testing.T) {
@@ -258,5 +258,5 @@ func TestUpdatesSomeNotValidBranch4(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+login().Token)
 	router.ServeHTTP(respRec, req)
 	assert.Equal(t, http.StatusOK, respRec.Code)
-	assert.Equal(t, "[{\"updateUUID\":\"b15ed6d8-f39b-04ad-a248-fa3b95fd7e0e\",\"updateId\":\"1674170951\",\"createdAt\":\"1970-01-20T09:02:50Z\",\"commitHash\":\"1674170951\",\"platform\":\"android\"}]", strings.TrimSpace(string(respRec.Body.Bytes())))
+	assert.Equal(t, "[{\"updateUUID\":\"3f23a8c4-cd0e-a5a4-63f2-bb2841e95a01\",\"updateId\":\"1674170951\",\"createdAt\":\"1970-01-20T09:02:50Z\",\"commitHash\":\"1674170951\",\"platform\":\"android\"}]", strings.TrimSpace(string(respRec.Body.Bytes())))
 }
