@@ -36,7 +36,6 @@ export default function HomeScreen() {
   }, [])
 
   const onSelectReleaseChannel = async (channel: string) => {
-    if (channel === Updates.channel) return
     if (__DEV__ || loading || Platform.OS === 'web') {
       return
     }
