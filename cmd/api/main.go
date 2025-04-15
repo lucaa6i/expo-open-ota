@@ -24,7 +24,7 @@ func main() {
 		handlers.AllowedOrigins([]string{"*"}),
 		handlers.AllowCredentials(),
 	)
-	err := http.ListenAndServe(":" + config.GetPort(), corsOptions(router))
+	err := http.ListenAndServe("0.0.0.0:"+config.GetPort(), corsOptions(router))
 	if err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}

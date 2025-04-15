@@ -40,10 +40,7 @@ export default function HomeScreen() {
       return
     }
     Updates.setUpdateURLAndRequestHeadersOverride({
-      updateUrl:
-        Platform.OS === 'android'
-          ? 'http://10.0.2.2:3000/manifest'
-          : 'http://localhost:3000/manifest',
+      updateUrl: Constants.expoConfig?.updates?.url as string,
       requestHeaders: {
         'expo-channel-name': channel,
       },

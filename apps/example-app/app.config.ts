@@ -6,7 +6,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ...(config as ExpoConfig),
     runtimeVersion: '1.0.0',
     updates: {
-      url: 'http://localhost:3000/manifest',
+      url: 'https://otatest.ngrok.io/manifest',
       codeSigningMetadata: {
         keyid: 'main',
         alg: 'rsa-v1_5-sha256',
