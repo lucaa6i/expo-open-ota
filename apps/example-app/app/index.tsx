@@ -7,8 +7,7 @@ import {
   Button,
 } from 'react-native'
 import * as Updates from 'expo-updates'
-import RNPickerSelect from 'react-native-picker-select'
-
+import { Picker } from '@react-native-picker/picker'
 import { ThemedText } from '@/components/ThemedText'
 import { ThemedView } from '@/components/ThemedView'
 import Constants from 'expo-constants/src/Constants'
@@ -77,18 +76,22 @@ export default function HomeScreen() {
           </ThemedText>
         </ThemedView>
         <ThemedView>
-          <RNPickerSelect
-            style={pickerSelectStyles}
-            items={RELEASE_CHANNELS.map(channel => ({
-              label: channel,
-              value: channel,
-            }))}
+          <Picker
+            selectedValue={Updates.channel || undefined}
             onValueChange={(val: string) => {
               if (!val) return
               return onSelectReleaseChannel(val)
             }}
-            value={Updates.channel}
-          />
+          >
+            {RELEASE_CHANNELS.map(channel => (
+              <Picker.Item
+                key={channel}
+                label={channel}
+                value={channel}
+                testID={`release-channel-${channel}`}
+              />
+            ))}
+          </Picker>
           <Button
             title="Check for updates"
             onPress={() => checkUpdates()}
@@ -99,29 +102,6 @@ export default function HomeScreen() {
     </SafeAreaView>
   )
 }
-
-const pickerSelectStyles = StyleSheet.create({
-  inputIOS: {
-    fontSize: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    borderWidth: 1,
-    borderColor: 'gray',
-    borderRadius: 4,
-    color: 'black',
-    paddingRight: 30, // to ensure the text is never behind the icon
-  },
-  inputAndroid: {
-    fontSize: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderWidth: 0.5,
-    borderColor: 'purple',
-    borderRadius: 8,
-    color: 'black',
-    paddingRight: 30, // to ensure the text is never behind the icon
-  },
-})
 
 const styles = StyleSheet.create({
   titleContainer: {
