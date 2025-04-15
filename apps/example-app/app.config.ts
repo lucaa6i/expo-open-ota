@@ -5,9 +5,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   const isAndroid = process.env.EXPO_PLATFORM === 'android'
   return {
     ...(config as ExpoConfig),
-    runtimeVersion: "1.0.0",
+    runtimeVersion: '1.0.0',
     updates: {
-      url: "http://localhost:3000",
+      url: 'http://localhost:3000/manifest',
       codeSigningMetadata: {
         keyid: 'main',
         alg: 'rsa-v1_5-sha256',

@@ -32,7 +32,7 @@ export default function HomeScreen() {
     await checkUpdates()
   }
 
-  const checkUpdates = async (withAlert = false) => {
+  const checkUpdates = async () => {
     if (__DEV__ || loading || Platform.OS === 'web') {
       return
     }
@@ -42,7 +42,7 @@ export default function HomeScreen() {
         load(true)
         await Updates.fetchUpdateAsync()
         return Updates.reloadAsync()
-      } else if (withAlert) {
+      } else {
         load(false)
         Alert.alert(
           'Update not available',
@@ -90,7 +90,7 @@ export default function HomeScreen() {
           />
           <Button
             title="Check for updates"
-            onPress={() => checkUpdates(true)}
+            onPress={() => checkUpdates()}
             disabled={loading}
           />
         </ThemedView>
