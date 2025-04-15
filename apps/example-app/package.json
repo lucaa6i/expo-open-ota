@@ -13,7 +13,8 @@
     "lint": "expo lint",
     "release_production": "RELEASE_CHANNEL=production ../eoas/bin/dev.js publish --nonInteractive --channel production --branch production",
     "release_staging": "RELEASE_CHANNEL=staging ../eoas/bin/dev.js publish --nonInteractive --channel staging --branch staging",
-    "prebuild": "expo prebuild && node ./scripts/override_android_update_url.js"
+    "prebuild_production": "RELEASE_CHANNEL=production expo prebuild && node ./scripts/override_android_update_url.js",
+    "prebuild_staging": "RELEASE_CHANNEL=staging expo prebuild && node ./scripts/override_android_update_url.js"
   },
   "jest": {
     "preset": "jest-expo"
