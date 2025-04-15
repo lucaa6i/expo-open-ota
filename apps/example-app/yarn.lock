@@ -4033,10 +4033,10 @@ expo-updates-interface@~1.0.0:
   resolved "https://registry.yarnpkg.com/expo-updates-interface/-/expo-updates-interface-1.0.0.tgz#b98c66b800d29561c62409556948b2af3d5316e5"
   integrity sha512-93oWtvULJOj+Pp+N/lpTcFfuREX1wNeHtp7Lwn8EbzYYmdn37MvZU3TPW2tYYCZuhzmKEXnUblYcruYoDu7IrQ==
 
-"expo-updates@npm:@latitudegames/expo-updates@0.0.2":
-  version "0.0.2"
-  resolved "https://registry.yarnpkg.com/@latitudegames/expo-updates/-/expo-updates-0.0.2.tgz#eceff26499293bbdc66dcb889f115159d4b01bea"
-  integrity sha512-e4XsQw7KsjD6Gu+EWInhhQ/n8Af+tcPRz/LiDuDiU7weusqt+lPFNaQljjOwy9cbbJTEk7SWpoPjh7+UTDLt/w==
+"expo-updates@npm:@latitudegames/expo-updates@0.0.3":
+  version "0.0.3"
+  resolved "https://registry.yarnpkg.com/@latitudegames/expo-updates/-/expo-updates-0.0.3.tgz#b01ebbaa1cbcd03cb79987afce50db1552be2c0a"
+  integrity sha512-j585ez6gB6KHWMq97BQ1O4WqooYPV45pmZcjVBSsARLdWGSMrUShfNAmeM5JBL6pVipTRssLiLcXnNaH5xlWRQ==
   dependencies:
     "@expo/code-signing-certificates" "0.0.5"
     "@expo/config" "~10.0.11"
