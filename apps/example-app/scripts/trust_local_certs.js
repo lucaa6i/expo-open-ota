@@ -14,11 +14,7 @@ const withTrustLocalCerts = config => {
 }
 
 async function setCustomConfigAsync(config, androidManifest) {
-  const src_file_pat = path.join(
-    __dirname,
-    'scripts',
-    'network_security_config.xml',
-  )
+  const src_file_pat = path.join(__dirname, 'network_security_config.xml')
   const res_file_path = path.join(
     await Paths.getResourceFolderAsync(config.modRequest.projectRoot),
     'xml',

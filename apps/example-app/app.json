@@ -34,7 +34,8 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+      "./scripts/trust_local_certs.js"
     ],
     "experiments": {
       "typedRoutes": true

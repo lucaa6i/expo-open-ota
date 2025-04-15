@@ -15,7 +15,7 @@
     "release_staging": "RELEASE_CHANNEL=staging ../eoas/bin/dev.js publish --nonInteractive --channel staging --branch staging",
     "prebuild_production": "RELEASE_CHANNEL=production expo prebuild && yarn apply_scripts",
     "prebuild_staging": "RELEASE_CHANNEL=staging expo prebuild && yarn apply_scripts",
-    "apply_scripts": "node ./scripts/override_android_update_url.js & node ./scripts/trust_local_certs.js.js"
+    "apply_scripts": "node ./scripts/override_android_update_url.js"
   },
   "jest": {
     "preset": "jest-expo"
