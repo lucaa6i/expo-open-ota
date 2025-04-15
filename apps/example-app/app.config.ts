@@ -2,7 +2,6 @@ import { ExpoConfig } from '@expo/config-types'
 import { ConfigContext } from '@expo/config'
 
 export default ({ config }: ConfigContext): ExpoConfig => {
-  const isAndroid = process.env.EXPO_PLATFORM === 'android'
   return {
     ...(config as ExpoConfig),
     runtimeVersion: '1.0.0',

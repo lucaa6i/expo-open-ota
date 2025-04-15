@@ -20,6 +20,7 @@ export default function HomeScreen() {
   const [loading, load] = useState<boolean>(false)
 
   const onSelectReleaseChannel = async (channel: string) => {
+    if (channel === Updates.channel) return
     if (__DEV__ || loading || Platform.OS === 'web') {
       return
     }
@@ -85,7 +86,10 @@ export default function HomeScreen() {
               label: channel,
               value: channel,
             }))}
-            onValueChange={(val: string) => onSelectReleaseChannel(val)}
+            onValueChange={(val: string) => {
+              if (!val) return
+              return onSelectReleaseChannel(val)
+            }}
             value={Updates.channel}
           />
           <Button
