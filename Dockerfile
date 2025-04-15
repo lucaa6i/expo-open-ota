@@ -1,8 +1,8 @@
 FROM node:18-alpine AS dashboard-builder
-WORKDIR /app/dashboard
-COPY dashboard/package.json dashboard/package-lock.json ./
+WORKDIR /app/apps/dashboard
+COPY apps/dashboard/package.json apps/dashboard/package-lock.json ./
 RUN npm ci
-COPY dashboard ./
+COPY apps/dashboard ./
 RUN npm run build
 
 FROM golang:1.23-alpine AS builder
