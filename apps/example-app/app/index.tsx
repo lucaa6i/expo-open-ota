@@ -75,10 +75,6 @@ export default function HomeScreen() {
           <ThemedText>
             Update server url : {Constants.expoConfig?.updates?.url || ''}
           </ThemedText>
-          <ThemedText>
-            Code signing certificate:{' '}
-            {Constants.expoConfig?.updates?.codeSigningCertificate || ''}
-          </ThemedText>
         </ThemedView>
         <ThemedView>
           <RNPickerSelect
