@@ -1533,6 +1533,26 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
+"@latitudegames/expo-updates@0.0.1":
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/@latitudegames/expo-updates/-/expo-updates-0.0.1.tgz#8211f88bbb43cfc262aa0820e711cf7e34f01c39"
+  integrity sha512-R5TzAhFeP6VzUi1LD1R30XAHVTAFXajbkKxZcy6No/8rZW/HjJCyF+SP7T91/EyE4DxmkNPfeot7QDnDa4eyow==
+  dependencies:
+    "@expo/code-signing-certificates" "0.0.5"
+    "@expo/config" "~10.0.11"
+    "@expo/config-plugins" "~9.0.17"
+    "@expo/spawn-async" "^1.7.2"
+    arg "4.1.0"
+    chalk "^4.1.2"
+    expo-eas-client "~0.13.3"
+    expo-manifests "~0.15.8"
+    expo-structured-headers "~4.0.0"
+    expo-updates-interface "~1.0.0"
+    fast-glob "^3.3.2"
+    fbemitter "^3.0.0"
+    ignore "^5.3.1"
+    resolve-from "^5.0.0"
+
 "@nodelib/fs.scandir@2.1.5":
   version "2.1.5"
   resolved "https://registry.yarnpkg.com/@nodelib/fs.scandir/-/fs.scandir-2.1.5.tgz#7619c2eb21b25483f6d167548b4cfd5a7488c3d5"
@@ -4004,24 +4024,6 @@ expo-updates-interface@~1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/expo-updates-interface/-/expo-updates-interface-1.0.0.tgz#b98c66b800d29561c62409556948b2af3d5316e5"
   integrity sha512-93oWtvULJOj+Pp+N/lpTcFfuREX1wNeHtp7Lwn8EbzYYmdn37MvZU3TPW2tYYCZuhzmKEXnUblYcruYoDu7IrQ==
-
-"expo-updates@file:../../../expo/packages/expo-updates":
-  version "0.0.1"
-  dependencies:
-    "@expo/code-signing-certificates" "0.0.5"
-    "@expo/config" "~10.0.11"
-    "@expo/config-plugins" "~9.0.17"
-    "@expo/spawn-async" "^1.7.2"
-    arg "4.1.0"
-    chalk "^4.1.2"
-    expo-eas-client "~0.13.3"
-    expo-manifests "~0.15.8"
-    expo-structured-headers "~4.0.0"
-    expo-updates-interface "~1.0.0"
-    fast-glob "^3.3.2"
-    fbemitter "^3.0.0"
-    ignore "^5.3.1"
-    resolve-from "^5.0.0"
 
 expo-web-browser@~14.0.2:
   version "14.0.2"
