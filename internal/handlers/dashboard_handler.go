@@ -158,7 +158,8 @@ func GetRuntimeVersionsHandler(w http.ResponseWriter, r *http.Request) {
 	resolvedBucket := bucket.GetBucket()
 	runtimeVersions, err := resolvedBucket.GetRuntimeVersions(branchName)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(err.Error())
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")

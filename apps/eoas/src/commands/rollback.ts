@@ -1,4 +1,4 @@
-import { Platform } from '@expo/eas-build-job';
+import { Env, Platform } from '@expo/eas-build-job';
 import { Command, Flags } from '@oclif/core';
 
 import { getAuthExpoHeaders, retrieveExpoCredentials } from '../lib/auth';
@@ -27,10 +27,6 @@ export default class Publish extends Command {
       default: RequestedPlatform.All,
       required: false,
     }),
-    channel: Flags.string({
-      description: 'Name of the channel to publish the rollback to',
-      required: true,
-    }),
     branch: Flags.string({
       description: 'Name of the branch to point to',
       required: true,
@@ -39,12 +35,10 @@ export default class Publish extends Command {
   private sanitizeFlags(flags: any): {
     platform: RequestedPlatform;
     branch: string;
-    channel: string;
   } {
     return {
       platform: flags.platform,
       branch: flags.branch,
-      channel: flags.channel,
     };
   }
   public async run(): Promise<void> {
@@ -54,13 +48,9 @@ export default class Publish extends Command {
       process.exit(1);
     }
     const { flags } = await this.parse(Publish);
-    const { platform, branch, channel } = this.sanitizeFlags(flags);
+    const { platform, branch } = this.sanitizeFlags(flags);
     if (!branch) {
       Log.error('Branch name is required');
-      process.exit(1);
-    }
-    if (!channel) {
-      Log.error('Channel name is required');
       process.exit(1);
     }
     const vcsClient = resolveVcsClient(true);
@@ -83,9 +73,7 @@ export default class Publish extends Command {
     }
 
     const privateConfig = await getPrivateExpoConfigAsync(projectDir, {
-      env: {
-        RELEASE_CHANNEL: channel,
-      },
+      env: process.env as Env,
     });
     if (privateConfig?.updates?.disableAntiBrickingMeasures) {
       Log.error(
@@ -119,9 +107,7 @@ export default class Publish extends Command {
                   platform: 'ios',
                   workflow: await resolveWorkflowAsync(projectDir, Platform.IOS, vcsClient),
                   projectDir,
-                  env: {
-                    RELEASE_CHANNEL: channel,
-                  },
+                  env: process.env as Env,
                 })
               )?.runtimeVersion,
               platform: 'ios',
@@ -137,9 +123,7 @@ export default class Publish extends Command {
                   platform: 'android',
                   workflow: await resolveWorkflowAsync(projectDir, Platform.ANDROID, vcsClient),
                   projectDir,
-                  env: {
-                    RELEASE_CHANNEL: channel,
-                  },
+                  env: process.env as Env,
                 })
               )?.runtimeVersion,
               platform: 'android',
@@ -157,7 +141,7 @@ export default class Publish extends Command {
     const erroredPlatforms: { platform: string; reason: string }[] = [];
     await Promise.all(
       runtimeVersions.map(async ({ runtimeVersion, platform }) => {
-        const endpoint = `${baseUrl}/rollback/${branch}?commitHash=${commitHash}&channel=${channel}&platform=${platform}&runtimeVersion=${runtimeVersion}`;
+        const endpoint = `${baseUrl}/rollback/${branch}?commitHash=${commitHash}&platform=${platform}&runtimeVersion=${runtimeVersion}`;
         const response = await fetchWithRetries(endpoint, {
           method: 'POST',
           headers: {

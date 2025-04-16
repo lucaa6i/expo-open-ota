@@ -45,21 +45,14 @@ func MarkUpdateAsUploadedHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	expoAuth := helpers.GetExpoAuth(r)
-	expoAccount, err := services.FetchExpoUserAccountInformations(expoAuth)
+	expoAccount, err := services.ValidateExpoAuth(expoAuth)
 	if err != nil {
-		log.Printf("[RequestID: %s] Error fetching expo account informations: %v", requestID, err)
-		http.Error(w, "Error fetching expo account informations", http.StatusUnauthorized)
-		return
+		log.Printf("[RequestID: %s] Error validating expo auth: %v", requestID, err)
+		http.Error(w, "Error validating expo auth", http.StatusUnauthorized)
 	}
 	if expoAccount == nil {
 		log.Printf("[RequestID: %s] No expo account found", requestID)
 		http.Error(w, "No expo account found", http.StatusUnauthorized)
-		return
-	}
-	currentExpoUsername := services.FetchSelfExpoUsername()
-	if expoAccount.Username != currentExpoUsername {
-		log.Printf("[RequestID: %s] Invalid expo account, self username: %s, expo account username: %s", requestID, currentExpoUsername, expoAccount.Username)
-		http.Error(w, "Invalid expo account", http.StatusUnauthorized)
 		return
 	}
 	runtimeVersion := r.URL.Query().Get("runtimeVersion")
@@ -145,22 +138,10 @@ func RequestUploadLocalFileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	requestID := uuid.New().String()
 	expoAuth := helpers.GetExpoAuth(r)
-	expoAccount, err := services.FetchExpoUserAccountInformations(expoAuth)
-	if err != nil {
-		log.Printf("[RequestID: %s] Error fetching expo account informations: %v", requestID, err)
-		http.Error(w, "Error fetching expo account informations", http.StatusInternalServerError)
-		return
-	}
-	if expoAccount == nil {
-		log.Printf("[RequestID: %s] No expo account found", requestID)
-		http.Error(w, "No expo account found", http.StatusUnauthorized)
-		return
-	}
-	currentExpoUsername := services.FetchSelfExpoUsername()
-	if expoAccount.Username != currentExpoUsername {
-		log.Printf("[RequestID: %s] Invalid expo account, self username: %s, expo account username: %s", requestID, currentExpoUsername, expoAccount.Username)
-		http.Error(w, "Invalid expo account", http.StatusUnauthorized)
-		return
+	expoAccount, err := services.ValidateExpoAuth(expoAuth)
+	if err != nil || expoAccount == nil {
+		log.Printf("[RequestID: %s] Error validating expo auth: %v", requestID, err)
+		http.Error(w, "Error validating expo auth", http.StatusUnauthorized)
 	}
 	token := r.URL.Query().Get("token")
 	if token == "" {
@@ -215,11 +196,10 @@ func RequestUploadUrlHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	expoAuth := helpers.GetExpoAuth(r)
-	expoAccount, err := services.FetchExpoUserAccountInformations(expoAuth)
-	if err != nil {
-		log.Printf("[RequestID: %s] Error fetching expo account informations: %v", requestID, err)
-		http.Error(w, "Error fetching expo account informations", http.StatusUnauthorized)
-		return
+	expoAccount, err := services.ValidateExpoAuth(expoAuth)
+	if err != nil || expoAccount == nil {
+		log.Printf("[RequestID: %s] Error validating expo auth: %v", requestID, err)
+		http.Error(w, "Error validating expo auth", http.StatusUnauthorized)
 	}
 
 	err = branch.UpsertBranch(branchName)
@@ -235,12 +215,6 @@ func RequestUploadUrlHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	currentExpoUsername := services.FetchSelfExpoUsername()
-	if expoAccount.Username != currentExpoUsername {
-		log.Printf("[RequestID: %s] Invalid expo account, self username: %s, expo account username: %s", requestID, currentExpoUsername, expoAccount.Username)
-		http.Error(w, "Invalid expo account", http.StatusUnauthorized)
-		return
-	}
 	platform := r.URL.Query().Get("platform")
 	if platform != "" && (platform != "ios" && platform != "android") {
 		log.Printf("[RequestID: %s] Invalid platform: %s", requestID, platform)

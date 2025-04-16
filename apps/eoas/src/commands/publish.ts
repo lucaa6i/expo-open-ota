@@ -1,4 +1,4 @@
-import { Platform } from '@expo/eas-build-job';
+import { Env, Platform } from '@expo/eas-build-job';
 import spawnAsync from '@expo/spawn-async';
 import { Command, Flags } from '@oclif/core';
 import FormData from 'form-data';
@@ -10,9 +10,9 @@ import { RequestUploadUrlItem, computeFilesRequests, requestUploadUrls } from '.
 import { getAuthExpoHeaders, retrieveExpoCredentials } from '../lib/auth';
 import {
   RequestedPlatform,
-  getExpoConfigUpdateUrl,
   getPrivateExpoConfigAsync,
   getPublicExpoConfigAsync,
+  resolveServerUrl,
 } from '../lib/expoConfig';
 import { fetchWithRetries } from '../lib/fetch';
 import Log from '../lib/log';
@@ -37,7 +37,11 @@ export default class Publish extends Command {
     }),
     channel: Flags.string({
       description: 'Name of the channel to publish the update to',
-      required: true,
+      required: false,
+      deprecated: {
+        message:
+          'Channel was initially used to provide RELEASE_CHANNEL in the environment when resolving the runtime version. It is no longer needed, you can use RELEASE_CHANNEL={channel} eoas publish --branch={branch} instead',
+      },
     }),
     branch: Flags.string({
       description: 'Name of the branch to point to',
@@ -57,15 +61,15 @@ export default class Publish extends Command {
     platform: RequestedPlatform;
     branch: string;
     nonInteractive: boolean;
-    channel: string;
     outputDir: string;
+    providedDeprecatedChannel?: string;
   } {
     return {
       platform: flags.platform,
       branch: flags.branch,
       nonInteractive: flags.nonInteractive,
-      channel: flags.channel,
       outputDir: flags.outputDir,
+      providedDeprecatedChannel: flags.channel,
     };
   }
   public async run(): Promise<void> {
@@ -76,49 +80,33 @@ export default class Publish extends Command {
       process.exit(1);
     }
     const { flags } = await this.parse(Publish);
-    const { platform, nonInteractive, branch, channel, outputDir } = this.sanitizeFlags(flags);
+    const { platform, nonInteractive, branch, outputDir, providedDeprecatedChannel } =
+      this.sanitizeFlags(flags);
     if (!branch) {
       Log.error('Branch name is required');
       process.exit(1);
     }
-    if (!channel) {
-      Log.error('Channel name is required');
-      process.exit(1);
-    }
-    const vcsClient = resolveVcsClient(true);
-    await vcsClient.ensureRepoExistsAsync();
-    const commitHash = await vcsClient.getCommitHashAsync();
-    await ensureRepoIsCleanAsync(vcsClient, nonInteractive);
     const projectDir = process.cwd();
     const hasExpo = isExpoInstalled(projectDir);
     if (!hasExpo) {
       Log.error('Expo is not installed in this project. Please install Expo first.');
       process.exit(1);
     }
-
-    const privateConfig = await getPrivateExpoConfigAsync(projectDir, {
+    const vcsClient = resolveVcsClient(true);
+    await ensureRepoIsCleanAsync(vcsClient, nonInteractive);
+    const config = await getPrivateExpoConfigAsync(projectDir, {
       env: {
-        RELEASE_CHANNEL: channel,
+        ...(process.env as Env),
+        ...(providedDeprecatedChannel ? { RELEASE_CHANNEL: providedDeprecatedChannel } : {}),
       },
     });
-    const updateUrl = getExpoConfigUpdateUrl(privateConfig);
-    if (!updateUrl) {
-      Log.error(
-        "Update url is not setup in your config. Please run 'eoas init' to setup the update url"
-      );
+    const serverUrl = await resolveServerUrl(config).catch(e => {
+      Log.error(e.message);
       process.exit(1);
-    }
-    let baseUrl: string;
-    try {
-      const parsedUrl = new URL(updateUrl);
-      baseUrl = parsedUrl.origin;
-    } catch (e) {
-      Log.error('Invalid URL', e);
-      process.exit(1);
-    }
+    });
     if (!nonInteractive) {
       const confirmed = await confirmAsync({
-        message: `Is this the correct URL of your self-hosted update server? ${baseUrl}`,
+        message: `Is this the correct URL of your self-hosted update server? ${serverUrl}`,
         name: 'export',
         type: 'confirm',
       });
@@ -127,6 +115,9 @@ export default class Publish extends Command {
         process.exit(1);
       }
     }
+
+    const commitHash = await vcsClient.getCommitHashAsync();
+
     const runtimeSpinner = ora('🔄 Resolving runtime version...').start();
     const runtimeVersions = [
       ...(!platform || platform === RequestedPlatform.All || platform === RequestedPlatform.Ios
@@ -134,12 +125,15 @@ export default class Publish extends Command {
             {
               runtimeVersion: (
                 await resolveRuntimeVersionAsync({
-                  exp: privateConfig,
+                  exp: config,
                   platform: 'ios',
                   workflow: await resolveWorkflowAsync(projectDir, Platform.IOS, vcsClient),
                   projectDir,
                   env: {
-                    RELEASE_CHANNEL: channel,
+                    ...(process.env as Env),
+                    ...(providedDeprecatedChannel
+                      ? { RELEASE_CHANNEL: providedDeprecatedChannel }
+                      : {}),
                   },
                 })
               )?.runtimeVersion,
@@ -152,12 +146,15 @@ export default class Publish extends Command {
             {
               runtimeVersion: (
                 await resolveRuntimeVersionAsync({
-                  exp: privateConfig,
+                  exp: config,
                   platform: 'android',
                   workflow: await resolveWorkflowAsync(projectDir, Platform.ANDROID, vcsClient),
                   projectDir,
                   env: {
-                    RELEASE_CHANNEL: channel,
+                    ...(process.env as Env),
+                    ...(providedDeprecatedChannel
+                      ? { RELEASE_CHANNEL: providedDeprecatedChannel }
+                      : {}),
                   },
                 })
               )?.runtimeVersion,
@@ -226,7 +223,7 @@ export default class Publish extends Command {
               body: {
                 fileNames: files.map(file => file.path),
               },
-              requestUploadUrl: `${baseUrl}/requestUploadUrl/${branch}`,
+              requestUploadUrl: `${serverUrl}/requestUploadUrl/${branch}`,
               auth: credentials,
               runtimeVersion,
               platform,
@@ -241,7 +238,7 @@ export default class Publish extends Command {
       await Promise.all(
         allItems.map(async itm => {
           const isLocalBucketFileUpload = itm.requestUploadUrl.startsWith(
-            `${baseUrl}/uploadLocalFile`
+            `${serverUrl}/uploadLocalFile`
           );
           const formData = new FormData();
           let file: fs.ReadStream;
@@ -303,7 +300,7 @@ export default class Publish extends Command {
     const results = await Promise.all(
       uploadUrls.map(async ({ updateId, platform, runtimeVersion }) => {
         const response = await fetchWithRetries(
-          `${baseUrl}/markUpdateAsUploaded/${branch}?platform=${platform}&updateId=${updateId}&runtimeVersion=${runtimeVersion}`,
+          `${serverUrl}/markUpdateAsUploaded/${branch}?platform=${platform}&updateId=${updateId}&runtimeVersion=${runtimeVersion}`,
           {
             method: 'POST',
             headers: {
@@ -340,11 +337,10 @@ export default class Publish extends Command {
       throw new Error();
     } else {
       markAsFinishedSpinner.succeed(
-        `\n✅ Your update has been successfully pushed to ${updateUrl}`
+        `\n✅ Your update has been successfully pushed to ${serverUrl}`
       );
     }
     if (hasSuccess) {
-      Log.withInfo(`🔗 Channel: \`${channel}\``);
       Log.withInfo(`🌿 Branch: \`${branch}\``);
       Log.withInfo(`⏳ Deployed at: \`${new Date().toUTCString()}\`\n`);
       Log.withInfo('🔥 Your users will receive the latest update automatically!');
