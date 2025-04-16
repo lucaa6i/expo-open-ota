@@ -10,7 +10,6 @@ import (
 	"expo-open-ota/internal/services"
 	"expo-open-ota/internal/types"
 	update2 "expo-open-ota/internal/update"
-	"fmt"
 	"github.com/gorilla/mux"
 	"net/http"
 	"sort"
@@ -230,37 +229,45 @@ func GetUpdatesHandler(w http.ResponseWriter, r *http.Request) {
 	runtimeVersion := vars["RUNTIME_VERSION"]
 	cacheKey := dashboard.ComputeGetUpdatesCacheKey(branchName, runtimeVersion)
 	cache := cache2.GetCache()
-	/*
-		if cacheValue := cache.Get(cacheKey); cacheValue != "" {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			var updatesResponse []UpdateItem
-			json.Unmarshal([]byte(cacheValue), &updatesResponse)
-			json.NewEncoder(w).Encode(updatesResponse)
-			return
-		}
-	*/
+	if cacheValue := cache.Get(cacheKey); cacheValue != "" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		var updatesResponse []UpdateItem
+		json.Unmarshal([]byte(cacheValue), &updatesResponse)
+		json.NewEncoder(w).Encode(updatesResponse)
+		return
+	}
 	resolvedBucket := bucket.GetBucket()
 	updates, err := resolvedBucket.GetUpdates(branchName, runtimeVersion)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
-	fmt.Println("Updates:", updates)
-
+	
 	var updatesResponse []UpdateItem
 	for _, update := range updates {
 		isValid := update2.IsUpdateValid(update)
 		if !isValid {
 			continue
 		}
+		numberUpdate, _ := strconv.ParseInt(update.UpdateId, 10, 64)
+		commitHash, platform, _ := update2.RetrieveUpdateCommitHashAndPlatform(update)
+		updateType := update2.GetUpdateType(update)
+		if updateType == types.Rollback {
+			updatesResponse = append(updatesResponse, UpdateItem{
+				UpdateUUID: "Rollback to embedded",
+				UpdateId:   update.UpdateId,
+				CreatedAt:  time.UnixMilli(numberUpdate).UTC().Format(time.RFC3339),
+				CommitHash: commitHash,
+				Platform:   platform,
+			})
+			continue
+		}
+
 		metadata, err := update2.GetMetadata(update)
 		if err != nil {
 			continue
 		}
-		numberUpdate, _ := strconv.ParseInt(update.UpdateId, 10, 64)
-		commitHash, platform, _ := update2.RetrieveUpdateCommitHashAndPlatform(update)
 		updatesResponse = append(updatesResponse, UpdateItem{
 			UpdateUUID: crypto.ConvertSHA256HashToUUID(metadata.ID),
 			UpdateId:   update.UpdateId,
