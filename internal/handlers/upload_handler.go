@@ -157,7 +157,7 @@ func RequestUploadLocalFileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	currentExpoUsername := services.FetchSelfExpoUsername()
 	if expoAccount.Username != currentExpoUsername {
-		log.Printf("[RequestID: %s] Invalid expo account", requestID)
+		log.Printf("[RequestID: %s] Invalid expo account, self username: %s, expo account username: %s", requestID, currentExpoUsername, expoAccount.Username)
 		http.Error(w, "Invalid expo account", http.StatusUnauthorized)
 		return
 	}
@@ -236,7 +236,7 @@ func RequestUploadUrlHandler(w http.ResponseWriter, r *http.Request) {
 
 	currentExpoUsername := services.FetchSelfExpoUsername()
 	if expoAccount.Username != currentExpoUsername {
-		log.Printf("[RequestID: %s] Invalid expo account", requestID)
+		log.Printf("[RequestID: %s] Invalid expo account, self username: %s, expo account username: %s", requestID, currentExpoUsername, expoAccount.Username)
 		http.Error(w, "Invalid expo account", http.StatusUnauthorized)
 		return
 	}
