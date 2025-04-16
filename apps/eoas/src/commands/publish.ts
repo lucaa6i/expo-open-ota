@@ -169,6 +169,15 @@ export default class Publish extends Command {
       process.exit(1);
     }
     runtimeSpinner.succeed('✅ Runtime versions resolved');
+    const cleaningSpinner = ora(`🗑️ Cleaning up ${outputDir} directory...`).start();
+    try {
+      await spawnAsync('rm', ['-rf', outputDir], { cwd: projectDir });
+      cleaningSpinner.succeed('✅ Cleanup completed');
+    } catch (e) {
+      cleaningSpinner.fail('❌ Failed to clean up the output directory');
+      Log.error(e);
+      process.exit(1);
+    }
 
     const exportSpinner = ora('📦 Exporting project files...').start();
     try {
