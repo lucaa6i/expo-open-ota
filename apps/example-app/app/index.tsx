@@ -17,9 +17,10 @@ import { UpdatesLogViewer } from '@/components/LogViewer'
 
 export default function HomeScreen() {
   const [loading, load] = useState<boolean>(false)
-  
+
   const [logs, setLogs] = useState<Updates.UpdatesLogEntry[]>([])
 
+  
   useEffect(() => {
     const fetchLogs = async () => {
       try {
