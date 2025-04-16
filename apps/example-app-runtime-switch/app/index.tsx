@@ -8,12 +8,15 @@ import {
   ActivityIndicator,
   View,
 } from 'react-native'
-import * as Updates from 'expo-updates'
+import * as Updates from '@latitudegames/expo-updates'
+import { Picker } from '@react-native-picker/picker'
 import { ThemedText } from '@/components/ThemedText'
 import { ThemedView } from '@/components/ThemedView'
 import Constants from 'expo-constants/src/Constants'
 import { useState, useEffect } from 'react'
 import { UpdatesLogViewer } from '@/components/LogViewer'
+
+const RELEASE_CHANNELS = ['production', 'staging']
 
 export default function HomeScreen() {
   const [loading, load] = useState<boolean>(false)
@@ -31,6 +34,19 @@ export default function HomeScreen() {
 
     fetchLogs()
   }, [])
+
+  const onSelectReleaseChannel = async (channel: string) => {
+    if (__DEV__ || loading || Platform.OS === 'web') {
+      return
+    }
+    Updates.setUpdateURLAndRequestHeadersOverride({
+      updateUrl: Constants.expoConfig?.updates?.url as string,
+      requestHeaders: {
+        'expo-channel-name': channel,
+      },
+    })
+    await checkUpdates()
+  }
 
   const checkUpdates = async () => {
     if (__DEV__ || loading || Platform.OS === 'web') {
@@ -93,6 +109,22 @@ export default function HomeScreen() {
           </ThemedText>
         </ThemedView>
         <ThemedView>
+          <Picker
+            selectedValue={Updates.channel || undefined}
+            onValueChange={(val: string) => {
+              if (!val) return
+              return onSelectReleaseChannel(val)
+            }}
+          >
+            {RELEASE_CHANNELS.map(channel => (
+              <Picker.Item
+                key={channel}
+                label={channel}
+                value={channel}
+                testID={`release-channel-${channel}`}
+              />
+            ))}
+          </Picker>
           <Button
             title="Check for updates"
             onPress={() => checkUpdates()}
