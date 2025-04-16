@@ -518,7 +518,7 @@ func createUpdateMetadata(platform, commitHash string) (*strings.Reader, error) 
 }
 
 func generateAntiCollisionUpdateTimestamp(platform string) int64 {
-	updateId := time.Now().UnixNano() / int64(time.Nanosecond)
+	updateId := time.Now().UnixNano() / int64(time.Millisecond)
 	var offset int64
 	switch platform {
 	case "ios":
