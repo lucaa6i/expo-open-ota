@@ -266,8 +266,8 @@ func RequestUploadUrlHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updateId := time.Now().UnixNano() / int64(time.Millisecond)
-	updateRequests, err := bucket.RequestUploadUrlsForFileUpdates(branchName, runtimeVersion, fmt.Sprintf("%d", updateId), request.FileNames)
+	updateId := update.GenerateAntiCollisionUpdateTimestamp(platform)
+	updateRequests, err := bucket.RequestUploadUrlsForFileUpdates(branchName, runtimeVersion, update.ConvertUpdateTimestampToString(updateId), request.FileNames)
 	if err != nil {
 		log.Printf("[RequestID: %s] Error requesting upload urls: %v", requestID, err)
 		http.Error(w, "Error requesting upload urls", http.StatusInternalServerError)
@@ -288,7 +288,7 @@ func RequestUploadUrlHandler(w http.ResponseWriter, r *http.Request) {
 	err = resolvedBucket.UploadFileIntoUpdate(types.Update{
 		Branch:         branchName,
 		RuntimeVersion: runtimeVersion,
-		UpdateId:       fmt.Sprintf("%d", updateId),
+		UpdateId:       update.ConvertUpdateTimestampToString(updateId),
 		CreatedAt:      time.Duration(updateId) * time.Millisecond,
 	}, "update-metadata.json", metadataReader)
 

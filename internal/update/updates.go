@@ -517,7 +517,7 @@ func createUpdateMetadata(platform, commitHash string) (*strings.Reader, error) 
 	return strings.NewReader(string(jsonData)), nil
 }
 
-func generateAntiCollisionUpdateTimestamp(platform string) int64 {
+func GenerateAntiCollisionUpdateTimestamp(platform string) int64 {
 	updateId := time.Now().UnixNano() / int64(time.Millisecond)
 	var offset int64
 	switch platform {
@@ -532,10 +532,14 @@ func generateAntiCollisionUpdateTimestamp(platform string) int64 {
 	return updateId
 }
 
+func ConvertUpdateTimestampToString(updateId int64) string {
+	return fmt.Sprintf("%d", updateId)
+}
+
 func CreateRollback(platform, commitHash, runtimeVersion, branchName string) (*types.Update, error) {
-	updateId := generateAntiCollisionUpdateTimestamp(platform)
+	updateId := GenerateAntiCollisionUpdateTimestamp(platform)
 	update := types.Update{
-		UpdateId:       strconv.FormatInt(updateId, 10),
+		UpdateId:       ConvertUpdateTimestampToString(updateId),
 		Branch:         branchName,
 		RuntimeVersion: runtimeVersion,
 		CreatedAt:      time.Duration(updateId) * time.Millisecond,
@@ -567,8 +571,8 @@ func CreateRollback(platform, commitHash, runtimeVersion, branchName string) (*t
 
 func RepublishUpdate(previousUpdate *types.Update, platform, commitHash string) (*types.Update, error) {
 	resolvedBucket := bucket.GetBucket()
-	updateId := generateAntiCollisionUpdateTimestamp(platform)
-	newUpdate, err := resolvedBucket.CreateUpdateFrom(previousUpdate, strconv.FormatInt(updateId, 10))
+	updateId := GenerateAntiCollisionUpdateTimestamp(platform)
+	newUpdate, err := resolvedBucket.CreateUpdateFrom(previousUpdate, ConvertUpdateTimestampToString(updateId))
 	if err != nil {
 		return nil, err
 	}
