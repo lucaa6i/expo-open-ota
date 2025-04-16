@@ -243,7 +243,7 @@ func GetUpdatesHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	
+
 	var updatesResponse []UpdateItem
 	for _, update := range updates {
 		isValid := update2.IsUpdateValid(update)

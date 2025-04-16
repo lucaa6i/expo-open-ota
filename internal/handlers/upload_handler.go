@@ -97,7 +97,7 @@ func MarkUpdateAsUploadedHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	// Now we have to retrieve the latest update and compare hash changes
 	latestUpdate, err := update.GetLatestUpdateBundlePathForRuntimeVersion(branchName, runtimeVersion, platform)
-	if err != nil || latestUpdate == nil {
+	if err != nil || latestUpdate == nil || update.GetUpdateType(*latestUpdate) == types.Rollback {
 		err = update.MarkUpdateAsChecked(*currentUpdate)
 		if err != nil {
 			log.Printf("[RequestID: %s] Error marking update as checked: %v", requestID, err)
@@ -108,6 +108,7 @@ func MarkUpdateAsUploadedHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
+
 	areUpdatesIdentical, err := update.AreUpdatesIdentical(*currentUpdate, *latestUpdate, platform)
 	if err != nil {
 		log.Printf("[RequestID: %s] Error comparing updates: %v", requestID, err)
