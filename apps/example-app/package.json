@@ -13,6 +13,8 @@
     "lint": "expo lint",
     "release_production": "RELEASE_CHANNEL=production ../eoas/bin/dev.js publish --nonInteractive --channel production --branch production",
     "release_staging": "RELEASE_CHANNEL=staging ../eoas/bin/dev.js publish --nonInteractive --channel staging --branch staging",
+    "create_production_rollback": "RELEASE_CHANNEL=production ../eoas/bin/dev.js rollback --nonInteractive --channel production --branch production",
+    "create_staging_rollback": "RELEASE_CHANNEL=staging ../eoas/bin/dev.js rollback --nonInteractive --channel staging --branch staging",
     "prebuild_production": "RELEASE_CHANNEL=production expo prebuild",
     "prebuild_staging": "RELEASE_CHANNEL=staging expo prebuild"
   },
