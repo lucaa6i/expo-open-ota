@@ -499,3 +499,74 @@ func RetrieveUpdateCommitHashAndPlatform(update types.Update) (string, string, e
 	}
 	return metadata.CommitHash, metadata.Platform, nil
 }
+
+func createUpdateMetadata(platform, commitHash string) (*strings.Reader, error) {
+	metadata := map[string]string{
+		"platform":   platform,
+		"commitHash": commitHash,
+	}
+	jsonData, err := json.Marshal(metadata)
+	if err != nil {
+		return nil, err
+	}
+	return strings.NewReader(string(jsonData)), nil
+}
+
+func CreateRollback(platform, commitHash, runtimeVersion, branchName string) (*types.Update, error) {
+	updateId := time.Now().UnixNano() / int64(time.Millisecond)
+	update := types.Update{
+		UpdateId:       strconv.FormatInt(updateId, 10),
+		Branch:         branchName,
+		RuntimeVersion: runtimeVersion,
+		CreatedAt:      time.Duration(updateId) * time.Millisecond,
+	}
+	resolvedBucket := bucket.GetBucket()
+	reader, err := createUpdateMetadata(platform, commitHash)
+	if err != nil {
+		return nil, err
+	}
+	err = resolvedBucket.UploadFileIntoUpdate(update, "update-metadata.json", reader)
+	if err != nil {
+		return nil, err
+	}
+	emptyReader := strings.NewReader("")
+	err = resolvedBucket.UploadFileIntoUpdate(update, "rollback", emptyReader)
+	if err != nil {
+		return nil, err
+	}
+	checkReader := strings.NewReader(".check")
+	err = resolvedBucket.UploadFileIntoUpdate(update, ".check", checkReader)
+	if err != nil {
+		return nil, err
+	}
+	cache := cache2.GetCache()
+	cacheKey := ComputeLastUpdateCacheKey(branchName, runtimeVersion, platform)
+	cache.Delete(cacheKey)
+	return &update, nil
+}
+
+func RepublishUpdate(previousUpdate *types.Update, platform, commitHash string) (*types.Update, error) {
+	resolvedBucket := bucket.GetBucket()
+	updateId := time.Now().UnixNano() / int64(time.Millisecond)
+	newUpdate, err := resolvedBucket.CreateUpdateFrom(previousUpdate, strconv.FormatInt(updateId, 10))
+	if err != nil {
+		return nil, err
+	}
+	reader, err := createUpdateMetadata(platform, commitHash)
+	if err != nil {
+		return nil, err
+	}
+	err = resolvedBucket.UploadFileIntoUpdate(*newUpdate, "update-metadata.json", reader)
+	if err != nil {
+		return nil, err
+	}
+	emptyReader := strings.NewReader(".check")
+	err = resolvedBucket.UploadFileIntoUpdate(*newUpdate, ".check", emptyReader)
+	if err != nil {
+		return nil, err
+	}
+	cache := cache2.GetCache()
+	cacheKey := ComputeLastUpdateCacheKey(newUpdate.Branch, newUpdate.RuntimeVersion, platform)
+	cache.Delete(cacheKey)
+	return newUpdate, nil
+}

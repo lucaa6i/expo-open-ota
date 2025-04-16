@@ -10,9 +10,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"io"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -272,4 +274,102 @@ func (b *S3Bucket) UploadFileIntoUpdate(update types.Update, fileName string, fi
 		return fmt.Errorf("PutObject error: %w", err)
 	}
 	return nil
+}
+
+func (b *S3Bucket) CreateUpdateFrom(previousUpdate *types.Update, newUpdateId string) (*types.Update, error) {
+	if b.BucketName == "" {
+		return nil, errors.New("BucketName not set")
+	}
+	if previousUpdate == nil {
+		return nil, errors.New("previousUpdate is nil")
+	}
+	if previousUpdate.UpdateId == "" {
+		return nil, errors.New("previousUpdate.UpdateId is empty")
+	}
+	if newUpdateId == "" {
+		return nil, errors.New("newUpdateId is empty")
+	}
+
+	s3Client, err := services.GetS3Client()
+	if err != nil {
+		return nil, fmt.Errorf("error getting S3 client: %w", err)
+	}
+
+	sourcePrefix := fmt.Sprintf("%s/%s/%s/", previousUpdate.Branch, previousUpdate.RuntimeVersion, previousUpdate.UpdateId)
+	targetPrefix := fmt.Sprintf("%s/%s/%s/", previousUpdate.Branch, previousUpdate.RuntimeVersion, newUpdateId)
+
+	paginator := s3.NewListObjectsV2Paginator(s3Client, &s3.ListObjectsV2Input{
+		Bucket: aws.String(b.BucketName),
+		Prefix: aws.String(sourcePrefix),
+	})
+
+	var wg sync.WaitGroup
+	errChan := make(chan error, 16)
+	sem := make(chan struct{}, runtime.NumCPU())
+
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(context.TODO())
+		if err != nil {
+			return nil, fmt.Errorf("failed to list objects: %w", err)
+		}
+
+		for _, object := range page.Contents {
+			key := *object.Key
+			relPath := strings.TrimPrefix(key, sourcePrefix)
+
+			if relPath == "update-metadata.json" || relPath == ".check" || strings.HasSuffix(relPath, "/") {
+				continue
+			}
+
+			srcKey := key
+			dstKey := targetPrefix + relPath
+
+			wg.Add(1)
+			go func(srcKey, dstKey string) {
+				defer wg.Done()
+				sem <- struct{}{}
+				defer func() { <-sem }()
+
+				getObjOutput, err := s3Client.GetObject(context.TODO(), &s3.GetObjectInput{
+					Bucket: aws.String(b.BucketName),
+					Key:    aws.String(srcKey),
+				})
+				if err != nil {
+					errChan <- fmt.Errorf("error getting object %s: %w", srcKey, err)
+					return
+				}
+				defer getObjOutput.Body.Close()
+
+				_, err = s3Client.PutObject(context.TODO(), &s3.PutObjectInput{
+					Bucket: aws.String(b.BucketName),
+					Key:    aws.String(dstKey),
+					Body:   getObjOutput.Body,
+				})
+				if err != nil {
+					errChan <- fmt.Errorf("error putting object %s: %w", dstKey, err)
+					return
+				}
+			}(srcKey, dstKey)
+		}
+	}
+
+	wg.Wait()
+	close(errChan)
+
+	for e := range errChan {
+		if e != nil {
+			return nil, e
+		}
+	}
+
+	updateId, err := strconv.ParseInt(newUpdateId, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing update ID: %w", err)
+	}
+	return &types.Update{
+		Branch:         previousUpdate.Branch,
+		RuntimeVersion: previousUpdate.RuntimeVersion,
+		UpdateId:       newUpdateId,
+		CreatedAt:      time.Duration(updateId) * time.Millisecond,
+	}, nil
 }

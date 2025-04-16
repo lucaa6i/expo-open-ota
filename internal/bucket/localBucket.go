@@ -8,12 +8,15 @@ import (
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
 	"io"
+	"io/fs"
 	"mime/multipart"
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -229,4 +232,145 @@ func HandleUploadFile(filePath string, body multipart.File) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+func (b *LocalBucket) CreateUpdateFrom(previousUpdate *types.Update, newUpdateId string) (*types.Update, error) {
+	if previousUpdate == nil {
+		return nil, errors.New("previousUpdate is nil")
+	}
+	if previousUpdate.UpdateId == "" {
+		return nil, errors.New("previousUpdate.UpdateId is empty")
+	}
+	if newUpdateId == "" {
+		return nil, errors.New("newUpdateId is empty")
+	}
+
+	previousUpdatePath := filepath.Join(b.BasePath, previousUpdate.Branch, previousUpdate.RuntimeVersion, previousUpdate.UpdateId)
+	newUpdatePath := filepath.Join(b.BasePath, previousUpdate.Branch, previousUpdate.RuntimeVersion, newUpdateId)
+
+	err := os.MkdirAll(newUpdatePath, os.ModePerm)
+	if err != nil {
+		return nil, err
+	}
+
+	entries, err := os.ReadDir(previousUpdatePath)
+	if err != nil {
+		return nil, err
+	}
+
+	var wg sync.WaitGroup
+	errChan := make(chan error, len(entries))
+	sem := make(chan struct{}, runtime.NumCPU())
+
+	for _, entry := range entries {
+		name := entry.Name()
+		if name == "update-metadata.json" || name == ".check" {
+			continue
+		}
+
+		srcPath := filepath.Join(previousUpdatePath, name)
+		dstPath := filepath.Join(newUpdatePath, name)
+
+		wg.Add(1)
+		go func(entry fs.DirEntry, src, dst string) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+
+			var err error
+			if entry.IsDir() {
+				err = copyDirParallel(src, dst)
+			} else {
+				err = copyFile(src, dst)
+			}
+			if err != nil {
+				errChan <- err
+			}
+		}(entry, srcPath, dstPath)
+	}
+
+	wg.Wait()
+	close(errChan)
+
+	for e := range errChan {
+		if e != nil {
+			return nil, e
+		}
+	}
+
+	updateId, err := strconv.ParseInt(newUpdateId, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing update ID: %w", err)
+	}
+	return &types.Update{
+		Branch:         previousUpdate.Branch,
+		RuntimeVersion: previousUpdate.RuntimeVersion,
+		UpdateId:       newUpdateId,
+		CreatedAt:      time.Duration(updateId) * time.Millisecond,
+	}, nil
+}
+
+func copyFile(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, in)
+	if err != nil {
+		return err
+	}
+	return out.Sync()
+}
+
+func copyDirParallel(srcDir, dstDir string) error {
+	err := os.MkdirAll(dstDir, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	entries, err := os.ReadDir(srcDir)
+	if err != nil {
+		return err
+	}
+
+	var wg sync.WaitGroup
+	errChan := make(chan error, len(entries))
+	sem := make(chan struct{}, runtime.NumCPU())
+	for _, entry := range entries {
+		srcPath := filepath.Join(srcDir, entry.Name())
+		dstPath := filepath.Join(dstDir, entry.Name())
+
+		wg.Add(1)
+		go func(entry fs.DirEntry, src, dst string) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+
+			var err error
+			if entry.IsDir() {
+				err = copyDirParallel(src, dst)
+			} else {
+				err = copyFile(src, dst)
+			}
+			if err != nil {
+				errChan <- err
+			}
+		}(entry, srcPath, dstPath)
+	}
+	wg.Wait()
+	close(errChan)
+	for e := range errChan {
+		if e != nil {
+			return e
+		}
+	}
+	return nil
 }

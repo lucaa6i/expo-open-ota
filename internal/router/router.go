@@ -47,6 +47,8 @@ func NewRouter() *mux.Router {
 	r.HandleFunc("/requestUploadUrl/{BRANCH}", handlers.RequestUploadUrlHandler).Methods(http.MethodPost)
 	r.HandleFunc("/uploadLocalFile", handlers.RequestUploadLocalFileHandler).Methods(http.MethodPut)
 	r.HandleFunc("/markUpdateAsUploaded/{BRANCH}", handlers.MarkUpdateAsUploadedHandler).Methods(http.MethodPost)
+	r.HandleFunc("/rollback/{BRANCH}", handlers.RollbackHandler).Methods(http.MethodPost)
+	r.HandleFunc("/republish/{BRANCH}", handlers.RepublishHandler).Methods(http.MethodPost)
 
 	corsSubrouter := r.PathPrefix("/auth").Subrouter()
 	corsSubrouter.HandleFunc("/login", handlers.LoginHandler).Methods(http.MethodPost)
