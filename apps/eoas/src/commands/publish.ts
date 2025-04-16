@@ -178,7 +178,6 @@ export default class Publish extends Command {
       Log.error(e);
       process.exit(1);
     }
-
     const exportSpinner = ora('📦 Exporting project files...').start();
     try {
       await spawnAsync('rm', ['-rf', outputDir], { cwd: projectDir });

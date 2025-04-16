@@ -286,5 +286,7 @@ func GetUpdatesHandler(w http.ResponseWriter, r *http.Request) {
 	})
 	json.NewEncoder(w).Encode(updatesResponse)
 	marshaledResponse, _ := json.Marshal(updatesResponse)
-	cache.Set(cacheKey, string(marshaledResponse), nil)
+	ttl := 10 * time.Second
+	ttlMs := int(ttl.Milliseconds())
+	cache.Set(cacheKey, string(marshaledResponse), &ttlMs)
 }
