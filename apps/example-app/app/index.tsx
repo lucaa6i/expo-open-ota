@@ -49,6 +49,7 @@ export default function HomeScreen() {
       } else if (update.isRollBackToEmbedded) {
         load(true)
         setLogs(logEntries)
+        await Updates.reloadAsync()
         load(false)
         Alert.alert(
           'Update rolled back',
