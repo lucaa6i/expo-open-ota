@@ -14,6 +14,8 @@ import {
 import { Badge } from '@/components/ui/badge.tsx';
 import apple from '@/assets/apple.svg';
 import android from '@/assets/android.svg';
+import { UpdateDetailsRef, UpdateDetailsSheet } from '@/components/UpdateDetailsSheet';
+import { useRef } from 'react';
 
 export const UpdatesTable = ({
   branch,
@@ -22,6 +24,7 @@ export const UpdatesTable = ({
   branch: string;
   runtimeVersion: string;
 }) => {
+  const sheetRef = useRef<UpdateDetailsRef>(null);
   const { data, isLoading, error } = useQuery({
     queryKey: ['updates'],
     queryFn: () => api.getUpdates(branch, runtimeVersion),
@@ -55,6 +58,7 @@ export const UpdatesTable = ({
         </BreadcrumbList>
       </Breadcrumb>
       {!!error && <ApiError error={error} />}
+      <UpdateDetailsSheet ref={sheetRef} branch={branch} runtimeVersion={runtimeVersion} />
       <DataTable
         loading={isLoading}
         columns={[
@@ -123,6 +127,9 @@ export const UpdatesTable = ({
           },
         ]}
         data={data ?? []}
+        onRowClick={row => {
+          sheetRef?.current?.openSheet(row);
+        }}
       />
     </div>
   );

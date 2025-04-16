@@ -17,3 +17,7 @@ func ComputeGetRuntimeVersionsCacheKey(branch string) string {
 func ComputeGetUpdatesCacheKey(branch string, runtimeVersion string) string {
 	return "dashboard:request:getUpdates:" + branch + ":" + runtimeVersion
 }
+
+func ComputeGetUpdateDetailsCacheKey(branch string, runtimeVersion string, updateID string) string {
+	return "dashboard:request:getUpdateDetails:" + branch + ":" + runtimeVersion + ":" + updateID
+}
