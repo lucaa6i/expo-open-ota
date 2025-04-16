@@ -21,3 +21,4 @@ export declare function isUsingStaticExpoConfig(projectDir: string): boolean;
 export declare function getPublicExpoConfigAsync(projectDir: string, opts?: ExpoConfigOptions): Promise<PublicExpoConfig>;
 export declare function getExpoConfigUpdateUrl(config: ExpoConfig): string | undefined;
 export declare function createOrModifyExpoConfigAsync(projectDir: string, exp: Partial<ExpoConfig>): Promise<void>;
+export declare function resolveServerUrl(config: ExpoConfig): Promise<string>;

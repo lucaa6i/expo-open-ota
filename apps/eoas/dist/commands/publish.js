@@ -33,7 +33,10 @@ class Publish extends core_1.Command {
         }),
         channel: core_1.Flags.string({
             description: 'Name of the channel to publish the update to',
-            required: true,
+            required: false,
+            deprecated: {
+                message: 'Channel was initially used to provide RELEASE_CHANNEL in the environment when resolving the runtime version. It is no longer needed, you can use RELEASE_CHANNEL={channel} eoas publish --branch={branch} instead',
+            },
         }),
         branch: core_1.Flags.string({
             description: 'Name of the branch to point to',
@@ -53,8 +56,8 @@ class Publish extends core_1.Command {
             platform: flags.platform,
             branch: flags.branch,
             nonInteractive: flags.nonInteractive,
-            channel: flags.channel,
             outputDir: flags.outputDir,
+            providedDeprecatedChannel: flags.channel,
         };
     }
     async run() {
@@ -64,47 +67,32 @@ class Publish extends core_1.Command {
             process.exit(1);
         }
         const { flags } = await this.parse(Publish);
-        const { platform, nonInteractive, branch, channel, outputDir } = this.sanitizeFlags(flags);
+        const { platform, nonInteractive, branch, outputDir, providedDeprecatedChannel } = this.sanitizeFlags(flags);
         if (!branch) {
             log_1.default.error('Branch name is required');
             process.exit(1);
         }
-        if (!channel) {
-            log_1.default.error('Channel name is required');
-            process.exit(1);
-        }
-        const vcsClient = (0, vcs_1.resolveVcsClient)(true);
-        await vcsClient.ensureRepoExistsAsync();
-        const commitHash = await vcsClient.getCommitHashAsync();
-        await (0, repo_1.ensureRepoIsCleanAsync)(vcsClient, nonInteractive);
         const projectDir = process.cwd();
         const hasExpo = (0, package_1.isExpoInstalled)(projectDir);
         if (!hasExpo) {
             log_1.default.error('Expo is not installed in this project. Please install Expo first.');
             process.exit(1);
         }
-        const privateConfig = await (0, expoConfig_1.getPrivateExpoConfigAsync)(projectDir, {
+        const vcsClient = (0, vcs_1.resolveVcsClient)(true);
+        await (0, repo_1.ensureRepoIsCleanAsync)(vcsClient, nonInteractive);
+        const config = await (0, expoConfig_1.getPrivateExpoConfigAsync)(projectDir, {
             env: {
-                RELEASE_CHANNEL: channel,
+                ...process.env,
+                ...(providedDeprecatedChannel ? { RELEASE_CHANNEL: providedDeprecatedChannel } : {}),
             },
         });
-        const updateUrl = (0, expoConfig_1.getExpoConfigUpdateUrl)(privateConfig);
-        if (!updateUrl) {
-            log_1.default.error("Update url is not setup in your config. Please run 'eoas init' to setup the update url");
+        const serverUrl = await (0, expoConfig_1.resolveServerUrl)(config).catch(e => {
+            log_1.default.error(e.message);
             process.exit(1);
-        }
-        let baseUrl;
-        try {
-            const parsedUrl = new URL(updateUrl);
-            baseUrl = parsedUrl.origin;
-        }
-        catch (e) {
-            log_1.default.error('Invalid URL', e);
-            process.exit(1);
-        }
+        });
         if (!nonInteractive) {
             const confirmed = await (0, prompts_1.confirmAsync)({
-                message: `Is this the correct URL of your self-hosted update server? ${baseUrl}`,
+                message: `Is this the correct URL of your self-hosted update server? ${serverUrl}`,
                 name: 'export',
                 type: 'confirm',
             });
@@ -113,18 +101,22 @@ class Publish extends core_1.Command {
                 process.exit(1);
             }
         }
+        const commitHash = await vcsClient.getCommitHashAsync();
         const runtimeSpinner = (0, ora_1.ora)('🔄 Resolving runtime version...').start();
         const runtimeVersions = [
             ...(!platform || platform === expoConfig_1.RequestedPlatform.All || platform === expoConfig_1.RequestedPlatform.Ios
                 ? [
                     {
                         runtimeVersion: (await (0, runtimeVersion_1.resolveRuntimeVersionAsync)({
-                            exp: privateConfig,
+                            exp: config,
                             platform: 'ios',
                             workflow: await (0, workflow_1.resolveWorkflowAsync)(projectDir, eas_build_job_1.Platform.IOS, vcsClient),
                             projectDir,
                             env: {
-                                RELEASE_CHANNEL: channel,
+                                ...process.env,
+                                ...(providedDeprecatedChannel
+                                    ? { RELEASE_CHANNEL: providedDeprecatedChannel }
+                                    : {}),
                             },
                         }))?.runtimeVersion,
                         platform: 'ios',
@@ -135,12 +127,15 @@ class Publish extends core_1.Command {
                 ? [
                     {
                         runtimeVersion: (await (0, runtimeVersion_1.resolveRuntimeVersionAsync)({
-                            exp: privateConfig,
+                            exp: config,
                             platform: 'android',
                             workflow: await (0, workflow_1.resolveWorkflowAsync)(projectDir, eas_build_job_1.Platform.ANDROID, vcsClient),
                             projectDir,
                             env: {
-                                RELEASE_CHANNEL: channel,
+                                ...process.env,
+                                ...(providedDeprecatedChannel
+                                    ? { RELEASE_CHANNEL: providedDeprecatedChannel }
+                                    : {}),
                             },
                         }))?.runtimeVersion,
                         platform: 'android',
@@ -200,7 +195,7 @@ class Publish extends core_1.Command {
                         body: {
                             fileNames: files.map(file => file.path),
                         },
-                        requestUploadUrl: `${baseUrl}/requestUploadUrl/${branch}`,
+                        requestUploadUrl: `${serverUrl}/requestUploadUrl/${branch}`,
                         auth: credentials,
                         runtimeVersion,
                         platform,
@@ -212,7 +207,7 @@ class Publish extends core_1.Command {
             }));
             const allItems = uploadUrls.flatMap(({ uploadRequests }) => uploadRequests);
             await Promise.all(allItems.map(async (itm) => {
-                const isLocalBucketFileUpload = itm.requestUploadUrl.startsWith(`${baseUrl}/uploadLocalFile`);
+                const isLocalBucketFileUpload = itm.requestUploadUrl.startsWith(`${serverUrl}/uploadLocalFile`);
                 const formData = new form_data_1.default();
                 let file;
                 try {
@@ -271,7 +266,7 @@ class Publish extends core_1.Command {
         }
         const markAsFinishedSpinner = (0, ora_1.ora)('🔗 Marking the updates as finished...').start();
         const results = await Promise.all(uploadUrls.map(async ({ updateId, platform, runtimeVersion }) => {
-            const response = await (0, fetch_1.fetchWithRetries)(`${baseUrl}/markUpdateAsUploaded/${branch}?platform=${platform}&updateId=${updateId}&runtimeVersion=${runtimeVersion}`, {
+            const response = await (0, fetch_1.fetchWithRetries)(`${serverUrl}/markUpdateAsUploaded/${branch}?platform=${platform}&updateId=${updateId}&runtimeVersion=${runtimeVersion}`, {
                 method: 'POST',
                 headers: {
                     ...(0, auth_1.getAuthExpoHeaders)(credentials),
@@ -305,10 +300,9 @@ class Publish extends core_1.Command {
             throw new Error();
         }
         else {
-            markAsFinishedSpinner.succeed(`\n✅ Your update has been successfully pushed to ${updateUrl}`);
+            markAsFinishedSpinner.succeed(`\n✅ Your update has been successfully pushed to ${serverUrl}`);
         }
         if (hasSuccess) {
-            log_1.default.withInfo(`🔗 Channel: \`${channel}\``);
             log_1.default.withInfo(`🌿 Branch: \`${branch}\``);
             log_1.default.withInfo(`⏳ Deployed at: \`${new Date().toUTCString()}\`\n`);
             log_1.default.withInfo('🔥 Your users will receive the latest update automatically!');

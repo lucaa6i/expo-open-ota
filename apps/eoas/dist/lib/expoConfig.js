@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createOrModifyExpoConfigAsync = exports.getExpoConfigUpdateUrl = exports.getPublicExpoConfigAsync = exports.isUsingStaticExpoConfig = exports.ensureExpoConfigExists = exports.getPrivateExpoConfigAsync = exports.RequestedPlatform = void 0;
+exports.resolveServerUrl = exports.createOrModifyExpoConfigAsync = exports.getExpoConfigUpdateUrl = exports.getPublicExpoConfigAsync = exports.isUsingStaticExpoConfig = exports.ensureExpoConfigExists = exports.getPrivateExpoConfigAsync = exports.RequestedPlatform = void 0;
 const tslib_1 = require("tslib");
 // This file is copied from eas-cli[https://github.com/expo/eas-cli] to ensure consistent user experience across the CLI.
 const config_1 = require("@expo/config");
@@ -196,3 +196,19 @@ function createValueNode(j, value) {
 function stringifyWithEnv(obj) {
     return JSON.stringify(obj, null, 2).replace(/"process\.env\.(\w+)"/g, 'process.env.$1');
 }
+async function resolveServerUrl(config) {
+    const updateUrl = config.updates?.url;
+    if (!updateUrl) {
+        throw new Error('No update URL found in the Expo config.');
+    }
+    let baseUrl;
+    try {
+        const parsedUrl = new URL(updateUrl);
+        baseUrl = parsedUrl.origin;
+    }
+    catch (e) {
+        throw new Error('Invalid update URL.');
+    }
+    return baseUrl;
+}
+exports.resolveServerUrl = resolveServerUrl;
