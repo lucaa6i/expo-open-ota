@@ -87,6 +87,12 @@ export default class Publish extends Command {
         RELEASE_CHANNEL: channel,
       },
     });
+    if (privateConfig?.updates?.disableAntiBrickingMeasures) {
+      Log.error(
+        'When using disableAntiBrickingMeasures, expo-updates is ignoring the embeded update of the app, please use republish command instead'
+      );
+      process.exit(1);
+    }
     const updateUrl = getExpoConfigUpdateUrl(privateConfig);
     if (!updateUrl) {
       Log.error(
