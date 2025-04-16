@@ -259,7 +259,7 @@ func GetMetadata(update types.Update) (types.UpdateMetadata, error) {
 	if err != nil {
 		return types.UpdateMetadata{}, err
 	}
-	hashInput := string(stringifiedMetadata) + "::" + update.Branch + "::" + update.RuntimeVersion
+	hashInput := string(stringifiedMetadata) + "::" + update.UpdateId + "::" + update.Branch + "::" + update.RuntimeVersion
 
 	id, errHash := crypto.CreateHash([]byte(hashInput), "sha256", "hex")
 
