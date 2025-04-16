@@ -46,6 +46,21 @@ export default function HomeScreen() {
         setLogs(logEntries)
         load(false)
         await Updates.reloadAsync()
+      } else if (update.isRollBackToEmbedded) {
+        load(true)
+        setLogs(logEntries)
+        load(false)
+        Alert.alert(
+          'Update rolled back',
+          'The update was rolled back to the embedded version.',
+          [
+            {
+              text: 'OK',
+              style: 'cancel',
+            },
+          ],
+          { cancelable: false },
+        )
       } else {
         setLogs(logEntries)
         load(false)
@@ -82,7 +97,7 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.safeAreaView}>
       <ScrollView contentContainerStyle={styles.scrollView}>
         <ThemedView style={styles.titleContainer}>
-          <ThemedText type="title">Current update (New flag)</ThemedText>
+          <ThemedText type="title">Current update</ThemedText>
         </ThemedView>
         <ThemedView style={styles.informations}>
           <ThemedText>Update ID: {Updates.updateId}</ThemedText>
