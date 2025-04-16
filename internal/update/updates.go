@@ -522,13 +522,13 @@ func generateAntiCollisionUpdateTimestamp(platform string) int64 {
 	var offset int64
 	switch platform {
 	case "ios":
-		offset = int64(rand.Intn(5) + 1) // 1 à 5
+		offset = int64(rand.Intn(5) + 1)
 	case "android":
 		offset = int64(rand.Intn(5) + 1)
 	default:
 		offset = 0
 	}
-	updateId += offset * int64(time.Second)
+	updateId += offset
 	return updateId
 }
 
