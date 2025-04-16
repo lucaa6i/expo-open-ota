@@ -9,6 +9,7 @@ import (
 	"expo-open-ota/internal/dashboard"
 	"expo-open-ota/internal/types"
 	"fmt"
+	"math/rand"
 	"mime"
 	"net/url"
 	"sort"
@@ -505,15 +506,34 @@ func createUpdateMetadata(platform, commitHash string) (*strings.Reader, error) 
 		"platform":   platform,
 		"commitHash": commitHash,
 	}
+	fmt.Printf("metadata map: %+v\n", metadata)
+
 	jsonData, err := json.Marshal(metadata)
 	if err != nil {
 		return nil, err
 	}
+	fmt.Printf("marshalled JSON: %s\n", string(jsonData))
+
 	return strings.NewReader(string(jsonData)), nil
 }
 
+func generateAntiCollisionUpdateTimestamp(platform string) int64 {
+	updateId := time.Now().UnixNano() / int64(time.Nanosecond)
+	var offset int64
+	switch platform {
+	case "ios":
+		offset = int64(rand.Intn(5) + 1) // 1 à 5
+	case "android":
+		offset = int64(rand.Intn(5) + 1)
+	default:
+		offset = 0
+	}
+	updateId += offset * int64(time.Second)
+	return updateId
+}
+
 func CreateRollback(platform, commitHash, runtimeVersion, branchName string) (*types.Update, error) {
-	updateId := time.Now().UnixNano() / int64(time.Millisecond)
+	updateId := generateAntiCollisionUpdateTimestamp(platform)
 	update := types.Update{
 		UpdateId:       strconv.FormatInt(updateId, 10),
 		Branch:         branchName,
@@ -547,7 +567,7 @@ func CreateRollback(platform, commitHash, runtimeVersion, branchName string) (*t
 
 func RepublishUpdate(previousUpdate *types.Update, platform, commitHash string) (*types.Update, error) {
 	resolvedBucket := bucket.GetBucket()
-	updateId := time.Now().UnixNano() / int64(time.Millisecond)
+	updateId := generateAntiCollisionUpdateTimestamp(platform)
 	newUpdate, err := resolvedBucket.CreateUpdateFrom(previousUpdate, strconv.FormatInt(updateId, 10))
 	if err != nil {
 		return nil, err
