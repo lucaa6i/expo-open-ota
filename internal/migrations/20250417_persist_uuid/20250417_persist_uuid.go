@@ -45,14 +45,13 @@ func init() {
 						var metadataJson types.MetadataObject
 						file, _ := b.GetFile(update, "metadata.json")
 						if file == nil {
-							continue
+							return fmt.Errorf("metadata.json file not found for update: %s", update.UpdateId)
 						}
 						createdAt := file.CreatedAt
 						err = json.NewDecoder(file.Reader).Decode(&metadataJson)
 						defer file.Reader.Close()
 						if err != nil {
-							fmt.Println("error decoding metadata json:", err)
-							continue
+							return fmt.Errorf("error decoding metadata json: %v", err)
 						}
 
 						metadata.CreatedAt = createdAt.UTC().Format("2006-01-02T15:04:05.000Z")
