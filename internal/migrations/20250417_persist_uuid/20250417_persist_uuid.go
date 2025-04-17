@@ -37,7 +37,7 @@ func init() {
 					for _, update := range updates {
 						fmt.Println("Processing update:", update.UpdateId)
 						storedMetadata, err := update2.RetrieveUpdateStoredMetadata(update)
-						if err == nil && storedMetadata.UpdateUUID != "" {
+						if storedMetadata == nil {
 							fmt.Println("Update UUID already exists, skipping:", update.UpdateId)
 							continue
 						}
@@ -72,8 +72,8 @@ func init() {
 						updateMetadataFile, _ := b.GetFile(update, "update-metadata.json")
 						defer file.Reader.Close()
 						storedMetadata = &types.UpdateStoredMetadata{}
-						if updateMetadataFile == nil {
-							err = json.NewDecoder(file.Reader).Decode(&storedMetadata)
+						if updateMetadataFile != nil {
+							err = json.NewDecoder(updateMetadataFile.Reader).Decode(&storedMetadata)
 							if err != nil {
 								fmt.Println("error decoding update-metadata.json:", err)
 								continue
