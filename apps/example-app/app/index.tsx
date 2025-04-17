@@ -20,7 +20,6 @@ export default function HomeScreen() {
 
   const [logs, setLogs] = useState<Updates.UpdatesLogEntry[]>([])
 
-  
   useEffect(() => {
     const fetchLogs = async () => {
       try {
@@ -52,6 +51,7 @@ export default function HomeScreen() {
         load(true)
         setLogs(logEntries)
         await Updates.reloadAsync()
+        // add alert on rollback
         load(false)
         Alert.alert(
           'Update rolled back',
