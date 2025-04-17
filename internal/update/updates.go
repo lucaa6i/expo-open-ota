@@ -579,14 +579,11 @@ func CreateRollback(platform, commitHash, runtimeVersion, branchName string) (*t
 	if err != nil {
 		return nil, err
 	}
-	checkReader := strings.NewReader(".check")
-	err = resolvedBucket.UploadFileIntoUpdate(update, ".check", checkReader)
+	err = MarkUpdateAsChecked(update)
 	if err != nil {
 		return nil, err
 	}
-	cache := cache2.GetCache()
-	cacheKey := ComputeLastUpdateCacheKey(branchName, runtimeVersion, platform)
-	cache.Delete(cacheKey)
+
 	return &update, nil
 }
 
@@ -609,8 +606,7 @@ func RepublishUpdate(previousUpdate *types.Update, platform, commitHash string) 
 	if err != nil {
 		return nil, err
 	}
-	emptyReader := strings.NewReader(".check")
-	err = resolvedBucket.UploadFileIntoUpdate(*newUpdate, ".check", emptyReader)
+	err = MarkUpdateAsChecked(*newUpdate)
 	if err != nil {
 		return nil, err
 	}
