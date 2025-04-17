@@ -61,13 +61,11 @@ func init() {
 						hashInput := string(stringifiedMetadata) + "::" + update.Branch + "::" + update.RuntimeVersion
 						id, errHash := crypto.CreateHash([]byte(hashInput), "sha256", "hex")
 						if errHash != nil {
-							fmt.Println("error creating hash:", errHash)
-							continue
+							return errHash
 						}
 						updateUUID := crypto.ConvertSHA256HashToUUID(id)
 						if updateUUID == "" {
-							fmt.Println("error converting hash to UUID")
-							continue
+							return fmt.Errorf("error converting hash to UUID")
 						}
 						updateMetadataFile, _ := b.GetFile(update, "update-metadata.json")
 						defer file.Reader.Close()
@@ -76,20 +74,20 @@ func init() {
 							err = json.NewDecoder(updateMetadataFile.Reader).Decode(&storedMetadata)
 							if err != nil {
 								fmt.Println("error decoding update-metadata.json:", err)
-								continue
+								return err
 							}
 						}
 						storedMetadata.UpdateUUID = updateUUID
 						updatedMetadata, err := json.Marshal(storedMetadata)
 						if err != nil {
 							fmt.Println("error marshaling update-metadata.json:", err)
-							continue
+							return err
 						}
 						reader := strings.NewReader(string(updatedMetadata))
 						err = b.UploadFileIntoUpdate(update, "update-metadata.json", reader)
 						if err != nil {
 							fmt.Println("error uploading update-metadata.json:", err)
-							continue
+							return err
 						}
 					}
 				}
