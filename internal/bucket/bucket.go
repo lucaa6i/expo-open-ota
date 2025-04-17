@@ -21,11 +21,14 @@ type Bucket interface {
 	GetBranches() ([]string, error)
 	GetRuntimeVersions(branch string) ([]RuntimeVersionWithStats, error)
 	GetUpdates(branch string, runtimeVersion string) ([]types.Update, error)
-	GetFile(update types.Update, assetPath string) (types.BucketFile, error)
+	GetFile(update types.Update, assetPath string) (*types.BucketFile, error)
 	RequestUploadUrlForFileUpdate(branch string, runtimeVersion string, updateId string, fileName string) (string, error)
 	UploadFileIntoUpdate(update types.Update, fileName string, file io.Reader) error
 	DeleteUpdateFolder(branch string, runtimeVersion string, updateId string) error
 	CreateUpdateFrom(previousUpdate *types.Update, newUpdateId string) (*types.Update, error)
+	RetrieveMigrationHistory() ([]string, error)
+	ApplyMigration(migrationId string) error
+	RemoveMigrationFromHistory(migrationId string) error
 }
 
 type BucketType string

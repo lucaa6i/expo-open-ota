@@ -201,19 +201,23 @@ func GetUpdateDetails(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	numberUpdate, _ := strconv.ParseInt(update.UpdateId, 10, 64)
-	commitHash, platform, _ := update2.RetrieveUpdateCommitHashAndPlatform(*update)
+	storedMetadata, _ := update2.RetrieveUpdateStoredMetadata(*update)
 	expoConfig, err := update2.GetExpoConfig(*update)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
+	updateUUID := storedMetadata.UpdateUUID
+	if updateUUID == "" {
+		updateUUID = crypto.ConvertSHA256HashToUUID(metadata.ID)
+	}
 	updatesResponse := UpdateDetails{
-		UpdateUUID: crypto.ConvertSHA256HashToUUID(metadata.ID),
+		UpdateUUID: updateUUID,
 		UpdateId:   update.UpdateId,
 		CreatedAt:  time.UnixMilli(numberUpdate).UTC().Format(time.RFC3339),
-		CommitHash: commitHash,
-		Platform:   platform,
+		CommitHash: storedMetadata.CommitHash,
+		Platform:   storedMetadata.Platform,
 		Type:       update2.GetUpdateType(*update),
 		ExpoConfig: string(expoConfig),
 	}
@@ -230,14 +234,16 @@ func GetUpdatesHandler(w http.ResponseWriter, r *http.Request) {
 	runtimeVersion := vars["RUNTIME_VERSION"]
 	cacheKey := dashboard.ComputeGetUpdatesCacheKey(branchName, runtimeVersion)
 	cache := cache2.GetCache()
-	if cacheValue := cache.Get(cacheKey); cacheValue != "" {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		var updatesResponse []UpdateItem
-		json.Unmarshal([]byte(cacheValue), &updatesResponse)
-		json.NewEncoder(w).Encode(updatesResponse)
-		return
-	}
+	/*
+		if cacheValue := cache.Get(cacheKey); cacheValue != "" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			var updatesResponse []UpdateItem
+			json.Unmarshal([]byte(cacheValue), &updatesResponse)
+			json.NewEncoder(w).Encode(updatesResponse)
+			return
+		}
+	*/
 	resolvedBucket := bucket.GetBucket()
 	updates, err := resolvedBucket.GetUpdates(branchName, runtimeVersion)
 	if err != nil {
@@ -252,15 +258,15 @@ func GetUpdatesHandler(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		numberUpdate, _ := strconv.ParseInt(update.UpdateId, 10, 64)
-		commitHash, platform, _ := update2.RetrieveUpdateCommitHashAndPlatform(update)
+		storedMetadata, _ := update2.RetrieveUpdateStoredMetadata(update)
 		updateType := update2.GetUpdateType(update)
 		if updateType == types.Rollback {
 			updatesResponse = append(updatesResponse, UpdateItem{
 				UpdateUUID: "Rollback to embedded",
 				UpdateId:   update.UpdateId,
 				CreatedAt:  time.UnixMilli(numberUpdate).UTC().Format(time.RFC3339),
-				CommitHash: commitHash,
-				Platform:   platform,
+				CommitHash: storedMetadata.CommitHash,
+				Platform:   storedMetadata.Platform,
 			})
 			continue
 		}
@@ -269,12 +275,16 @@ func GetUpdatesHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			continue
 		}
+		updateUUID := storedMetadata.UpdateUUID
+		if updateUUID == "" {
+			updateUUID = crypto.ConvertSHA256HashToUUID(metadata.ID)
+		}
 		updatesResponse = append(updatesResponse, UpdateItem{
-			UpdateUUID: crypto.ConvertSHA256HashToUUID(metadata.ID),
+			UpdateUUID: updateUUID,
 			UpdateId:   update.UpdateId,
 			CreatedAt:  time.UnixMilli(numberUpdate).UTC().Format(time.RFC3339),
-			CommitHash: commitHash,
-			Platform:   platform,
+			CommitHash: storedMetadata.CommitHash,
+			Platform:   storedMetadata.Platform,
 		})
 	}
 	w.Header().Set("Content-Type", "application/json")

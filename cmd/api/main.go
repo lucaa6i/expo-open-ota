@@ -2,12 +2,17 @@ package main
 
 import (
 	"expo-open-ota/config"
+	"expo-open-ota/internal/bucket"
 	"expo-open-ota/internal/metrics"
+	"expo-open-ota/internal/migration"
 	infrastructure "expo-open-ota/internal/router"
+	"github.com/gorilla/handlers"
 	"log"
 	"net/http"
+)
 
-	"github.com/gorilla/handlers"
+import (
+	_ "expo-open-ota/internal/migrations"
 )
 
 func init() {
@@ -16,6 +21,10 @@ func init() {
 }
 
 func main() {
+	b := bucket.GetBucket()
+	if err := migration.RunMigrations(b); err != nil {
+		log.Fatalf("Migrations failed: %v", err)
+	}
 	router := infrastructure.NewRouter()
 	log.Println("Server is running on port " + config.GetPort())
 	corsOptions := handlers.CORS(

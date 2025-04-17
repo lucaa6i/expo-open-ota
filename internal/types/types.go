@@ -33,6 +33,12 @@ type UpdateMetadata struct {
 	ID           string         `json:"id"`
 }
 
+type UpdateStoredMetadata struct {
+	Platform   string `json:"platform"`
+	CommitHash string `json:"commitHash"`
+	UpdateUUID string `json:"updateUUID"`
+}
+
 type UpdateType int
 
 const (

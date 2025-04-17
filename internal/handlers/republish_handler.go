@@ -50,7 +50,7 @@ func RepublishHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error getting update", http.StatusInternalServerError)
 		return
 	}
-	_, previousPlatform, err := update2.RetrieveUpdateCommitHashAndPlatform(*update)
+	storedMetadata, err := update2.RetrieveUpdateStoredMetadata(*update)
 	if err != nil {
 		log.Printf("[RequestID: %s] Error retrieving update commit hash and platform: %v", requestID, err)
 		http.Error(w, "Error retrieving update commit hash and platform", http.StatusInternalServerError)
@@ -62,8 +62,8 @@ func RepublishHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Update is not valid", http.StatusBadRequest)
 		return
 	}
-	if previousPlatform != platform {
-		log.Printf("[RequestID: %s] Update platform mismatch: %s != %s", requestID, previousPlatform, platform)
+	if storedMetadata.Platform != platform {
+		log.Printf("[RequestID: %s] Update platform mismatch: %s != %s", requestID, storedMetadata.Platform, platform)
 		http.Error(w, "Update platform mismatch", http.StatusBadRequest)
 		return
 	}

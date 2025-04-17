@@ -1,6 +1,7 @@
 package bucket
 
 import (
+	"bufio"
 	"errors"
 	"expo-open-ota/config"
 	"expo-open-ota/internal/services"
@@ -90,29 +91,32 @@ func (b *LocalBucket) GetUpdates(branch string, runtimeVersion string) ([]types.
 	return updates, nil
 }
 
-func (b *LocalBucket) GetFile(update types.Update, assetPath string) (types.BucketFile, error) {
+func (b *LocalBucket) GetFile(update types.Update, assetPath string) (*types.BucketFile, error) {
 	if b.BasePath == "" {
-		return types.BucketFile{}, errors.New("BasePath not set")
+		return nil, errors.New("BasePath not set")
 	}
 
 	filePath := filepath.Join(b.BasePath, update.Branch, update.RuntimeVersion, update.UpdateId, assetPath)
 
 	file, err := os.Open(filePath)
 	if err != nil {
-		return types.BucketFile{}, err
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, err
 	}
 
-	fileInfo, err := file.Stat()
+	info, err := file.Stat()
 	if err != nil {
 		file.Close()
-		return types.BucketFile{}, err
+		return nil, err
 	}
-	return types.BucketFile{
+
+	return &types.BucketFile{
 		Reader:    file,
-		CreatedAt: fileInfo.ModTime(),
+		CreatedAt: info.ModTime(),
 	}, nil
 }
-
 func (b *LocalBucket) GetBranches() ([]string, error) {
 	if b.BasePath == "" {
 		return nil, errors.New("BasePath not set")
@@ -328,6 +332,101 @@ func copyFile(src, dst string) error {
 		return err
 	}
 	return out.Sync()
+}
+
+func (b *LocalBucket) RetrieveMigrationHistory() ([]string, error) {
+	if b.BasePath == "" {
+		return nil, errors.New("BasePath not set")
+	}
+	migrationHistoryPath := filepath.Join(b.BasePath, ".migrationhistory")
+	file, err := os.Open(migrationHistoryPath)
+	if err != nil {
+		return nil, nil
+	}
+	defer file.Close()
+	var migrations []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		migrations = append(migrations, scanner.Text())
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+	return migrations, nil
+}
+
+func (b *LocalBucket) ApplyMigration(migrationId string) error {
+	if b.BasePath == "" {
+		return errors.New("BasePath not set")
+	}
+
+	migrationHistoryPath := filepath.Join(b.BasePath, ".migrationhistory")
+
+	migrations, err := b.RetrieveMigrationHistory()
+	if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("RetrieveMigrationHistory error: %w", err)
+	}
+	for _, id := range migrations {
+		if id == migrationId {
+			return nil
+		}
+	}
+
+	file, err := os.OpenFile(migrationHistoryPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return fmt.Errorf("open .migrationhistory error: %w", err)
+	}
+	defer file.Close()
+
+	if _, err := file.WriteString(migrationId + "\n"); err != nil {
+		return fmt.Errorf("write .migrationhistory error: %w", err)
+	}
+
+	return nil
+}
+
+func (b *LocalBucket) RemoveMigrationFromHistory(migrationId string) error {
+	if b.BasePath == "" {
+		return errors.New("BasePath not set")
+	}
+
+	migrationHistoryPath := filepath.Join(b.BasePath, ".migrationhistory")
+
+	migrations, err := b.RetrieveMigrationHistory()
+	if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("RetrieveMigrationHistory error: %w", err)
+	}
+	hasMigration := false
+	for _, id := range migrations {
+		if id == migrationId {
+			hasMigration = true
+			break
+		}
+	}
+	if !hasMigration {
+		return nil
+	}
+
+	var newMigrations []string
+	for _, id := range migrations {
+		if id != migrationId {
+			newMigrations = append(newMigrations, id)
+		}
+	}
+
+	file, err := os.OpenFile(migrationHistoryPath, os.O_TRUNC|os.O_WRONLY, 0644)
+	if err != nil {
+		return fmt.Errorf("open .migrationhistory error: %w", err)
+	}
+	defer file.Close()
+
+	for _, id := range newMigrations {
+		if _, err := file.WriteString(id + "\n"); err != nil {
+			return fmt.Errorf("write .migrationhistory error: %w", err)
+		}
+	}
+
+	return nil
 }
 
 func copyDirParallel(srcDir, dstDir string) error {

@@ -1,6 +1,7 @@
 package bucket
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"expo-open-ota/internal/services"
@@ -202,25 +203,31 @@ func (b *S3Bucket) GetUpdates(branch string, runtimeVersion string) ([]types.Upd
 	return updates, nil
 }
 
-func (b *S3Bucket) GetFile(update types.Update, assetPath string) (types.BucketFile, error) {
+func (b *S3Bucket) GetFile(update types.Update, assetPath string) (*types.BucketFile, error) {
 	if b.BucketName == "" {
-		return types.BucketFile{}, errors.New("BucketName not set")
+		return nil, errors.New("BucketName not set")
 	}
-	filePath := update.Branch + "/" + update.RuntimeVersion + "/" + update.UpdateId + "/" + assetPath
-	s3Client, errS3 := services.GetS3Client()
-	if errS3 != nil {
-		return types.BucketFile{}, errS3
+	key := update.Branch + "/" + update.RuntimeVersion + "/" + update.UpdateId + "/" + assetPath
+
+	s3Client, err := services.GetS3Client()
+	if err != nil {
+		return nil, err
 	}
+
 	input := &s3.GetObjectInput{
 		Bucket: aws.String(b.BucketName),
-		Key:    aws.String(filePath),
+		Key:    aws.String(key),
 	}
 	resp, err := s3Client.GetObject(context.TODO(), input)
 	if err != nil {
-
-		return types.BucketFile{}, fmt.Errorf("GetObject error: %w", err)
+		var noSuchKey *s3types.NoSuchKey
+		if errors.As(err, &noSuchKey) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("GetObject error: %w", err)
 	}
-	return types.BucketFile{
+
+	return &types.BucketFile{
 		Reader:    resp.Body,
 		CreatedAt: *resp.LastModified,
 	}, nil
@@ -372,4 +379,127 @@ func (b *S3Bucket) CreateUpdateFrom(previousUpdate *types.Update, newUpdateId st
 		UpdateId:       newUpdateId,
 		CreatedAt:      time.Duration(updateId) * time.Millisecond,
 	}, nil
+}
+
+func (b *S3Bucket) RetrieveMigrationHistory() ([]string, error) {
+	if b.BucketName == "" {
+		return nil, errors.New("BucketName not set")
+	}
+	s3Client, errS3 := services.GetS3Client()
+	if errS3 != nil {
+		return nil, errS3
+	}
+	input := &s3.GetObjectInput{
+		Bucket: aws.String(b.BucketName),
+		Key:    aws.String(".migrationhistory"),
+	}
+	resp, err := s3Client.GetObject(context.TODO(), input)
+	if err != nil {
+		return nil, fmt.Errorf("GetObject error: %w", err)
+	}
+	defer resp.Body.Close()
+	var migrationHistory []string
+	for {
+		var line string
+		_, err := fmt.Fscanln(resp.Body, &line)
+		if err != nil {
+			break
+		}
+		migrationHistory = append(migrationHistory, line)
+	}
+	return migrationHistory, nil
+}
+
+func (b *S3Bucket) ApplyMigration(migrationId string) error {
+	if b.BucketName == "" {
+		return errors.New("BucketName not set")
+	}
+
+	migrationHistory, err := b.RetrieveMigrationHistory()
+	if err != nil {
+		return fmt.Errorf("RetrieveMigrationHistory error: %w", err)
+	}
+	isAlreadyApplied := false
+	for _, id := range migrationHistory {
+		if id == migrationId {
+			isAlreadyApplied = true
+			break
+		}
+	}
+	if isAlreadyApplied {
+		return nil
+	}
+
+	s3Client, errS3 := services.GetS3Client()
+	if errS3 != nil {
+		return errS3
+	}
+
+	var currentContent []byte
+	obj, err := s3Client.GetObject(context.TODO(), &s3.GetObjectInput{
+		Bucket: aws.String(b.BucketName),
+		Key:    aws.String(".migrationhistory"),
+	})
+	if err == nil {
+		defer obj.Body.Close()
+		currentContent, _ = io.ReadAll(obj.Body)
+	}
+
+	newContent := append(currentContent, []byte(migrationId+"\n")...)
+
+	_, err = s3Client.PutObject(context.TODO(), &s3.PutObjectInput{
+		Bucket: aws.String(b.BucketName),
+		Key:    aws.String(".migrationhistory"),
+		Body:   bytes.NewReader(newContent),
+	})
+	if err != nil {
+		return fmt.Errorf("PutObject error: %w", err)
+	}
+
+	return nil
+}
+
+func (b *S3Bucket) RemoveMigrationFromHistory(migrationId string) error {
+	if b.BucketName == "" {
+		return errors.New("BucketName not set")
+	}
+
+	migrationHistory, err := b.RetrieveMigrationHistory()
+	if err != nil {
+		return fmt.Errorf("RetrieveMigrationHistory error: %w", err)
+	}
+
+	hasMigration := false
+	for _, id := range migrationHistory {
+		if id == migrationId {
+			hasMigration = true
+			break
+		}
+	}
+	if !hasMigration {
+		return nil
+	}
+
+	var newContent []byte
+	for _, id := range migrationHistory {
+		if id != migrationId {
+			newContent = append(newContent, []byte(id+"\n")...)
+		}
+	}
+
+	s3Client, errS3 := services.GetS3Client()
+	if errS3 != nil {
+		return errS3
+	}
+
+	_, err = s3Client.PutObject(context.TODO(), &s3.PutObjectInput{
+		Bucket: aws.String(b.BucketName),
+		Key:    aws.String(".migrationhistory"),
+		Body:   bytes.NewReader(newContent),
+	})
+	if err != nil {
+		return fmt.Errorf("PutObject error: %w", err)
+	}
+
+	return nil
 }

@@ -102,7 +102,7 @@ func MarkUpdateAsUploadedHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	areUpdatesIdentical, err := update.AreUpdatesIdentical(*currentUpdate, *latestUpdate, platform)
+	areUpdatesIdentical, err := update.AreUpdatesIdentical(*currentUpdate, *latestUpdate)
 	if err != nil {
 		log.Printf("[RequestID: %s] Error comparing updates: %v", requestID, err)
 		http.Error(w, "Error comparing updates", http.StatusInternalServerError)
