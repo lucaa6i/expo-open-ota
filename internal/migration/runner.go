@@ -2,7 +2,9 @@ package migration
 
 import (
 	"expo-open-ota/internal/bucket"
+	"expo-open-ota/internal/cache"
 	"fmt"
+	"log"
 )
 
 func RunMigrations(b bucket.Bucket) error {
@@ -55,4 +57,23 @@ func RollbackLastMigration(b bucket.Bucket) error {
 		return fmt.Errorf("rollback %s failed: %w", last, err)
 	}
 	return b.RemoveMigrationFromHistory(last)
+}
+
+func RunMigrationsWithLock() {
+	log.Println("🔧 Checking if migrations should run...")
+	b := bucket.GetBucket()
+	c := cache.GetCache()
+	ok, err := c.TryLock("migration-lock", 120)
+	if err != nil {
+		log.Fatalf("❌ Failed to acquire migration lock: %v", err)
+	}
+	if !ok {
+		log.Println("⏩ Migration already in progress or completed on another instance – skipping.")
+		return
+	}
+	log.Println("✅ Migration lock acquired – starting migrations...")
+	if err := RunMigrations(b); err != nil {
+		log.Fatalf("🚨 Migration failed: %v", err)
+	}
+	log.Println("🎉 Migrations completed successfully.")
 }

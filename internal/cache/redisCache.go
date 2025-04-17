@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -14,10 +15,6 @@ type RedisCache struct {
 	host     string
 	password string
 	port     string
-}
-
-func appendKeyPrefix(key string) string {
-	return "expo-open-ota:" + key
 }
 
 func NewRedisCache(host, password, port string, useTLS bool) *RedisCache {
@@ -46,7 +43,7 @@ func (c *RedisCache) Get(key string) string {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	val, err := c.client.Get(ctx, appendKeyPrefix(key)).Result()
+	val, err := c.client.Get(ctx, withPrefix(key)).Result()
 	if errors.Is(err, redis.Nil) {
 		return ""
 	} else if err != nil {
@@ -64,19 +61,23 @@ func (c *RedisCache) Set(key string, value string, ttl *int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	return c.client.Set(ctx, appendKeyPrefix(key), value, expiration).Err()
+	return c.client.Set(ctx, withPrefix(key), value, expiration).Err()
 }
 
 func (c *RedisCache) Delete(key string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	c.client.Del(ctx, appendKeyPrefix(key))
+	c.client.Del(ctx, withPrefix(key))
 }
 
 func (c *RedisCache) Clear() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	fmt.Println("Cache can only be cleared in development mode.")
+	return nil
+}
 
-	return c.client.FlushDB(ctx).Err()
+func (r *RedisCache) TryLock(key string, ttl int) (bool, error) {
+	ctx := context.Background()
+	ok, err := r.client.SetNX(ctx, withPrefix(key), "locked", time.Duration(ttl)*time.Second).Result()
+	return ok, err
 }

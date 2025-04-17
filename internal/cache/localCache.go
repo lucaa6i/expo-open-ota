@@ -1,6 +1,8 @@
 package cache
 
 import (
+	"expo-open-ota/internal/version"
+	"fmt"
 	"sync"
 	"time"
 )
@@ -25,13 +27,13 @@ func (c *LocalCache) Get(key string) string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	item, exists := c.items[key]
+	item, exists := c.items[withPrefix(key)]
 	if !exists {
 		return ""
 	}
 
 	if item.Expiration != nil && time.Now().After(*item.Expiration) {
-		delete(c.items, key)
+		delete(c.items, withPrefix(key))
 		return ""
 	}
 
@@ -48,7 +50,7 @@ func (c *LocalCache) Set(key string, value string, ttl *int) error {
 		expiration = &exp
 	}
 
-	c.items[key] = CacheItem{
+	c.items[withPrefix(key)] = CacheItem{
 		Value:      value,
 		Expiration: expiration,
 	}
@@ -63,13 +65,40 @@ func (c *LocalCache) Delete(key string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	// delete sur une map nil est sans danger en Go, donc pas besoin de vérifier c.items.
-	delete(c.items, key)
+	delete(c.items, withPrefix(key))
 }
 
 func (c *LocalCache) Clear() error {
+	if version.Version != "development" {
+		fmt.Println("Cache can only be cleared in development mode.")
+		return nil
+	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.items = make(map[string]CacheItem)
 	return nil
+}
+
+func (c *LocalCache) TryLock(key string, ttl int) (bool, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if _, exists := c.items[withPrefix(key)]; exists {
+		return false, nil
+	}
+
+	exp := time.Now().Add(time.Duration(ttl) * time.Second)
+	c.items[withPrefix(key)] = CacheItem{
+		Value:      "locked",
+		Expiration: &exp,
+	}
+
+	go func() {
+		time.Sleep(time.Duration(ttl) * time.Second)
+		c.mu.Lock()
+		delete(c.items, withPrefix(key))
+		c.mu.Unlock()
+	}()
+
+	return true, nil
 }

@@ -72,7 +72,7 @@ func RepublishHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	updateType := update2.GetUpdateType(*update)
 	if updateType != types2.NormalUpdate {
-		log.Printf("[RequestID: %s] Update type is not normal update: %s", requestID, updateType)
+		log.Printf("[RequestID: %s] Update type is not normal update", requestID)
 		http.Error(w, "Update type is not normal update", http.StatusBadRequest)
 		return
 	}
