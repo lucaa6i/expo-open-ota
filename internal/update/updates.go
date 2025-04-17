@@ -534,13 +534,11 @@ func createUpdateMetadata(platform, commitHash string) (*strings.Reader, error) 
 		"platform":   platform,
 		"commitHash": commitHash,
 	}
-	fmt.Printf("metadata map: %+v\n", metadata)
 
 	jsonData, err := json.Marshal(metadata)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("marshalled JSON: %s\n", string(jsonData))
 
 	return strings.NewReader(string(jsonData)), nil
 }
