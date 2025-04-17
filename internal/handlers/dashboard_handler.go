@@ -234,16 +234,14 @@ func GetUpdatesHandler(w http.ResponseWriter, r *http.Request) {
 	runtimeVersion := vars["RUNTIME_VERSION"]
 	cacheKey := dashboard.ComputeGetUpdatesCacheKey(branchName, runtimeVersion)
 	cache := cache2.GetCache()
-	/*
-		if cacheValue := cache.Get(cacheKey); cacheValue != "" {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			var updatesResponse []UpdateItem
-			json.Unmarshal([]byte(cacheValue), &updatesResponse)
-			json.NewEncoder(w).Encode(updatesResponse)
-			return
-		}
-	*/
+	if cacheValue := cache.Get(cacheKey); cacheValue != "" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		var updatesResponse []UpdateItem
+		json.Unmarshal([]byte(cacheValue), &updatesResponse)
+		json.NewEncoder(w).Encode(updatesResponse)
+		return
+	}
 	resolvedBucket := bucket.GetBucket()
 	updates, err := resolvedBucket.GetUpdates(branchName, runtimeVersion)
 	if err != nil {
