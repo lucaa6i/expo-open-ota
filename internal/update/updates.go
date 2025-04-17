@@ -147,26 +147,7 @@ func AreUpdatesIdentical(update1, update2 types.Update, platform string) (bool, 
 	if errMetadata2 != nil {
 		return false, errMetadata2
 	}
-	update1Manifest, errManifest1 := ComposeUpdateManifest(&metadata1, update1, platform)
-	if errManifest1 != nil {
-		return false, errManifest1
-	}
-	update2Manifest, errManifest2 := ComposeUpdateManifest(&metadata2, update2, platform)
-	if errManifest2 != nil {
-		return false, errManifest2
-	}
-	if update1Manifest.LaunchAsset.Hash != update2Manifest.LaunchAsset.Hash {
-		return false, nil
-	}
-	if len(update2Manifest.Assets) != len(update1Manifest.Assets) {
-		return false, nil
-	}
-	for i, asset := range update1Manifest.Assets {
-		if asset.Hash != update2Manifest.Assets[i].Hash {
-			return false, nil
-		}
-	}
-	return true, nil
+	return metadata1.ID == metadata2.ID, nil
 }
 
 func GetLatestUpdateBundlePathForRuntimeVersion(branch string, runtimeVersion string, platform string) (*types.Update, error) {

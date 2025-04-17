@@ -127,6 +127,13 @@ func MarkUpdateAsUploadedHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNotAcceptable)
+	// Send error like json error { error: "No changes detected in the update from the previous one" }
+	log.Printf("[RequestID: %s] Updates are identical, folder deleted", requestID)
+	w.Header().Set("Content-Type", "application/json")
+	response := map[string]string{
+		"error": "You have already uploaded this update, no changes detected",
+	}
+	json.NewEncoder(w).Encode(response)
 }
 
 func RequestUploadLocalFileHandler(w http.ResponseWriter, r *http.Request) {
