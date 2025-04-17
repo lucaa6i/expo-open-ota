@@ -518,7 +518,7 @@ func RetrieveUpdateStoredMetadata(update types.Update) (*types.UpdateStoredMetad
 		return nil, err
 	}
 	if file == nil {
-		return nil, fmt.Errorf("file not found")
+		return nil, nil
 	}
 	defer file.Reader.Close()
 	var metadata types.UpdateStoredMetadata

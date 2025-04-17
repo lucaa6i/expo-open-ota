@@ -3,6 +3,9 @@ package handlers
 import (
 	"encoding/json"
 	"expo-open-ota/internal/branch"
+	"expo-open-ota/internal/helpers"
+	"expo-open-ota/internal/services"
+	types2 "expo-open-ota/internal/types"
 	update2 "expo-open-ota/internal/update"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
@@ -25,7 +28,19 @@ func RepublishHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "No branch provided", http.StatusBadRequest)
 		return
 	}
-	err := branch.UpsertBranch(branchName)
+	expoAuth := helpers.GetExpoAuth(r)
+	expoAccount, err := services.FetchExpoUserAccountInformations(expoAuth)
+	if err != nil {
+		log.Printf("[RequestID: %s] Error fetching expo account informations: %v", requestID, err)
+		http.Error(w, "Error fetching expo account informations", http.StatusUnauthorized)
+		return
+	}
+	if expoAccount == nil {
+		log.Printf("[RequestID: %s] No expo account found", requestID)
+		http.Error(w, "No expo account found", http.StatusUnauthorized)
+		return
+	}
+	err = branch.UpsertBranch(branchName)
 	if err != nil {
 		log.Printf("[RequestID: %s] Error upserting branch: %v", requestID, err)
 		http.Error(w, "Error upserting branch", http.StatusInternalServerError)
@@ -47,13 +62,29 @@ func RepublishHandler(w http.ResponseWriter, r *http.Request) {
 	update, err := update2.GetUpdate(branchName, runtimeVersion, updateId)
 	if err != nil {
 		log.Printf("[RequestID: %s] Error getting update: %v", requestID, err)
-		http.Error(w, "Error getting update", http.StatusInternalServerError)
+		http.Error(w, "Error getting update", http.StatusBadRequest)
+		return
+	}
+	if update == nil {
+		log.Printf("[RequestID: %s] No update found for runtimeVersion: %s in branch: %s", requestID, runtimeVersion, branchName)
+		http.Error(w, "No update found", http.StatusNotFound)
+		return
+	}
+	updateType := update2.GetUpdateType(*update)
+	if updateType != types2.NormalUpdate {
+		log.Printf("[RequestID: %s] Update type is not normal update: %s", requestID, updateType)
+		http.Error(w, "Update type is not normal update", http.StatusBadRequest)
 		return
 	}
 	storedMetadata, err := update2.RetrieveUpdateStoredMetadata(*update)
 	if err != nil {
 		log.Printf("[RequestID: %s] Error retrieving update commit hash and platform: %v", requestID, err)
 		http.Error(w, "Error retrieving update commit hash and platform", http.StatusInternalServerError)
+		return
+	}
+	if storedMetadata == nil {
+		log.Printf("[RequestID: %s] No stored metadata found for update: %s", requestID, updateId)
+		http.Error(w, "No stored metadata found for update", http.StatusNotFound)
 		return
 	}
 	isValid := update2.IsUpdateValid(*update)
