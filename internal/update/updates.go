@@ -179,7 +179,7 @@ func AreUpdatesIdentical(update1, update2 types.Update) (bool, error) {
 	if errMetadata2 != nil {
 		return false, errMetadata2
 	}
-	return metadata1.ID == metadata2.ID, nil
+	return metadata1.Fingerprint == metadata2.Fingerprint, nil
 }
 
 func GetLatestUpdateBundlePathForRuntimeVersion(branch string, runtimeVersion string, platform string) (*types.Update, error) {
@@ -275,14 +275,19 @@ func GetMetadata(update types.Update) (types.UpdateMetadata, error) {
 	if err != nil {
 		return types.UpdateMetadata{}, err
 	}
-	hashInput := string(stringifiedMetadata) + "::" + update.Branch + "::" + update.RuntimeVersion
-
+	hashInput := fmt.Sprintf("%s::%s::%s::%s", string(stringifiedMetadata), update.UpdateId, update.Branch, update.RuntimeVersion)
 	id, errHash := crypto.CreateHash([]byte(hashInput), "sha256", "hex")
 
 	if errHash != nil {
 		return types.UpdateMetadata{}, errHash
 	}
+	fingerPrintHash := fmt.Sprintf("%s::%s::%s", string(stringifiedMetadata), update.Branch, update.RuntimeVersion)
+	fingerprint, errHash := crypto.CreateHash([]byte(fingerPrintHash), "sha256", "hex")
+	if errHash != nil {
+		return types.UpdateMetadata{}, errHash
+	}
 	metadata.ID = id
+	metadata.Fingerprint = fingerprint
 	cacheValue, err := json.Marshal(metadata)
 	if err != nil {
 		return metadata, nil
