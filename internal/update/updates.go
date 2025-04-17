@@ -10,7 +10,6 @@ import (
 	"expo-open-ota/internal/types"
 	"expo-open-ota/internal/version"
 	"fmt"
-	"math/rand"
 	"mime"
 	"net/url"
 	"sort"
@@ -104,8 +103,7 @@ func IsUpdateValid(Update types.Update) bool {
 	resolvedBucket := bucket.GetBucket()
 	// Search for .check file in the update
 	file, _ := resolvedBucket.GetFile(Update, ".check")
-	if file.Reader != nil {
-		defer file.Reader.Close()
+	if file != nil {
 		return true
 	}
 	return false
@@ -542,19 +540,8 @@ func createUpdateMetadata(platform, commitHash string) (*strings.Reader, error) 
 	return strings.NewReader(string(jsonData)), nil
 }
 
-func GenerateAntiCollisionUpdateTimestamp(platform string) int64 {
-	updateId := time.Now().UnixNano() / int64(time.Millisecond)
-	var offset int64
-	switch platform {
-	case "ios":
-		offset = int64(rand.Intn(3) + 1)
-	case "android":
-		offset = int64(rand.Intn(9) + 4)
-	default:
-		offset = 0
-	}
-	updateId += offset
-	return updateId
+func GenerateUpdateTimestamp() int64 {
+	return time.Now().UnixNano() / int64(time.Millisecond)
 }
 
 func ConvertUpdateTimestampToString(updateId int64) string {
@@ -562,7 +549,7 @@ func ConvertUpdateTimestampToString(updateId int64) string {
 }
 
 func CreateRollback(platform, commitHash, runtimeVersion, branchName string) (*types.Update, error) {
-	updateId := GenerateAntiCollisionUpdateTimestamp(platform)
+	updateId := GenerateUpdateTimestamp()
 	update := types.Update{
 		UpdateId:       ConvertUpdateTimestampToString(updateId),
 		Branch:         branchName,
@@ -600,7 +587,7 @@ func CreateRollback(platform, commitHash, runtimeVersion, branchName string) (*t
 
 func RepublishUpdate(previousUpdate *types.Update, platform, commitHash string) (*types.Update, error) {
 	resolvedBucket := bucket.GetBucket()
-	updateId := GenerateAntiCollisionUpdateTimestamp(platform)
+	updateId := GenerateUpdateTimestamp()
 	newUpdate, err := resolvedBucket.CreateUpdateFrom(previousUpdate, ConvertUpdateTimestampToString(updateId))
 	if err != nil {
 		return nil, err
