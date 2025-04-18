@@ -45,21 +45,14 @@ func MarkUpdateAsUploadedHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	expoAuth := helpers.GetExpoAuth(r)
-	expoAccount, err := services.FetchExpoUserAccountInformations(expoAuth)
+	expoAccount, err := services.ValidateExpoAuth(expoAuth)
 	if err != nil {
-		log.Printf("[RequestID: %s] Error fetching expo account informations: %v", requestID, err)
-		http.Error(w, "Error fetching expo account informations", http.StatusUnauthorized)
-		return
+		log.Printf("[RequestID: %s] Error validating expo auth: %v", requestID, err)
+		http.Error(w, "Error validating expo auth", http.StatusUnauthorized)
 	}
 	if expoAccount == nil {
 		log.Printf("[RequestID: %s] No expo account found", requestID)
 		http.Error(w, "No expo account found", http.StatusUnauthorized)
-		return
-	}
-	currentExpoUsername := services.FetchSelfExpoUsername()
-	if expoAccount.Username != currentExpoUsername {
-		log.Printf("[RequestID: %s] Invalid expo account", requestID)
-		http.Error(w, "Invalid expo account", http.StatusUnauthorized)
 		return
 	}
 	runtimeVersion := r.URL.Query().Get("runtimeVersion")
@@ -97,7 +90,7 @@ func MarkUpdateAsUploadedHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	// Now we have to retrieve the latest update and compare hash changes
 	latestUpdate, err := update.GetLatestUpdateBundlePathForRuntimeVersion(branchName, runtimeVersion, platform)
-	if err != nil || latestUpdate == nil {
+	if err != nil || latestUpdate == nil || update.GetUpdateType(*latestUpdate) == types.Rollback {
 		err = update.MarkUpdateAsChecked(*currentUpdate)
 		if err != nil {
 			log.Printf("[RequestID: %s] Error marking update as checked: %v", requestID, err)
@@ -108,7 +101,8 @@ func MarkUpdateAsUploadedHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
-	areUpdatesIdentical, err := update.AreUpdatesIdentical(*currentUpdate, *latestUpdate, platform)
+
+	areUpdatesIdentical, err := update.AreUpdatesIdentical(*currentUpdate, *latestUpdate)
 	if err != nil {
 		log.Printf("[RequestID: %s] Error comparing updates: %v", requestID, err)
 		http.Error(w, "Error comparing updates", http.StatusInternalServerError)
@@ -133,6 +127,13 @@ func MarkUpdateAsUploadedHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNotAcceptable)
+	// Send error like json error { error: "No changes detected in the update from the previous one" }
+	log.Printf("[RequestID: %s] Updates are identical, folder deleted", requestID)
+	w.Header().Set("Content-Type", "application/json")
+	response := map[string]string{
+		"error": "You have already uploaded this update, no changes detected",
+	}
+	json.NewEncoder(w).Encode(response)
 }
 
 func RequestUploadLocalFileHandler(w http.ResponseWriter, r *http.Request) {
@@ -144,22 +145,10 @@ func RequestUploadLocalFileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	requestID := uuid.New().String()
 	expoAuth := helpers.GetExpoAuth(r)
-	expoAccount, err := services.FetchExpoUserAccountInformations(expoAuth)
-	if err != nil {
-		log.Printf("[RequestID: %s] Error fetching expo account informations: %v", requestID, err)
-		http.Error(w, "Error fetching expo account informations", http.StatusInternalServerError)
-		return
-	}
-	if expoAccount == nil {
-		log.Printf("[RequestID: %s] No expo account found", requestID)
-		http.Error(w, "No expo account found", http.StatusUnauthorized)
-		return
-	}
-	currentExpoUsername := services.FetchSelfExpoUsername()
-	if expoAccount.Username != currentExpoUsername {
-		log.Printf("[RequestID: %s] Invalid expo account", requestID)
-		http.Error(w, "Invalid expo account", http.StatusUnauthorized)
-		return
+	expoAccount, err := services.ValidateExpoAuth(expoAuth)
+	if err != nil || expoAccount == nil {
+		log.Printf("[RequestID: %s] Error validating expo auth: %v", requestID, err)
+		http.Error(w, "Error validating expo auth", http.StatusUnauthorized)
 	}
 	token := r.URL.Query().Get("token")
 	if token == "" {
@@ -214,11 +203,10 @@ func RequestUploadUrlHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	expoAuth := helpers.GetExpoAuth(r)
-	expoAccount, err := services.FetchExpoUserAccountInformations(expoAuth)
-	if err != nil {
-		log.Printf("[RequestID: %s] Error fetching expo account informations: %v", requestID, err)
-		http.Error(w, "Error fetching expo account informations", http.StatusUnauthorized)
-		return
+	expoAccount, err := services.ValidateExpoAuth(expoAuth)
+	if err != nil || expoAccount == nil {
+		log.Printf("[RequestID: %s] Error validating expo auth: %v", requestID, err)
+		http.Error(w, "Error validating expo auth", http.StatusUnauthorized)
 	}
 
 	err = branch.UpsertBranch(branchName)
@@ -234,12 +222,6 @@ func RequestUploadUrlHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	currentExpoUsername := services.FetchSelfExpoUsername()
-	if expoAccount.Username != currentExpoUsername {
-		log.Printf("[RequestID: %s] Invalid expo account", requestID)
-		http.Error(w, "Invalid expo account", http.StatusUnauthorized)
-		return
-	}
 	platform := r.URL.Query().Get("platform")
 	if platform != "" && (platform != "ios" && platform != "android") {
 		log.Printf("[RequestID: %s] Invalid platform: %s", requestID, platform)
@@ -266,8 +248,8 @@ func RequestUploadUrlHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updateId := time.Now().UnixNano() / int64(time.Millisecond)
-	updateRequests, err := bucket.RequestUploadUrlsForFileUpdates(branchName, runtimeVersion, fmt.Sprintf("%d", updateId), request.FileNames)
+	updateId := update.GenerateUpdateTimestamp()
+	updateRequests, err := bucket.RequestUploadUrlsForFileUpdates(branchName, runtimeVersion, update.ConvertUpdateTimestampToString(updateId), request.FileNames)
 	if err != nil {
 		log.Printf("[RequestID: %s] Error requesting upload urls: %v", requestID, err)
 		http.Error(w, "Error requesting upload urls", http.StatusInternalServerError)
@@ -288,7 +270,7 @@ func RequestUploadUrlHandler(w http.ResponseWriter, r *http.Request) {
 	err = resolvedBucket.UploadFileIntoUpdate(types.Update{
 		Branch:         branchName,
 		RuntimeVersion: runtimeVersion,
-		UpdateId:       fmt.Sprintf("%d", updateId),
+		UpdateId:       update.ConvertUpdateTimestampToString(updateId),
 		CreatedAt:      time.Duration(updateId) * time.Millisecond,
 	}, "update-metadata.json", metadataReader)
 

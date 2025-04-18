@@ -13,7 +13,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       },
       codeSigningCertificate: './certs/certificate-dev.pem',
       enabled: true,
-      disableAntiBrickingMeasures: true,
       requestHeaders: {
         'expo-channel-name': process.env.RELEASE_CHANNEL,
       },

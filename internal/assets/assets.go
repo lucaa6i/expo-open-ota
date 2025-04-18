@@ -113,7 +113,7 @@ func getAssetMetadata(req AssetsRequest, returnAsset bool) (AssetsResponse, *typ
 		StatusCode:  http.StatusOK,
 		Headers:     headers,
 		ContentType: contentType,
-	}, &asset, lastUpdate.UpdateId, nil
+	}, asset, lastUpdate.UpdateId, nil
 }
 
 func HandleAssetsWithFile(req AssetsRequest) (AssetsResponse, error) {

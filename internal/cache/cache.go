@@ -10,6 +10,7 @@ type Cache interface {
 	Set(key string, value string, ttl *int) error
 	Delete(key string)
 	Clear() error
+	TryLock(key string, ttl int) (bool, error)
 }
 
 type CacheType string
@@ -18,6 +19,16 @@ const (
 	LocalCacheType CacheType = "local"
 	RedisCacheType CacheType = "redis"
 )
+
+const defaultPrefix = "expoopenota"
+
+func withPrefix(key string) string {
+	prefix := config.GetEnv("CACHE_KEY_PREFIX")
+	if prefix == "" {
+		prefix = defaultPrefix
+	}
+	return prefix + ":" + key
+}
 
 func ResolveCacheType() CacheType {
 	cacheType := config.GetEnv("CACHE_MODE")

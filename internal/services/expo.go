@@ -34,6 +34,24 @@ type BranchMapping struct {
 	}
 }
 
+func ValidateExpoAuth(expoAuth types.ExpoAuth) (*ExpoUserAccount, error) {
+	if expoAuth.Token == nil && expoAuth.SessionSecret == nil {
+		return nil, errors.New("no valid Expo auth provided")
+	}
+	expoAccount, err := FetchExpoUserAccountInformations(expoAuth)
+	if err != nil {
+		return nil, err
+	}
+	if expoAccount == nil {
+		return nil, errors.New("no expo account found")
+	}
+	selfExpoUsername := FetchSelfExpoUsername()
+	if selfExpoUsername != expoAccount.Username {
+		return nil, errors.New("expo account does not match self expo username")
+	}
+	return expoAccount, nil
+}
+
 func GetExpoAccessToken() string {
 	return config.GetEnv("EXPO_ACCESS_TOKEN")
 }
