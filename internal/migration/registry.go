@@ -16,6 +16,12 @@ func Register(m Migration) {
 	mu.Unlock()
 }
 
+func ClearRegisteredMigrations() {
+	mu.Lock()
+	migrations = []Migration{}
+	mu.Unlock()
+}
+
 func All() []Migration {
 	mu.Lock()
 	sort.SliceStable(migrations, func(i, j int) bool {
