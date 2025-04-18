@@ -14,17 +14,17 @@ It supports the fingerprint policy.
 To publish an update, run the following command in your Expo project:
 
 ```bash
-npx eoas publish --branch <branch-name> --channel <release-channel>
+npx eoas publish --branch <branch-name> [--nonInteractive] [--outputDir <outputDir>] [--platform <platform>]
 ```
 
 This command will retrieve the expo credentials from your .expo/state.json file or an EXPO_TOKEN in your runtime environment to authenticate
 the request to the Expo API.
 
-You can also specify a custom build output directory using the --outputDir flag:
-
-```bash
-npx eoas publish --branch <branch-name> --channel <release-channel> --outputDir <your-dist-dir>
-```
+:::warning
+ 🚨EOAS publish will create a new build of your app. Do not forget to pass the necessary environment variables to the runtime environment.
+ Example: `EXPO_TOKEN=your_token RELEASE_CHANNEL=staging npx eoas publish --branch <branch-name>`.
+ Or with dotenv: `dotenv -e .env.local -- npx eoas publish --branch <branch-name>`.
+:::
 
 ## CI/CD
 
