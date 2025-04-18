@@ -6,7 +6,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet.tsx';
-import ReactJson from 'react-json-view';
 import { Label } from '@/components/ui/label.tsx';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api.ts';
@@ -149,19 +148,6 @@ const UpdateDetails = ({
             {updateDetails.type === 0 ? 'Normal update' : 'Rollback'}
           </Badge>
         </div>
-        {updateDetails?.expoConfig && (
-          <div className="flex flex-col gap-5">
-            <Label>Expo config</Label>
-            <div className="cols-span-4">
-              <ReactJson
-                indentWidth={2}
-                displayObjectSize={false}
-                displayDataTypes={false}
-                src={JSON.parse(updateDetails.expoConfig)}
-              />
-            </div>
-          </div>
-        )}
       </div>
     </SheetContent>
   );
