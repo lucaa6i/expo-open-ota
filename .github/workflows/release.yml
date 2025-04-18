@@ -113,4 +113,4 @@ jobs:
             ## Changes
             - Docker image: `ghcr.io/${{ github.repository_owner }}/expo-open-ota:${{ github.ref_name }}`
             - Helm chart updated for tag `${{ github.ref_name }}`
-            - npm package `eoas@${{ github.ref_name#v }}`
+            - npm package `eoas@${{ substring(github.ref_name, 1) }}`
