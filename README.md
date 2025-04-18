@@ -1,5 +1,5 @@
 # Expo Open OTA
-![Expo Open OTA Deployment](docs/static/img/social_card.png)
+![Expo Open OTA Deployment](apps/docs/static/img/social_card.png)
 
 [![Push workflow](https://github.com/axelmarciano/expo-open-ota/actions/workflows/push.yml/badge.svg)](https://github.com/axelmarciano/expo-open-ota/actions/workflows/push.yml)
 
