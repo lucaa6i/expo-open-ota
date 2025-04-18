@@ -106,6 +106,19 @@ export class ApiClient {
       method: 'GET',
     });
   }
+  public async getUpdateDetails(branch: string, runtimeVersion: string, updateId: string) {
+    return this.request<{
+      updateUUID: string;
+      createdAt: string;
+      updateId: string;
+      platform: string;
+      commitHash: string;
+      type: number;
+      expoConfig: string;
+    }>(`/api/branch/${branch}/runtimeVersion/${runtimeVersion}/updates/${updateId}`, {
+      method: 'GET',
+    });
+  }
   public async getSettings() {
     return this.request<{
       BASE_URL: string;

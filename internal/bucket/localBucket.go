@@ -1,6 +1,7 @@
 package bucket
 
 import (
+	"bufio"
 	"errors"
 	"expo-open-ota/config"
 	"expo-open-ota/internal/services"
@@ -8,12 +9,15 @@ import (
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
 	"io"
+	"io/fs"
 	"mime/multipart"
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -87,29 +91,32 @@ func (b *LocalBucket) GetUpdates(branch string, runtimeVersion string) ([]types.
 	return updates, nil
 }
 
-func (b *LocalBucket) GetFile(update types.Update, assetPath string) (types.BucketFile, error) {
+func (b *LocalBucket) GetFile(update types.Update, assetPath string) (*types.BucketFile, error) {
 	if b.BasePath == "" {
-		return types.BucketFile{}, errors.New("BasePath not set")
+		return nil, errors.New("BasePath not set")
 	}
 
 	filePath := filepath.Join(b.BasePath, update.Branch, update.RuntimeVersion, update.UpdateId, assetPath)
 
 	file, err := os.Open(filePath)
 	if err != nil {
-		return types.BucketFile{}, err
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, err
 	}
 
-	fileInfo, err := file.Stat()
+	info, err := file.Stat()
 	if err != nil {
 		file.Close()
-		return types.BucketFile{}, err
+		return nil, err
 	}
-	return types.BucketFile{
+
+	return &types.BucketFile{
 		Reader:    file,
-		CreatedAt: fileInfo.ModTime(),
+		CreatedAt: info.ModTime(),
 	}, nil
 }
-
 func (b *LocalBucket) GetBranches() ([]string, error) {
 	if b.BasePath == "" {
 		return nil, errors.New("BasePath not set")
@@ -229,4 +236,240 @@ func HandleUploadFile(filePath string, body multipart.File) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+func (b *LocalBucket) CreateUpdateFrom(previousUpdate *types.Update, newUpdateId string) (*types.Update, error) {
+	if previousUpdate == nil {
+		return nil, errors.New("previousUpdate is nil")
+	}
+	if previousUpdate.UpdateId == "" {
+		return nil, errors.New("previousUpdate.UpdateId is empty")
+	}
+	if newUpdateId == "" {
+		return nil, errors.New("newUpdateId is empty")
+	}
+
+	previousUpdatePath := filepath.Join(b.BasePath, previousUpdate.Branch, previousUpdate.RuntimeVersion, previousUpdate.UpdateId)
+	newUpdatePath := filepath.Join(b.BasePath, previousUpdate.Branch, previousUpdate.RuntimeVersion, newUpdateId)
+
+	err := os.MkdirAll(newUpdatePath, os.ModePerm)
+	if err != nil {
+		return nil, err
+	}
+
+	entries, err := os.ReadDir(previousUpdatePath)
+	if err != nil {
+		return nil, err
+	}
+
+	var wg sync.WaitGroup
+	errChan := make(chan error, len(entries))
+	sem := make(chan struct{}, runtime.NumCPU())
+
+	for _, entry := range entries {
+		name := entry.Name()
+		if name == "update-metadata.json" || name == ".check" {
+			continue
+		}
+
+		srcPath := filepath.Join(previousUpdatePath, name)
+		dstPath := filepath.Join(newUpdatePath, name)
+
+		wg.Add(1)
+		go func(entry fs.DirEntry, src, dst string) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+
+			var err error
+			if entry.IsDir() {
+				err = copyDirParallel(src, dst)
+			} else {
+				err = copyFile(src, dst)
+			}
+			if err != nil {
+				errChan <- err
+			}
+		}(entry, srcPath, dstPath)
+	}
+
+	wg.Wait()
+	close(errChan)
+
+	for e := range errChan {
+		if e != nil {
+			return nil, e
+		}
+	}
+
+	updateId, err := strconv.ParseInt(newUpdateId, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing update ID: %w", err)
+	}
+	return &types.Update{
+		Branch:         previousUpdate.Branch,
+		RuntimeVersion: previousUpdate.RuntimeVersion,
+		UpdateId:       newUpdateId,
+		CreatedAt:      time.Duration(updateId) * time.Millisecond,
+	}, nil
+}
+
+func copyFile(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, in)
+	if err != nil {
+		return err
+	}
+	return out.Sync()
+}
+
+func (b *LocalBucket) RetrieveMigrationHistory() ([]string, error) {
+	if b.BasePath == "" {
+		return nil, errors.New("BasePath not set")
+	}
+	migrationHistoryPath := filepath.Join(b.BasePath, ".migrationhistory")
+	file, err := os.Open(migrationHistoryPath)
+	if err != nil {
+		return nil, nil
+	}
+	defer file.Close()
+	var migrations []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		migrations = append(migrations, scanner.Text())
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+	return migrations, nil
+}
+
+func (b *LocalBucket) ApplyMigration(migrationId string) error {
+	if b.BasePath == "" {
+		return errors.New("BasePath not set")
+	}
+
+	migrationHistoryPath := filepath.Join(b.BasePath, ".migrationhistory")
+
+	migrations, err := b.RetrieveMigrationHistory()
+	if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("RetrieveMigrationHistory error: %w", err)
+	}
+	for _, id := range migrations {
+		if id == migrationId {
+			return nil
+		}
+	}
+
+	file, err := os.OpenFile(migrationHistoryPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return fmt.Errorf("open .migrationhistory error: %w", err)
+	}
+	defer file.Close()
+
+	if _, err := file.WriteString(migrationId + "\n"); err != nil {
+		return fmt.Errorf("write .migrationhistory error: %w", err)
+	}
+
+	return nil
+}
+
+func (b *LocalBucket) RemoveMigrationFromHistory(migrationId string) error {
+	if b.BasePath == "" {
+		return errors.New("BasePath not set")
+	}
+
+	migrationHistoryPath := filepath.Join(b.BasePath, ".migrationhistory")
+
+	migrations, err := b.RetrieveMigrationHistory()
+	if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("RetrieveMigrationHistory error: %w", err)
+	}
+	hasMigration := false
+	for _, id := range migrations {
+		if id == migrationId {
+			hasMigration = true
+			break
+		}
+	}
+	if !hasMigration {
+		return nil
+	}
+
+	var newMigrations []string
+	for _, id := range migrations {
+		if id != migrationId {
+			newMigrations = append(newMigrations, id)
+		}
+	}
+
+	file, err := os.OpenFile(migrationHistoryPath, os.O_TRUNC|os.O_WRONLY, 0644)
+	if err != nil {
+		return fmt.Errorf("open .migrationhistory error: %w", err)
+	}
+	defer file.Close()
+
+	for _, id := range newMigrations {
+		if _, err := file.WriteString(id + "\n"); err != nil {
+			return fmt.Errorf("write .migrationhistory error: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func copyDirParallel(srcDir, dstDir string) error {
+	err := os.MkdirAll(dstDir, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	entries, err := os.ReadDir(srcDir)
+	if err != nil {
+		return err
+	}
+
+	var wg sync.WaitGroup
+	errChan := make(chan error, len(entries))
+	sem := make(chan struct{}, runtime.NumCPU())
+	for _, entry := range entries {
+		srcPath := filepath.Join(srcDir, entry.Name())
+		dstPath := filepath.Join(dstDir, entry.Name())
+
+		wg.Add(1)
+		go func(entry fs.DirEntry, src, dst string) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+
+			var err error
+			if entry.IsDir() {
+				err = copyDirParallel(src, dst)
+			} else {
+				err = copyFile(src, dst)
+			}
+			if err != nil {
+				errChan <- err
+			}
+		}(entry, srcPath, dstPath)
+	}
+	wg.Wait()
+	close(errChan)
+	for e := range errChan {
+		if e != nil {
+			return e
+		}
+	}
+	return nil
 }

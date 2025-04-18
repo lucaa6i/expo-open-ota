@@ -1,6 +1,7 @@
 package bucket
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"expo-open-ota/internal/services"
@@ -10,9 +11,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"io"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -200,25 +203,31 @@ func (b *S3Bucket) GetUpdates(branch string, runtimeVersion string) ([]types.Upd
 	return updates, nil
 }
 
-func (b *S3Bucket) GetFile(update types.Update, assetPath string) (types.BucketFile, error) {
+func (b *S3Bucket) GetFile(update types.Update, assetPath string) (*types.BucketFile, error) {
 	if b.BucketName == "" {
-		return types.BucketFile{}, errors.New("BucketName not set")
+		return nil, errors.New("BucketName not set")
 	}
-	filePath := update.Branch + "/" + update.RuntimeVersion + "/" + update.UpdateId + "/" + assetPath
-	s3Client, errS3 := services.GetS3Client()
-	if errS3 != nil {
-		return types.BucketFile{}, errS3
+	key := update.Branch + "/" + update.RuntimeVersion + "/" + update.UpdateId + "/" + assetPath
+
+	s3Client, err := services.GetS3Client()
+	if err != nil {
+		return nil, err
 	}
+
 	input := &s3.GetObjectInput{
 		Bucket: aws.String(b.BucketName),
-		Key:    aws.String(filePath),
+		Key:    aws.String(key),
 	}
 	resp, err := s3Client.GetObject(context.TODO(), input)
 	if err != nil {
-
-		return types.BucketFile{}, fmt.Errorf("GetObject error: %w", err)
+		var noSuchKey *s3types.NoSuchKey
+		if errors.As(err, &noSuchKey) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("GetObject error: %w", err)
 	}
-	return types.BucketFile{
+
+	return &types.BucketFile{
 		Reader:    resp.Body,
 		CreatedAt: *resp.LastModified,
 	}, nil
@@ -271,5 +280,226 @@ func (b *S3Bucket) UploadFileIntoUpdate(update types.Update, fileName string, fi
 	if err != nil {
 		return fmt.Errorf("PutObject error: %w", err)
 	}
+	return nil
+}
+
+func (b *S3Bucket) CreateUpdateFrom(previousUpdate *types.Update, newUpdateId string) (*types.Update, error) {
+	if b.BucketName == "" {
+		return nil, errors.New("BucketName not set")
+	}
+	if previousUpdate == nil {
+		return nil, errors.New("previousUpdate is nil")
+	}
+	if previousUpdate.UpdateId == "" {
+		return nil, errors.New("previousUpdate.UpdateId is empty")
+	}
+	if newUpdateId == "" {
+		return nil, errors.New("newUpdateId is empty")
+	}
+
+	s3Client, err := services.GetS3Client()
+	if err != nil {
+		return nil, fmt.Errorf("error getting S3 client: %w", err)
+	}
+
+	sourcePrefix := fmt.Sprintf("%s/%s/%s/", previousUpdate.Branch, previousUpdate.RuntimeVersion, previousUpdate.UpdateId)
+	targetPrefix := fmt.Sprintf("%s/%s/%s/", previousUpdate.Branch, previousUpdate.RuntimeVersion, newUpdateId)
+
+	paginator := s3.NewListObjectsV2Paginator(s3Client, &s3.ListObjectsV2Input{
+		Bucket: aws.String(b.BucketName),
+		Prefix: aws.String(sourcePrefix),
+	})
+
+	var wg sync.WaitGroup
+	errChan := make(chan error, 16)
+	sem := make(chan struct{}, runtime.NumCPU())
+
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(context.TODO())
+		if err != nil {
+			return nil, fmt.Errorf("failed to list objects: %w", err)
+		}
+
+		for _, object := range page.Contents {
+			key := *object.Key
+			relPath := strings.TrimPrefix(key, sourcePrefix)
+
+			if relPath == "update-metadata.json" || relPath == ".check" || strings.HasSuffix(relPath, "/") {
+				continue
+			}
+
+			srcKey := key
+			dstKey := targetPrefix + relPath
+
+			wg.Add(1)
+			go func(srcKey, dstKey string) {
+				defer wg.Done()
+				sem <- struct{}{}
+				defer func() { <-sem }()
+
+				getObjOutput, err := s3Client.GetObject(context.TODO(), &s3.GetObjectInput{
+					Bucket: aws.String(b.BucketName),
+					Key:    aws.String(srcKey),
+				})
+				if err != nil {
+					errChan <- fmt.Errorf("error getting object %s: %w", srcKey, err)
+					return
+				}
+				defer getObjOutput.Body.Close()
+
+				_, err = s3Client.PutObject(context.TODO(), &s3.PutObjectInput{
+					Bucket: aws.String(b.BucketName),
+					Key:    aws.String(dstKey),
+					Body:   getObjOutput.Body,
+				})
+				if err != nil {
+					errChan <- fmt.Errorf("error putting object %s: %w", dstKey, err)
+					return
+				}
+			}(srcKey, dstKey)
+		}
+	}
+
+	wg.Wait()
+	close(errChan)
+
+	for e := range errChan {
+		if e != nil {
+			return nil, e
+		}
+	}
+
+	updateId, err := strconv.ParseInt(newUpdateId, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing update ID: %w", err)
+	}
+	return &types.Update{
+		Branch:         previousUpdate.Branch,
+		RuntimeVersion: previousUpdate.RuntimeVersion,
+		UpdateId:       newUpdateId,
+		CreatedAt:      time.Duration(updateId) * time.Millisecond,
+	}, nil
+}
+
+func (b *S3Bucket) RetrieveMigrationHistory() ([]string, error) {
+	if b.BucketName == "" {
+		return nil, errors.New("BucketName not set")
+	}
+	s3Client, errS3 := services.GetS3Client()
+	if errS3 != nil {
+		return nil, errS3
+	}
+	input := &s3.GetObjectInput{
+		Bucket: aws.String(b.BucketName),
+		Key:    aws.String(".migrationhistory"),
+	}
+	resp, err := s3Client.GetObject(context.TODO(), input)
+	if err != nil {
+		return nil, fmt.Errorf("GetObject error: %w", err)
+	}
+	defer resp.Body.Close()
+	var migrationHistory []string
+	for {
+		var line string
+		_, err := fmt.Fscanln(resp.Body, &line)
+		if err != nil {
+			break
+		}
+		migrationHistory = append(migrationHistory, line)
+	}
+	return migrationHistory, nil
+}
+
+func (b *S3Bucket) ApplyMigration(migrationId string) error {
+	if b.BucketName == "" {
+		return errors.New("BucketName not set")
+	}
+
+	migrationHistory, err := b.RetrieveMigrationHistory()
+	if err != nil {
+		return fmt.Errorf("RetrieveMigrationHistory error: %w", err)
+	}
+	isAlreadyApplied := false
+	for _, id := range migrationHistory {
+		if id == migrationId {
+			isAlreadyApplied = true
+			break
+		}
+	}
+	if isAlreadyApplied {
+		return nil
+	}
+
+	s3Client, errS3 := services.GetS3Client()
+	if errS3 != nil {
+		return errS3
+	}
+
+	var currentContent []byte
+	obj, err := s3Client.GetObject(context.TODO(), &s3.GetObjectInput{
+		Bucket: aws.String(b.BucketName),
+		Key:    aws.String(".migrationhistory"),
+	})
+	if err == nil {
+		defer obj.Body.Close()
+		currentContent, _ = io.ReadAll(obj.Body)
+	}
+
+	newContent := append(currentContent, []byte(migrationId+"\n")...)
+
+	_, err = s3Client.PutObject(context.TODO(), &s3.PutObjectInput{
+		Bucket: aws.String(b.BucketName),
+		Key:    aws.String(".migrationhistory"),
+		Body:   bytes.NewReader(newContent),
+	})
+	if err != nil {
+		return fmt.Errorf("PutObject error: %w", err)
+	}
+
+	return nil
+}
+
+func (b *S3Bucket) RemoveMigrationFromHistory(migrationId string) error {
+	if b.BucketName == "" {
+		return errors.New("BucketName not set")
+	}
+
+	migrationHistory, err := b.RetrieveMigrationHistory()
+	if err != nil {
+		return fmt.Errorf("RetrieveMigrationHistory error: %w", err)
+	}
+
+	hasMigration := false
+	for _, id := range migrationHistory {
+		if id == migrationId {
+			hasMigration = true
+			break
+		}
+	}
+	if !hasMigration {
+		return nil
+	}
+
+	var newContent []byte
+	for _, id := range migrationHistory {
+		if id != migrationId {
+			newContent = append(newContent, []byte(id+"\n")...)
+		}
+	}
+
+	s3Client, errS3 := services.GetS3Client()
+	if errS3 != nil {
+		return errS3
+	}
+
+	_, err = s3Client.PutObject(context.TODO(), &s3.PutObjectInput{
+		Bucket: aws.String(b.BucketName),
+		Key:    aws.String(".migrationhistory"),
+		Body:   bytes.NewReader(newContent),
+	})
+	if err != nil {
+		return fmt.Errorf("PutObject error: %w", err)
+	}
+
 	return nil
 }

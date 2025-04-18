@@ -31,6 +31,13 @@ type UpdateMetadata struct {
 	MetadataJSON MetadataObject `json:"metadataJSON"`
 	CreatedAt    string         `json:"createdAt"`
 	ID           string         `json:"id"`
+	Fingerprint  string         `json:"fingerprint"`
+}
+
+type UpdateStoredMetadata struct {
+	Platform   string `json:"platform"`
+	CommitHash string `json:"commitHash"`
+	UpdateUUID string `json:"updateUUID"`
 }
 
 type UpdateType int
