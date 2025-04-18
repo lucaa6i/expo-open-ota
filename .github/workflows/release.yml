@@ -3,7 +3,7 @@ name: Release Workflow
 on:
   push:
     tags:
-      - "v*"
+      - 'v*'
 
 permissions:
   id-token: write
@@ -11,57 +11,48 @@ permissions:
   packages: write
 
 jobs:
-  checkout:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
   docker:
     runs-on: ubuntu-latest
-    needs: checkout
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Log in to GitHub Container Registry
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" \
+            | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
       - name: Build Go binary with version
         run: |
           VERSION="${GITHUB_REF#refs/tags/}"
-          go build -ldflags="-X 'github.com/axelmarciano/expo-open-ota/internal.Version=$VERSION'" -o expo-open-ota .
+          go build -ldflags="-X 'github.com/axelmarciano/expo-open-ota/internal.Version=$VERSION'" \
+                   -o expo-open-ota .
 
-      - name: Build and tag Docker image
+      - name: Build & Push versioned Docker image
         run: |
           IMAGE_TAG="${GITHUB_REF#refs/tags/}"
           REPO="ghcr.io/${{ github.repository_owner }}/expo-open-ota"
-
-          echo "🔨 Building Docker image with tag: $IMAGE_TAG"
           docker build -t "$REPO:$IMAGE_TAG" .
           docker push "$REPO:$IMAGE_TAG"
 
-      - name: Check latest version and update latest tag
-        env:
-          IMAGE_TAG: ${{ github.ref_name }}
+      - name: Update :latest only if this tag is the highest semver
         run: |
           REPO="ghcr.io/${{ github.repository_owner }}/expo-open-ota"
-          
-          echo "📡 Fetching the latest version tag from GHCR..."
-          LATEST_TAG=$(gh api "https://api.github.com/users/${{ github.repository_owner }}/packages/container/expo-open-ota/versions" \
-            --jq '[.[].metadata.container.tags[]] | map(select(test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))) | sort_by(.) | last' | tr -d '"')
-          
-          echo "🔍 Latest found version: $LATEST_TAG"
-          echo "🏷️ Current version: $IMAGE_TAG"
-          
-          if [ "$LATEST_TAG" = "$IMAGE_TAG" ]; then
-            echo "✅ $IMAGE_TAG is the latest version. Updating latest tag..."
-            docker tag "$REPO:$IMAGE_TAG" "$REPO:latest"
+          CURRENT_TAG="${GITHUB_REF#refs/tags/}"
+          echo "▶︎ Checking existing GHCR tags..."
+          ALL_TAGS=$(gh api "https://api.github.com/users/${{ github.repository_owner }}/packages/container/expo-open-ota/versions" \
+            --jq '[.[].metadata.container.tags[]] |
+                   map(select(test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))) |
+                   sort_by(.)')
+          LATEST_TAG=$(echo "$ALL_TAGS" | jq -r 'last')
+          echo "   • Latest GHCR semver: $LATEST_TAG"
+          echo "   • Current tag:        $CURRENT_TAG"
+          if [ "$CURRENT_TAG" = "$LATEST_TAG" ]; then
+            echo "✔️  Tagging $REPO:$CURRENT_TAG as $REPO:latest"
+            docker tag "$REPO:$CURRENT_TAG" "$REPO:latest"
             docker push "$REPO:latest"
           else
-            echo "ℹ️ $IMAGE_TAG is not the latest version. Skipping latest tag update."
+            echo "ℹ️  Not the highest semver tag → skipping :latest"
           fi
 
   helm:
@@ -73,17 +64,18 @@ jobs:
 
       - name: Update Helm values.yaml
         run: |
-          IMAGE_TAG="${GITHUB_REF#refs/tags/}"
-          sed -i "s/tag: .*/tag: ${IMAGE_TAG}/" helm/values.yaml
+          TAG="${GITHUB_REF#refs/tags/}"
+          sed -i "s/^  tag:.*/  tag: ${TAG}/" helm/values.yaml
 
       - name: Package Helm chart
         run: |
-          IMAGE_TAG="${GITHUB_REF#refs/tags/}"
-          helm package ./helm -d ./charts
-          mv ./charts/expo-open-ota-*.tgz ./charts/expo-open-ota-helm-charts-${IMAGE_TAG}.tgz
+          TAG="${GITHUB_REF#refs/tags/}"
+          helm package helm --destination charts
+          mv charts/expo-open-ota-*.tgz charts/expo-open-ota-helm-chart-${TAG}.tgz
 
   npm:
     runs-on: ubuntu-latest
+    needs: docker
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -91,19 +83,19 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20.x"
-          registry-url: "https://registry.npmjs.org"
+          node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Publish NPM package
+        working-directory: apps/eoas
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          cd apps/eoas
-          VERSION=$(echo "${{ github.ref_name }}" | sed 's/^v//')
+          VERSION="$(echo "${GITHUB_REF#refs/tags/}" | sed 's/^v//')"
           npm ci
           npm run build
           npm version "$VERSION" --no-git-tag-version
           npm publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   github-release:
     runs-on: ubuntu-latest
@@ -115,10 +107,10 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          files: ./charts/*.tgz
+          tag_name: ${{ github.ref_name }}
+          files: charts/*.tgz
           body: |
             ## Changes
             - Docker image: `ghcr.io/${{ github.repository_owner }}/expo-open-ota:${{ github.ref_name }}`
-            - Helm chart version updated
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            - Helm chart updated for tag `${{ github.ref_name }}`
+            - npm package `eoas@${{ github.ref_name#v }}`
