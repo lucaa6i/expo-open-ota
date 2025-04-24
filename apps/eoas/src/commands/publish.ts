@@ -43,6 +43,11 @@ export default class Publish extends Command {
           'Channel was initially used to provide RELEASE_CHANNEL in the environment when resolving the runtime version. It is no longer needed, you can use RELEASE_CHANNEL={channel} eoas publish --branch={branch} instead',
       },
     }),
+    disableRepositoryCheck: Flags.boolean({
+      description: 'Disable repository check (Useful for CI/CD)',
+      default: false,
+      hidden: true,
+    }),
     branch: Flags.string({
       description: 'Name of the branch to point to',
       required: true,
@@ -61,10 +66,12 @@ export default class Publish extends Command {
     platform: RequestedPlatform;
     branch: string;
     nonInteractive: boolean;
+    disableRepositoryCheck: boolean;
     outputDir: string;
     providedDeprecatedChannel?: string;
   } {
     return {
+      disableRepositoryCheck: flags.disableRepositoryCheck,
       platform: flags.platform,
       branch: flags.branch,
       nonInteractive: flags.nonInteractive,
@@ -80,8 +87,14 @@ export default class Publish extends Command {
       process.exit(1);
     }
     const { flags } = await this.parse(Publish);
-    const { platform, nonInteractive, branch, outputDir, providedDeprecatedChannel } =
-      this.sanitizeFlags(flags);
+    const {
+      platform,
+      nonInteractive,
+      branch,
+      outputDir,
+      providedDeprecatedChannel,
+      disableRepositoryCheck,
+    } = this.sanitizeFlags(flags);
     if (!branch) {
       Log.error('Branch name is required');
       process.exit(1);
@@ -93,7 +106,9 @@ export default class Publish extends Command {
       process.exit(1);
     }
     const vcsClient = resolveVcsClient(true);
-    await ensureRepoIsCleanAsync(vcsClient, nonInteractive);
+    if (!disableRepositoryCheck) {
+      await ensureRepoIsCleanAsync(vcsClient, nonInteractive);
+    }
     const config = await getPrivateExpoConfigAsync(projectDir, {
       env: {
         ...(process.env as Env),
