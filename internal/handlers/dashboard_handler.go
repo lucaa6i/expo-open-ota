@@ -10,6 +10,7 @@ import (
 	"expo-open-ota/internal/services"
 	"expo-open-ota/internal/types"
 	update2 "expo-open-ota/internal/update"
+	"fmt"
 	"github.com/gorilla/mux"
 	"net/http"
 	"sort"
@@ -297,4 +298,37 @@ func GetUpdatesHandler(w http.ResponseWriter, r *http.Request) {
 	ttl := 10 * time.Second
 	ttlMs := int(ttl.Milliseconds())
 	cache.Set(cacheKey, string(marshaledResponse), &ttlMs)
+}
+
+func UpdateChannelBranchMappingHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	branchName := vars["BRANCH"]
+	var requestBody struct {
+		ReleaseChannel string `json:"releaseChannel"`
+	}
+	err := json.NewDecoder(r.Body).Decode(&requestBody)
+	if err != nil {
+		fmt.Println("Error decoding request body:", err)
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Error decoding request body"))
+		return
+	}
+	releaseChannel := requestBody.ReleaseChannel
+	if releaseChannel == "" {
+		fmt.Println("Release channel is empty")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Release channel is empty"))
+		return
+	}
+	err = services.UpdateChannelBranchMapping(releaseChannel, branchName)
+	if err != nil {
+		fmt.Println("Error updating channel branch mapping:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Error updating channel branch mapping"))
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	marshaledResponse, _ := json.Marshal("ok")
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(marshaledResponse)
 }

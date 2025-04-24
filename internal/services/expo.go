@@ -105,6 +105,44 @@ func makeGraphQLRequest(ctx context.Context, query string, variables map[string]
 	return json.NewDecoder(resp.Body).Decode(result)
 }
 
+func UpdateChannelBranchMapping(channelName, branchName string) error {
+	query := `
+		query UpdateChannelBranchMapping($channelId: ID!, $branchMapping: String!) {
+			updateChannel {
+				editUpdateChannel(channelId: $channelId, branchMapping: $branchMapping) {
+					id
+				}
+			}
+		}
+	`
+	branchMapping := BranchMapping{
+		Version: 0,
+		Data: []struct {
+			BranchId           string          `json:"branchId"`
+			BranchMappingLogic json.RawMessage `json:"branchMappingLogic"`
+		}{
+			{
+				BranchId:           branchName,
+				BranchMappingLogic: json.RawMessage(`"true"`),
+			},
+		},
+	}
+	variables := map[string]interface{}{
+		"channelId":     channelName,
+		"branchMapping": branchMapping,
+	}
+	token := GetExpoAccessToken()
+	headers := map[string]string{}
+	if config.IsTestMode() {
+		headers["operationName"] = "UpdateChannelBranchMapping"
+	}
+	ctx := context.Background()
+	resp := struct{}{}
+	return makeGraphQLRequest(ctx, query, variables, types.ExpoAuth{
+		Token: &token,
+	}, &resp, headers)
+}
+
 func FetchExpoBranches() ([]string, error) {
 	query := `
 		query FetchAppChannel($appId: String!) {
