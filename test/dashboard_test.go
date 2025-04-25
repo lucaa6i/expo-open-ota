@@ -161,7 +161,7 @@ func TestBranches(t *testing.T) {
 	var response []handlers.BranchMapping
 	err := json.Unmarshal(respRec.Body.Bytes(), &response)
 	assert.Nil(t, err)
-	assert.Equal(t, `[{"branchName":"branch-1","releaseChannel":"staging"},{"branchName":"branch-2","releaseChannel":null},{"branchName":"branch-3","releaseChannel":null},{"branchName":"branch-4","releaseChannel":null}]`, strings.TrimSpace(string(respRec.Body.Bytes())))
+	assert.Equal(t, `[{"branchName":"branch-1","branchId":"branch-1","releaseChannel":"staging"},{"branchName":"branch-2","branchId":"branch-2","releaseChannel":null},{"branchName":"branch-3","branchId":null,"releaseChannel":null},{"branchName":"branch-4","branchId":null,"releaseChannel":null}]`, strings.TrimSpace(string(respRec.Body.Bytes())))
 }
 
 func TestBranchesWithoutAuth(t *testing.T) {

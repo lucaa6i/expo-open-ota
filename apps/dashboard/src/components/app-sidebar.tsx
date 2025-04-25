@@ -10,7 +10,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import {HardDriveDownload, PowerOff, Settings} from 'lucide-react';
+import { Box, HardDriveDownload, PowerOff, Settings } from 'lucide-react';
 import clsx from 'clsx';
 
 const items = [
@@ -18,6 +18,11 @@ const items = [
     title: 'Updates',
     url: '/',
     icon: HardDriveDownload,
+  },
+  {
+    title: 'Channels',
+    url: '/channels',
+    icon: Box,
   },
   {
     title: 'Settings',
@@ -28,7 +33,7 @@ const items = [
     title: 'Logout',
     url: '/logout',
     icon: PowerOff,
-  }
+  },
 ];
 
 export function AppSidebar() {
