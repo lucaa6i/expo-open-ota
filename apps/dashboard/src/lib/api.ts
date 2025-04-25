@@ -70,11 +70,35 @@ export class ApiClient {
       body: form.toString(),
     });
   }
-
+  public async updateChannelBranchMapping(
+    branchName: string,
+    payload: {
+      releaseChannel: string;
+    }
+  ) {
+    return this.request(`/api/branch/${branchName}/updateChannelBranchMapping`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  }
+  public async getChannels() {
+    return this.request<
+      {
+        releaseChannelId: string;
+        releaseChannelName: string;
+        branchName?: string | null;
+        branchId?: string | null;
+      }[]
+    >('/api/channels', {
+      method: 'GET',
+    });
+  }
   public async getBranches() {
     return this.request<
       {
         branchName: string;
+        branchId: string;
         releaseChannel?: string | null;
       }[]
     >('/api/branches', {

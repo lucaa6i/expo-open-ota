@@ -7,6 +7,8 @@ import (
 	"errors"
 	"expo-open-ota/config"
 	"expo-open-ota/internal/types"
+	"fmt"
+	"io"
 	"net/http"
 )
 
@@ -22,8 +24,15 @@ type ExpoChannelMapping struct {
 }
 
 type ExpoBranchMapping struct {
-	BranchName  string `json:"branchName"`
-	ChannelName string `json:"channelName"`
+	BranchName  string  `json:"branchName"`
+	BranchId    string  `json:"branchId"`
+	ChannelName *string `json:"channelName"`
+}
+
+type ExpoChannel struct {
+	Id       string `json:"id"`
+	Name     string `json:"name"`
+	BranchId string `json:"branchId"`
 }
 
 type BranchMapping struct {
@@ -31,7 +40,7 @@ type BranchMapping struct {
 	Data    []struct {
 		BranchId           string          `json:"branchId"`
 		BranchMappingLogic json.RawMessage `json:"branchMappingLogic"`
-	}
+	} `json:"data"`
 }
 
 func ValidateExpoAuth(expoAuth types.ExpoAuth) (*ExpoUserAccount, error) {
@@ -99,10 +108,102 @@ func makeGraphQLRequest(ctx context.Context, query string, variables map[string]
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return errors.New("GraphQL request failed with status: " + resp.Status)
+		// Read error message in response body
+		responseBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return errors.New("GraphQL request failed with status: " + resp.Status + " and unable to read response body")
+		}
+		return errors.New("GraphQL request failed with status: " + resp.Status + " message: " + string(responseBody))
 	}
 
 	return json.NewDecoder(resp.Body).Decode(result)
+}
+
+func FetchExpoChannels() ([]ExpoChannel, error) {
+	query := `
+		query FetchAppChannel($appId: String!) {
+			app {
+				byId(appId: $appId) {
+					id
+					updateChannels(offset: 0, limit: 10000) {
+						id
+						name
+					}
+				}
+			}
+		}
+	`
+	appId := GetExpoAppId()
+	expoToken := GetExpoAccessToken()
+	variables := map[string]interface{}{
+		"appId": appId,
+	}
+	var resp struct {
+		Data struct {
+			App struct {
+				ById struct {
+					UpdateChannels []ExpoChannel `json:"updateChannels"`
+				} `json:"byId"`
+			} `json:"app"`
+		} `json:"data"`
+	}
+	headers := map[string]string{}
+	if config.IsTestMode() {
+		headers["operationName"] = "FetchExpoChannels"
+	}
+	ctx := context.Background()
+	if err := makeGraphQLRequest(ctx, query, variables, types.ExpoAuth{
+		Token: &expoToken,
+	}, &resp, headers); err != nil {
+		return nil, err
+	}
+	return resp.Data.App.ById.UpdateChannels, nil
+}
+
+func UpdateChannelBranchMapping(channelName, branchId string) error {
+	fmt.Println("Updating channel branch mapping for channel:", channelName, "to branch:", branchId)
+	query := `
+		mutation UpdateChannelBranchMapping($channelId: ID!, $branchMapping: String!) {
+			updateChannel {
+				editUpdateChannel(channelId: $channelId, branchMapping: $branchMapping) {
+					id
+				}
+			}
+		}
+	`
+	branchMapping := BranchMapping{
+		Version: 0,
+		Data: []struct {
+			BranchId           string          `json:"branchId"`
+			BranchMappingLogic json.RawMessage `json:"branchMappingLogic"`
+		}{
+			{
+				BranchId:           branchId,
+				BranchMappingLogic: json.RawMessage(`"true"`),
+			},
+		},
+	}
+
+	branchMappingBytes, err := json.Marshal(branchMapping)
+	if err != nil {
+		return err
+	}
+
+	variables := map[string]interface{}{
+		"channelId":     channelName,
+		"branchMapping": string(branchMappingBytes),
+	}
+
+	token := GetExpoAccessToken()
+	headers := map[string]string{}
+	if config.IsTestMode() {
+		headers["operationName"] = "UpdateChannelBranchMapping"
+	}
+	ctx := context.Background()
+	resp := struct{}{}
+	return makeGraphQLRequest(ctx, query, variables, types.ExpoAuth{
+		Token: &token,
+	}, &resp, headers)
 }
 
 func FetchExpoBranches() ([]string, error) {
@@ -292,19 +393,24 @@ func FetchExpoBranchesMapping() ([]ExpoBranchMapping, error) {
 						name
 					}
 					updateChannels(offset: 0, limit: 10000) {
-                		id
-                		name
-                		branchMapping
-            		}
+						id
+						name
+						branchMapping
+					}
 				}
 			}
 		}
 	`
+
 	appId := GetExpoAppId()
 	expoToken := GetExpoAccessToken()
-	variables := map[string]interface{}{
-		"appId": appId,
+	variables := map[string]interface{}{"appId": appId}
+
+	headers := map[string]string{}
+	if config.IsTestMode() {
+		headers["operationName"] = "FetchExpoBranches"
 	}
+
 	var resp struct {
 		Data struct {
 			App struct {
@@ -322,48 +428,51 @@ func FetchExpoBranchesMapping() ([]ExpoBranchMapping, error) {
 			} `json:"app"`
 		} `json:"data"`
 	}
-	headers := map[string]string{}
-	if config.IsTestMode() {
-		headers["operationName"] = "FetchExpoBranches"
-	}
+
 	ctx := context.Background()
 	if err := makeGraphQLRequest(ctx, query, variables, types.ExpoAuth{
 		Token: &expoToken,
 	}, &resp, headers); err != nil {
 		return nil, err
 	}
-	var branchMappings []ExpoBranchMapping
+
+	branchIDToChannels := make(map[string][]string)
 	for _, channel := range resp.Data.App.ById.UpdateChannels {
-		var branchMapping BranchMapping
-		if err := json.Unmarshal([]byte(channel.BranchMapping), &branchMapping); err != nil {
+		var mapping BranchMapping
+		if err := json.Unmarshal([]byte(channel.BranchMapping), &mapping); err != nil {
 			return nil, err
 		}
-		var branchID string
-		for _, mapping := range branchMapping.Data {
+
+		for _, m := range mapping.Data {
 			var logic string
-			if json.Unmarshal(mapping.BranchMappingLogic, &logic) == nil && logic == "true" {
-				branchID = mapping.BranchId
-				break
+			if json.Unmarshal(m.BranchMappingLogic, &logic) == nil && logic == "true" {
+				branchIDToChannels[m.BranchId] = append(branchIDToChannels[m.BranchId], channel.Name)
 			}
 		}
-		if branchID == "" {
-			continue
-		}
-		var branchName string
-		for _, branch := range resp.Data.App.ById.UpdateBranches {
-			if branch.ID == branchID {
-				branchName = branch.Name
-				break
-			}
-		}
-		if branchName == "" {
-			continue
-		}
-		branchMappings = append(branchMappings, ExpoBranchMapping{
-			BranchName:  branchName,
-			ChannelName: channel.Name,
-		})
 	}
+
+	var branchMappings []ExpoBranchMapping
+	for _, branch := range resp.Data.App.ById.UpdateBranches {
+		channelNames, found := branchIDToChannels[branch.ID]
+		if !found || len(channelNames) == 0 {
+			branchMappings = append(branchMappings, ExpoBranchMapping{
+				BranchName:  branch.Name,
+				BranchId:    branch.ID,
+				ChannelName: nil,
+			})
+			continue
+		}
+
+		for _, channelName := range channelNames {
+			cn := channelName
+			branchMappings = append(branchMappings, ExpoBranchMapping{
+				BranchName:  branch.Name,
+				BranchId:    branch.ID,
+				ChannelName: &cn,
+			})
+		}
+	}
+
 	return branchMappings, nil
 }
 

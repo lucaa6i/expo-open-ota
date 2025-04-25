@@ -10,12 +10,16 @@ func IsDashboardEnabled() bool {
 	return config.GetEnv("USE_DASHBOARD") == "true"
 }
 
+func ComputeGetRuntimeVersionsCacheKey(branch string) string {
+	return fmt.Sprintf("dashboard:%s:request:getRuntimeVersions:%s", version.Version, branch)
+}
+
 func ComputeGetBranchesCacheKey() string {
 	return fmt.Sprintf("dashboard:%s:request:getBranches", version.Version)
 }
 
-func ComputeGetRuntimeVersionsCacheKey(branch string) string {
-	return fmt.Sprintf("dashboard:%s:request:getRuntimeVersions:%s", version.Version, branch)
+func ComputeGetChannelsCacheKey() string {
+	return fmt.Sprintf("dashboard:%s:request:getChannels", version.Version)
 }
 
 func ComputeGetUpdatesCacheKey(branch string, runtimeVersion string) string {
