@@ -15,11 +15,11 @@ func ComputeGetRuntimeVersionsCacheKey(branch string) string {
 }
 
 func ComputeGetBranchesCacheKey() string {
-	return fmt.Sprintf("dashboard:%s:request:getBranches:%s", version.Version)
+	return fmt.Sprintf("dashboard:%s:request:getBranches", version.Version)
 }
 
 func ComputeGetChannelsCacheKey() string {
-	return fmt.Sprintf("dashboard:%s:request:getChannels:%s", version.Version)
+	return fmt.Sprintf("dashboard:%s:request:getChannels", version.Version)
 }
 
 func ComputeGetUpdatesCacheKey(branch string, runtimeVersion string) string {
