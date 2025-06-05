@@ -3,7 +3,10 @@
     "list": [
       {
         "builtIn": 1,
-        "datasource": "-- Grafana --",
+        "datasource": {
+          "type": "datasource",
+          "uid": "grafana"
+        },
         "enable": true,
         "hide": true,
         "iconColor": "rgba(0,211,255,1)",
@@ -21,11 +24,13 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 141,
+  "id": 142,
   "links": [],
   "panels": [
     {
-      "datasource": "$DS_PROM",
+      "datasource": {
+        "uid": "$DS_PROM"
+      },
       "fieldConfig": {
         "defaults": {
           "mappings": [],
@@ -73,8 +78,13 @@
       "pluginVersion": "11.5.1",
       "targets": [
         {
-          "expr": "count(count by (clientId) (active_users_total{platform=~\"$platform\", runtime=~\"$runtime\", branch=~\"$branch\", update=~\"$update\"}))",
+          "datasource": {
+            "uid": "$DS_PROM"
+          },
+          "editorMode": "code",
+          "expr": "sum(active_users_total{platform=~\"$platform\", runtime=~\"$runtime\", branch=~\"$branch\", update=~\"$update\"})",
           "legendFormat": "Total Unique Active Users",
+          "range": true,
           "refId": "A"
         }
       ],
@@ -82,7 +92,9 @@
       "type": "stat"
     },
     {
-      "datasource": "$DS_PROM",
+      "datasource": {
+        "uid": "$DS_PROM"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -162,8 +174,13 @@
       "pluginVersion": "11.5.1",
       "targets": [
         {
-          "expr": "count(count by (clientId, platform) (active_users_total{platform=~\"$platform\", runtime=~\"$runtime\", branch=~\"$branch\", update=~\"$update\"})) by (platform)",
+          "datasource": {
+            "uid": "$DS_PROM"
+          },
+          "editorMode": "code",
+          "expr": "sum(active_users_total{platform=~\"$platform\", runtime=~\"$runtime\", branch=~\"$branch\", update=~\"$update\"})\n  by (platform)",
           "legendFormat": "{{platform}}",
+          "range": true,
           "refId": "A"
         }
       ],
@@ -171,7 +188,9 @@
       "type": "timeseries"
     },
     {
-      "datasource": "$DS_PROM",
+      "datasource": {
+        "uid": "$DS_PROM"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -251,6 +270,9 @@
       "pluginVersion": "11.5.1",
       "targets": [
         {
+          "datasource": {
+            "uid": "$DS_PROM"
+          },
           "expr": "sum(update_downloads_total{platform=~\"$platform\", runtime=~\"$runtime\", branch=~\"$branch\", update=~\"$update\"}) by (update)",
           "legendFormat": "{{update}}",
           "refId": "A"
@@ -260,7 +282,297 @@
       "type": "timeseries"
     },
     {
-      "datasource": "$DS_PROM",
+      "datasource": {
+        "uid": "$DS_PROM"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 8
+      },
+      "id": 5,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "11.5.1",
+      "targets": [
+        {
+          "datasource": {
+            "uid": "$DS_PROM"
+          },
+          "editorMode": "code",
+          "expr": "sum(active_users_total{platform=~\"$platform\", runtime=~\"$runtime\", branch=~\"$branch\", update=~\"$update\"})\n  by (branch)",
+          "legendFormat": "{{platform}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "📊 Unique Active Users by Branch",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "uid": "$DS_PROM"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 8
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "11.5.1",
+      "targets": [
+        {
+          "datasource": {
+            "uid": "$DS_PROM"
+          },
+          "editorMode": "code",
+          "expr": "sum(update_error_users_total{platform=~\"$platform\", runtime=~\"$runtime\", branch=~\"$branch\", update=~\"$update\"})\n  by (update)",
+          "legendFormat": "{{platform}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "🚨 Fatal error per update",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "uid": "$DS_PROM"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 8
+      },
+      "id": 7,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "11.5.1",
+      "targets": [
+        {
+          "datasource": {
+            "uid": "$DS_PROM"
+          },
+          "editorMode": "code",
+          "expr": "sum(update_error_users_total{platform=~\"$platform\", runtime=~\"$runtime\", branch=~\"$branch\", update=~\"$update\"})",
+          "legendFormat": "{{platform}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "🚨 Update error users total",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "uid": "$DS_PROM"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -321,7 +633,7 @@
         "h": 12,
         "w": 24,
         "x": 0,
-        "y": 8
+        "y": 16
       },
       "id": 4,
       "options": {
@@ -340,6 +652,9 @@
       "pluginVersion": "11.5.1",
       "targets": [
         {
+          "datasource": {
+            "uid": "$DS_PROM"
+          },
           "editorMode": "code",
           "expr": "sum by (updateType) (rate(update_downloads_total{platform=~\"$platform|.*\", runtime=~\"$runtime|.*\", branch=~\"$branch|.*\", update=~\"$update|.*\", updateType=~\"$updateType|.*\"}[1m]))",
           "legendFormat": "{{updateType}}",
@@ -353,7 +668,7 @@
   ],
   "preload": false,
   "refresh": "5s",
-  "schemaVersion": 1,
+  "schemaVersion": 40,
   "tags": [
     "oss",
     "metrics",
@@ -380,6 +695,10 @@
           "text": "All",
           "value": "$__all"
         },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "CcrOqjRnk"
+        },
         "includeAll": true,
         "label": "Platform",
         "name": "platform",
@@ -393,6 +712,10 @@
         "current": {
           "text": "All",
           "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "CcrOqjRnk"
         },
         "includeAll": true,
         "label": "Runtime",
@@ -408,6 +731,10 @@
           "text": "All",
           "value": "$__all"
         },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "CcrOqjRnk"
+        },
         "includeAll": true,
         "label": "Branch",
         "name": "branch",
@@ -421,6 +748,10 @@
         "current": {
           "text": "All",
           "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "CcrOqjRnk"
         },
         "includeAll": true,
         "label": "Update",
@@ -438,8 +769,8 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "🚀 OTA Server Ultimate Metrics Dashboard",
+  "title": "🚀 OTA Server Ultimate Metrics Dashboard - ?ew",
   "uid": "ota-metrics-dashboard",
-  "version": 1,
+  "version": 8,
   "weekStart": ""
 }
