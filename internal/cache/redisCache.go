@@ -81,3 +81,36 @@ func (r *RedisCache) TryLock(key string, ttl int) (bool, error) {
 	ok, err := r.client.SetNX(ctx, withPrefix(key), "locked", time.Duration(ttl)*time.Second).Result()
 	return ok, err
 }
+
+func (c *RedisCache) Sadd(key string, members []string, ttl *int) error {
+	if len(members) == 0 {
+		return nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	fullKey := withPrefix(key)
+
+	vals := make([]interface{}, len(members))
+	for i, m := range members {
+		vals[i] = m
+	}
+
+	added, err := c.client.SAdd(ctx, fullKey, vals...).Result()
+	if err != nil {
+		return err
+	}
+
+	if ttl != nil && added > 0 {
+		_ = c.client.Expire(ctx, fullKey, time.Duration(*ttl)*time.Second).Err()
+	}
+
+	return nil
+}
+
+func (c *RedisCache) Scard(key string) (int64, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	return c.client.SCard(ctx, withPrefix(key)).Result()
+}

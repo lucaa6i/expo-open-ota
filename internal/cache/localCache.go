@@ -8,8 +8,10 @@ import (
 )
 
 type LocalCache struct {
-	items map[string]CacheItem
-	mu    sync.RWMutex // RWMutex for safe concurrent access
+	items          map[string]CacheItem
+	setItems       map[string]map[string]struct{}
+	setExpirations map[string]*time.Time
+	mu             sync.RWMutex // RWMutex for safe concurrent access
 }
 
 type CacheItem struct {
@@ -19,7 +21,9 @@ type CacheItem struct {
 
 func NewLocalCache() *LocalCache {
 	return &LocalCache{
-		items: make(map[string]CacheItem),
+		items:          make(map[string]CacheItem),
+		setItems:       make(map[string]map[string]struct{}),
+		setExpirations: make(map[string]*time.Time),
 	}
 }
 
@@ -101,4 +105,51 @@ func (c *LocalCache) TryLock(key string, ttl int) (bool, error) {
 	}()
 
 	return true, nil
+}
+
+func (c *LocalCache) Sadd(key string, members []string, ttl *int) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	prefixedKey := withPrefix(key)
+
+	if _, exists := c.setItems[prefixedKey]; !exists {
+		c.setItems[prefixedKey] = make(map[string]struct{})
+		if ttl != nil {
+			exp := time.Now().Add(time.Duration(*ttl) * time.Second)
+			c.setExpirations[prefixedKey] = &exp
+		}
+	}
+
+	if exp, ok := c.setExpirations[prefixedKey]; ok && time.Now().After(*exp) {
+		delete(c.setItems, prefixedKey)
+		delete(c.setExpirations, prefixedKey)
+		c.setItems[prefixedKey] = make(map[string]struct{})
+		if ttl != nil {
+			exp := time.Now().Add(time.Duration(*ttl) * time.Second)
+			c.setExpirations[prefixedKey] = &exp
+		}
+	}
+
+	for _, member := range members {
+		c.setItems[prefixedKey][member] = struct{}{}
+	}
+	return nil
+}
+
+func (c *LocalCache) Scard(key string) (int64, error) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	prefixedKey := withPrefix(key)
+
+	if exp, ok := c.setExpirations[prefixedKey]; ok && time.Now().After(*exp) {
+		return 0, nil
+	}
+
+	set, exists := c.setItems[prefixedKey]
+	if !exists {
+		return 0, nil
+	}
+	return int64(len(set)), nil
 }

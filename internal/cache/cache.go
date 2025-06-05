@@ -11,6 +11,8 @@ type Cache interface {
 	Delete(key string)
 	Clear() error
 	TryLock(key string, ttl int) (bool, error)
+	Sadd(key string, members []string, ttl *int) error
+	Scard(key string) (int64, error)
 }
 
 type CacheType string

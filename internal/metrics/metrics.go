@@ -1,6 +1,8 @@
 package metrics
 
 import (
+	"expo-open-ota/internal/cache"
+	"fmt"
 	"net/http"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -13,7 +15,7 @@ var (
 			Name: "active_users_total",
 			Help: "Total number of unique active users per clientId, platform, runtime version, branch and update",
 		},
-		[]string{"clientId", "platform", "runtime", "branch", "update"},
+		[]string{"platform", "runtime", "branch", "update"},
 	)
 	updateDownloadsVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -35,10 +37,21 @@ func CleanupMetrics() {
 }
 
 func TrackActiveUser(clientId, platform, runtime, branch, update string) {
-	if clientId == "" || update == "" || platform == "" || branch == "" {
+	if clientId == "" || platform == "" || branch == "" || update == "" {
 		return
 	}
-	activeUsersVec.WithLabelValues(clientId, platform, runtime, branch, update).Set(1)
+
+	resolvedCache := cache.GetCache()
+	key := fmt.Sprintf("seen_users:%s:%s", branch, platform)
+	ttl := 86400
+
+	_ = resolvedCache.Sadd(key, []string{clientId}, &ttl)
+
+	count, err := resolvedCache.Scard(key)
+	if err != nil {
+		return
+	}
+	activeUsersVec.WithLabelValues(platform, runtime, branch, update).Set(float64(count))
 }
 
 func TrackUpdateDownload(platform, runtime, branch, update, updateType string) {
@@ -56,9 +69,9 @@ func ResetMetricsForTest() {
 	activeUsersVec = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "active_users_total",
-			Help: "Total number of unique active users per clientId, platform, runtime version, branch and update",
+			Help: "Total number of unique active users per platform, runtime version, branch and update",
 		},
-		[]string{"clientId", "platform", "runtime", "branch", "update"},
+		[]string{"platform", "runtime", "branch", "update"},
 	)
 	updateDownloadsVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
