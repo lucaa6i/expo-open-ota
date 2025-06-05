@@ -215,7 +215,7 @@ func TestToRetrieveBundleAssetWithGzipCompression(t *testing.T) {
 	projectRoot, _ := findProjectRoot()
 
 	mockWorkingExpoResponse("staging")
-	url, _ := update.BuildFinalManifestAssetUrlURL("http://localhost:3000", "bundles/android-82adadb1fb6e489d04ad95fd79670deb.js", "1", "android")
+	url, _ := update.BuildFinalManifestAssetUrlURL("http://localhost:3000", "bundles/android-82adadb1fb6e489d04ad95fd79670deb.js", "1", "android", "staging")
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest("GET", url, nil)
 	r.Header.Set("Accept-Encoding", "gzip")
@@ -260,7 +260,7 @@ func TestToRetrieveBundleAssetWithBrotliCompression(t *testing.T) {
 		t.Errorf("Error finding project root: %v", err)
 	}
 
-	url, _ := update.BuildFinalManifestAssetUrlURL("http://localhost:3000", "bundles/android-82adadb1fb6e489d04ad95fd79670deb.js", "1", "android")
+	url, _ := update.BuildFinalManifestAssetUrlURL("http://localhost:3000", "bundles/android-82adadb1fb6e489d04ad95fd79670deb.js", "1", "android", "staging")
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest("GET", url, nil)
 	r.Header.Set("Accept-Encoding", "br")
@@ -301,7 +301,7 @@ func TestToRetrievePNGAssetWithGzipCompression(t *testing.T) {
 	defer teardown()
 	mockWorkingExpoResponse("staging")
 
-	url, _ := update.BuildFinalManifestAssetUrlURL("http://localhost:3000", "assets/4f1cb2cac2370cd5050681232e8575a8", "1", "android")
+	url, _ := update.BuildFinalManifestAssetUrlURL("http://localhost:3000", "assets/4f1cb2cac2370cd5050681232e8575a8", "1", "android", "staging")
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest("GET", url, nil)
 	r.Header.Set("Accept-Encoding", "gzip")
@@ -334,7 +334,7 @@ func TestAutomaticUrlRedirectionIfCDNIsSet(t *testing.T) {
 	os.Setenv("CLOUDFRONT_KEY_PAIR_ID", "test")
 
 	mockWorkingExpoResponse("staging")
-	url, _ := update.BuildFinalManifestAssetUrlURL("http://localhost:3000", "bundles/ios-9d01842d6ee1224f7188971c5d397115.js", "1", "android")
+	url, _ := update.BuildFinalManifestAssetUrlURL("http://localhost:3000", "bundles/ios-9d01842d6ee1224f7188971c5d397115.js", "1", "android", "staging")
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest("GET", url, nil)
 	r.Header.Set("Accept-Encoding", "gzip")
@@ -354,7 +354,7 @@ func TestPreventCDNRedirectionHeader(t *testing.T) {
 	os.Setenv("CLOUDFRONT_KEY_PAIR_ID", "test")
 
 	mockWorkingExpoResponse("staging")
-	url, _ := update.BuildFinalManifestAssetUrlURL("http://localhost:3000", "bundles/ios-9d01842d6ee1224f7188971c5d397115.js", "1", "android")
+	url, _ := update.BuildFinalManifestAssetUrlURL("http://localhost:3000", "bundles/ios-9d01842d6ee1224f7188971c5d397115.js", "1", "android", "staging")
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest("GET", url, nil)
 	r.Header.Set("Accept-Encoding", "gzip")

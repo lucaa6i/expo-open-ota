@@ -126,9 +126,13 @@ func TestGetActiveUsers(t *testing.T) {
 	if got := getActiveUsers(platform, runtime, branch, update); got != 1 {
 		t.Errorf("Expected getActiveUsers to return 1, got %v", got)
 	}
-	metrics.TrackActiveUser("client2", platform, runtime, branch, update)
+	metrics.TrackActiveUser(clientId, platform, runtime, branch, update)
 	if got := getActiveUsers(platform, runtime, branch, update); got != 1 {
 		t.Errorf("Expected getActiveUsers to still be 1 (Gauge should not increment), got %v", got)
+	}
+	metrics.TrackActiveUser("client2", platform, runtime, branch, update)
+	if got := getActiveUsers(platform, runtime, branch, update); got != 2 {
+		t.Errorf("Expected getActiveUsers to increment to 2, got %v", got)
 	}
 }
 
