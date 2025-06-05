@@ -161,7 +161,7 @@ func ManifestHandler(w http.ResponseWriter, r *http.Request) {
 	branchMap, err := services.FetchExpoChannelMapping(channelName)
 	if err != nil {
 		log.Printf("[RequestID: %s] Error fetching channel mapping: %v", requestID, err)
-		http.Error(w, "Error fetching channel mapping", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error fetching channel mapping: %v", err), http.StatusInternalServerError)
 		return
 	}
 	if branchMap == nil {
