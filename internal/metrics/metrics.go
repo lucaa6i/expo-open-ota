@@ -3,10 +3,9 @@ package metrics
 import (
 	"expo-open-ota/internal/cache"
 	"fmt"
-	"net/http"
-
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"net/http"
 )
 
 var (
@@ -17,27 +16,56 @@ var (
 		},
 		[]string{"platform", "runtime", "branch", "update"},
 	)
-	updateDownloadsVec = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
+
+	updateDownloadsVec = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
 			Name: "update_downloads_total",
 			Help: "Total number of update downloads per platform, runtime version, branch and update",
 		},
 		[]string{"platform", "runtime", "branch", "update", "updateType"},
+	)
+
+	updateErrorUsersVec = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "update_error_users_total",
+			Help: "Total number of users who encountered an error for a given platform, runtime version, branch and update",
+		},
+		[]string{"platform", "runtime", "branch", "update"},
 	)
 )
 
 func InitMetrics() {
 	prometheus.MustRegister(activeUsersVec)
 	prometheus.MustRegister(updateDownloadsVec)
+	prometheus.MustRegister(updateErrorUsersVec)
 }
 
 func CleanupMetrics() {
 	prometheus.Unregister(activeUsersVec)
 	prometheus.Unregister(updateDownloadsVec)
+	prometheus.Unregister(updateErrorUsersVec)
+}
+
+func TrackUpdateErrorUsers(clientId, platform, runtime, branch, update string) {
+	if clientId == "" || platform == "" || runtime == "" || branch == "" || update == "" {
+		return
+	}
+
+	resolvedCache := cache.GetCache()
+	key := fmt.Sprintf("update_error_users:%s:%s", branch, platform)
+	ttl := 600
+
+	_ = resolvedCache.Sadd(key, []string{runtime}, &ttl)
+
+	count, err := resolvedCache.Scard(key)
+	if err != nil {
+		return
+	}
+	updateErrorUsersVec.WithLabelValues(platform, runtime, branch, update).Set(float64(count))
 }
 
 func TrackActiveUser(clientId, platform, runtime, branch, update string) {
-	if clientId == "" || platform == "" || branch == "" || update == "" {
+	if clientId == "" || platform == "" || branch == "" || update == "" || runtime == "" {
 		return
 	}
 
@@ -73,11 +101,18 @@ func ResetMetricsForTest() {
 		},
 		[]string{"platform", "runtime", "branch", "update"},
 	)
-	updateDownloadsVec = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
+	updateDownloadsVec = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
 			Name: "update_downloads_total",
 			Help: "Total number of update downloads per platform, runtime version, branch and update",
 		},
 		[]string{"platform", "runtime", "branch", "update", "updateType"},
+	)
+	updateErrorUsersVec = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "update_error_users_total",
+			Help: "Total number of users who encountered an error for a given platform, runtime version, branch and update",
+		},
+		[]string{"platform", "runtime", "branch", "update"},
 	)
 }

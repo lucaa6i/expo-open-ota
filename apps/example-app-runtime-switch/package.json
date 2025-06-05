@@ -11,8 +11,8 @@
     "web": "expo start --web",
     "test": "jest --watchAll",
     "lint": "expo lint",
-    "release_production": "RELEASE_CHANNEL=production ../eoas/bin/dev.js publish --nonInteractive --channel production --branch production",
-    "release_staging": "RELEASE_CHANNEL=staging ../eoas/bin/dev.js publish --nonInteractive --channel staging --branch staging",
+    "release_production": "RELEASE_CHANNEL=production ../eoas/bin/dev.js publish --nonInteractive --branch production --disableRepositoryCheck",
+    "release_staging": "RELEASE_CHANNEL=staging ../eoas/bin/dev.js publish --nonInteractive --branch staging --disableRepositoryCheck",
     "prebuild_production": "RELEASE_CHANNEL=production expo prebuild",
     "prebuild_staging": "RELEASE_CHANNEL=staging expo prebuild"
   },

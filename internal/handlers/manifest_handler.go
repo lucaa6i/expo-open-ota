@@ -108,7 +108,9 @@ func putUpdateInResponse(w http.ResponseWriter, r *http.Request, lastUpdate type
 		http.Error(w, "Error composing manifest", http.StatusInternalServerError)
 		return
 	}
-	metrics.TrackUpdateDownload(platform, lastUpdate.RuntimeVersion, lastUpdate.Branch, metadata.ID, "update")
+	if currentUpdateId != "" {
+		metrics.TrackUpdateDownload(platform, lastUpdate.RuntimeVersion, lastUpdate.Branch, manifest.Id, "update")
+	}
 	w.Header().Set("expo-manifest-filters", `branch="`+lastUpdate.Branch+`"`)
 	putResponse(w, r, manifest, "manifest", lastUpdate.RuntimeVersion, protocolVersion, requestID)
 }
@@ -167,6 +169,7 @@ func ManifestHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "No branch mapping found", http.StatusNotFound)
 		return
 	}
+
 	branch := branchMap.BranchName
 	protocolVersion, err := strconv.ParseInt(r.Header.Get("expo-protocol-version"), 10, 64)
 	if err != nil {
@@ -189,6 +192,11 @@ func ManifestHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	clientId := r.Header.Get("EAS-Client-ID")
 	currentUpdateId := r.Header.Get("expo-current-update-id")
+	expoFatalError := r.Header.Get("expo-fatal-error")
+	hasJsonError := expoFatalError != ""
+	if hasJsonError {
+		metrics.TrackUpdateErrorUsers(clientId, platform, runtimeVersion, branch, currentUpdateId)
+	}
 	metrics.TrackActiveUser(clientId, platform, runtimeVersion, branch, currentUpdateId)
 	if runtimeVersion == "" {
 		log.Printf("[RequestID: %s] No runtime version provided", requestID)
