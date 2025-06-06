@@ -3,9 +3,10 @@ package metrics
 import (
 	"expo-open-ota/internal/cache"
 	"fmt"
+	"net/http"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"net/http"
 )
 
 var (
@@ -52,7 +53,7 @@ func TrackUpdateErrorUsers(clientId, platform, runtime, branch, update string) {
 	}
 
 	resolvedCache := cache.GetCache()
-	key := fmt.Sprintf("update_error_users:%s:%s", branch, platform)
+	key := fmt.Sprintf("update_error_users:%s:%s:%s:%s", branch, platform, runtime, update)
 	ttl := 600
 
 	_ = resolvedCache.Sadd(key, []string{runtime}, &ttl)
@@ -70,7 +71,7 @@ func TrackActiveUser(clientId, platform, runtime, branch, update string) {
 	}
 
 	resolvedCache := cache.GetCache()
-	key := fmt.Sprintf("seen_users:%s:%s", branch, platform)
+	key := fmt.Sprintf("seen_users:%s:%s:%s:%s", branch, platform, runtime, update)
 	ttl := 86400
 
 	_ = resolvedCache.Sadd(key, []string{clientId}, &ttl)
