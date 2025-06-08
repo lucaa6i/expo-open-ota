@@ -18,6 +18,14 @@ var (
 		[]string{"platform", "runtime", "branch", "update"},
 	)
 
+	globalActiveUsersVec = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "global_active_users_total",
+			Help: "Total number of unique active users across all platforms, runtime versions, branches and updates",
+		},
+		[]string{"platform"},
+	)
+
 	updateDownloadsVec = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "update_downloads_total",
@@ -39,12 +47,14 @@ func InitMetrics() {
 	prometheus.MustRegister(activeUsersVec)
 	prometheus.MustRegister(updateDownloadsVec)
 	prometheus.MustRegister(updateErrorUsersVec)
+	prometheus.MustRegister(globalActiveUsersVec)
 }
 
 func CleanupMetrics() {
 	prometheus.Unregister(activeUsersVec)
 	prometheus.Unregister(updateDownloadsVec)
 	prometheus.Unregister(updateErrorUsersVec)
+	prometheus.Unregister(globalActiveUsersVec)
 }
 
 func TrackUpdateErrorUsers(clientId, platform, runtime, branch, update string) {
@@ -71,16 +81,24 @@ func TrackActiveUser(clientId, platform, runtime, branch, update string) {
 	}
 
 	resolvedCache := cache.GetCache()
-	key := fmt.Sprintf("seen_users:%s:%s:%s:%s", branch, platform, runtime, update)
+	activeUserKey := fmt.Sprintf("seen_users:%s:%s:%s:%s", branch, platform, runtime, update)
 	ttl := 86400
 
-	_ = resolvedCache.Sadd(key, []string{clientId}, &ttl)
+	_ = resolvedCache.Sadd(activeUserKey, []string{clientId}, &ttl)
 
-	count, err := resolvedCache.Scard(key)
+	count, err := resolvedCache.Scard(activeUserKey)
 	if err != nil {
 		return
 	}
 	activeUsersVec.WithLabelValues(platform, runtime, branch, update).Set(float64(count))
+
+	globalActiveUserKey := fmt.Sprintf("global_active_users:%s", platform)
+	_ = resolvedCache.Sadd(globalActiveUserKey, []string{clientId}, &ttl)
+	count, err = resolvedCache.Scard(globalActiveUserKey)
+	if err != nil {
+		return
+	}
+	globalActiveUsersVec.WithLabelValues(platform).Set(float64(count))
 }
 
 func TrackUpdateDownload(platform, runtime, branch, update, updateType string) {
@@ -115,5 +133,12 @@ func ResetMetricsForTest() {
 			Help: "Total number of users who encountered an error for a given platform, runtime version, branch and update",
 		},
 		[]string{"platform", "runtime", "branch", "update"},
+	)
+	globalActiveUsersVec = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "global_active_users_total",
+			Help: "Total number of unique active users across all platforms, runtime versions, branches and updates",
+		},
+		[]string{"platform"},
 	)
 }
