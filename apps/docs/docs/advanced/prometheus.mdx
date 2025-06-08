@@ -42,9 +42,22 @@ You can use the following dashboard to visualize the metrics exposed by the serv
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 142,
+  "id": 145,
   "links": [],
   "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 10,
+      "panels": [],
+      "title": "Users",
+      "type": "row"
+    },
     {
       "datasource": {
         "uid": "$DS_PROM"
@@ -73,7 +86,7 @@ You can use the following dashboard to visualize the metrics exposed by the serv
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 0
+        "y": 1
       },
       "id": 1,
       "options": {
@@ -100,7 +113,7 @@ You can use the following dashboard to visualize the metrics exposed by the serv
             "uid": "$DS_PROM"
           },
           "editorMode": "code",
-          "expr": "sum(active_users_total{platform=~\"$platform\", runtime=~\"$runtime\", branch=~\"$branch\", update=~\"$update\"})",
+          "expr": "sum(global_active_users_total{platform=~\"$platform\"})",
           "legendFormat": "Total Unique Active Users",
           "range": true,
           "refId": "A"
@@ -173,9 +186,9 @@ You can use the following dashboard to visualize the metrics exposed by the serv
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 0
+        "y": 1
       },
-      "id": 2,
+      "id": 5,
       "options": {
         "legend": {
           "calcs": [],
@@ -196,13 +209,13 @@ You can use the following dashboard to visualize the metrics exposed by the serv
             "uid": "$DS_PROM"
           },
           "editorMode": "code",
-          "expr": "sum(active_users_total{platform=~\"$platform\", runtime=~\"$runtime\", branch=~\"$branch\", update=~\"$update\"})\n  by (platform)",
+          "expr": "sum(active_users_total{platform=~\"$platform\", runtime=~\"$runtime\", branch=~\"$branch\", update=~\"$update\"})\n  by (runtime, update)",
           "legendFormat": "{{platform}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "📊 Unique Active Users by Platform",
+      "title": "📊 Unique Active Users by Runtime And Update",
       "type": "timeseries"
     },
     {
@@ -261,7 +274,7 @@ You can use the following dashboard to visualize the metrics exposed by the serv
               }
             ]
           },
-          "unit": "short"
+          "unit": "none"
         },
         "overrides": []
       },
@@ -269,13 +282,13 @@ You can use the following dashboard to visualize the metrics exposed by the serv
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 0
+        "y": 1
       },
-      "id": 3,
+      "id": 2,
       "options": {
         "legend": {
           "calcs": [],
-          "displayMode": "table",
+          "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
         },
@@ -291,13 +304,28 @@ You can use the following dashboard to visualize the metrics exposed by the serv
           "datasource": {
             "uid": "$DS_PROM"
           },
-          "expr": "sum(update_downloads_total{platform=~\"$platform\", runtime=~\"$runtime\", branch=~\"$branch\", update=~\"$update\"}) by (update)",
-          "legendFormat": "{{update}}",
+          "editorMode": "code",
+          "expr": "sum(global_active_users_total{platform=~\"$platform\"})\n  by (platform)",
+          "legendFormat": "{{platform}}",
+          "range": true,
           "refId": "A"
         }
       ],
-      "title": "⬇️ Total Update Downloads by Update",
+      "title": "📊 Unique Active Users by Platform",
       "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
+      "id": 9,
+      "panels": [],
+      "title": "Errors",
+      "type": "row"
     },
     {
       "datasource": {
@@ -363,103 +391,7 @@ You can use the following dashboard to visualize the metrics exposed by the serv
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 8
-      },
-      "id": 5,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "11.5.1",
-      "targets": [
-        {
-          "datasource": {
-            "uid": "$DS_PROM"
-          },
-          "editorMode": "code",
-          "expr": "sum(active_users_total{platform=~\"$platform\", runtime=~\"$runtime\", branch=~\"$branch\", update=~\"$update\"})\n  by (branch)",
-          "legendFormat": "{{platform}}",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "📊 Unique Active Users by Branch",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "uid": "$DS_PROM"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "none"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 8,
-        "y": 8
+        "y": 10
       },
       "id": 6,
       "options": {
@@ -554,8 +486,8 @@ You can use the following dashboard to visualize the metrics exposed by the serv
       "gridPos": {
         "h": 8,
         "w": 8,
-        "x": 16,
-        "y": 8
+        "x": 8,
+        "y": 10
       },
       "id": 7,
       "options": {
@@ -585,6 +517,209 @@ You can use the following dashboard to visualize the metrics exposed by the serv
         }
       ],
       "title": "🚨 Update error users total",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 18
+      },
+      "id": 8,
+      "panels": [],
+      "title": "Updates",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "uid": "$DS_PROM"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 19
+      },
+      "id": 3,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "11.5.1",
+      "targets": [
+        {
+          "datasource": {
+            "uid": "$DS_PROM"
+          },
+          "expr": "sum(update_downloads_total{platform=~\"$platform\", runtime=~\"$runtime\", branch=~\"$branch\", update=~\"$update\"}) by (update)",
+          "legendFormat": "{{update}}",
+          "refId": "A"
+        }
+      ],
+      "title": "⬇️ Total Update Downloads by Update",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "uid": "$DS_PROM"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 19
+      },
+      "id": 11,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "11.5.1",
+      "targets": [
+        {
+          "datasource": {
+            "uid": "$DS_PROM"
+          },
+          "editorMode": "code",
+          "expr": "sum(update_downloads_total{platform=~\"$platform\", runtime=~\"$runtime\", branch=~\"$branch\", update=~\"$update\"}) by (runtime)",
+          "legendFormat": "{{update}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "⬇️ Total Update Downloads by Runtime",
       "type": "timeseries"
     },
     {
@@ -651,7 +786,7 @@ You can use the following dashboard to visualize the metrics exposed by the serv
         "h": 12,
         "w": 24,
         "x": 0,
-        "y": 16
+        "y": 27
       },
       "id": 4,
       "options": {
@@ -674,13 +809,13 @@ You can use the following dashboard to visualize the metrics exposed by the serv
             "uid": "$DS_PROM"
           },
           "editorMode": "code",
-          "expr": "sum by (updateType) (rate(update_downloads_total{platform=~\"$platform|.*\", runtime=~\"$runtime|.*\", branch=~\"$branch|.*\", update=~\"$update|.*\", updateType=~\"$updateType|.*\"}[1m]))",
+          "expr": "sum by (update, runtime) (update_downloads_total{platform=~\"$platform\", runtime=~\"$runtime\", branch=~\"$branch\", update=~\"$update\", updateType=~\"$updateType|.*\"})",
           "legendFormat": "{{updateType}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "⚡ Update Downloads Rate Over Time by Type",
+      "title": "⚡ Update Downloads Rate Over Time by Runtime & Update",
       "type": "timeseries"
     }
   ],
@@ -728,8 +863,8 @@ You can use the following dashboard to visualize the metrics exposed by the serv
       {
         "allValue": ".*",
         "current": {
-          "text": "All",
-          "value": "$__all"
+          "text": "2.0.0",
+          "value": "2.0.0"
         },
         "datasource": {
           "type": "prometheus",
@@ -787,9 +922,9 @@ You can use the following dashboard to visualize the metrics exposed by the serv
   },
   "timepicker": {},
   "timezone": "",
-  "title": "🚀 OTA Server Ultimate Metrics Dashboard - ?ew",
+  "title": "🚀 OTA Server Ultimate Metrics Dashboard",
   "uid": "ota-metrics-dashboard",
-  "version": 8,
+  "version": 11,
   "weekStart": ""
 }
 ```
