@@ -10,11 +10,12 @@ import (
 	"expo-open-ota/internal/types"
 	"expo-open-ota/internal/update"
 	"fmt"
-	"github.com/google/uuid"
 	"log"
 	"mime/multipart"
 	"net/http"
 	"strconv"
+
+	"github.com/google/uuid"
 )
 
 func createMultipartResponse(headers map[string][]string, jsonContent interface{}) (*multipart.Writer, *bytes.Buffer, error) {
@@ -195,7 +196,14 @@ func ManifestHandler(w http.ResponseWriter, r *http.Request) {
 	expoFatalError := r.Header.Get("expo-fatal-error")
 	hasJsonError := expoFatalError != ""
 	if hasJsonError {
-		metrics.TrackUpdateErrorUsers(clientId, platform, runtimeVersion, branch, currentUpdateId)
+		if currentUpdateId != "" {
+			metrics.TrackUpdateErrorUsers(clientId, platform, runtimeVersion, branch, currentUpdateId)
+		} else {
+			recentFailedUpdateId := r.Header.Get("Expo-Recent-Failed-Update-Ids")
+			if recentFailedUpdateId != "" {
+				metrics.TrackUpdateErrorUsers(clientId, platform, runtimeVersion, branch, recentFailedUpdateId)
+			}
+		}
 	}
 	metrics.TrackActiveUser(clientId, platform, runtimeVersion, branch, currentUpdateId)
 	if runtimeVersion == "" {
