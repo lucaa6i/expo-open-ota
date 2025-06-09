@@ -85,7 +85,7 @@ func TrackActiveUser(clientId, platform, runtime, branch, update string) {
 
 	resolvedCache := cache.GetCache()
 	activeUserKey := fmt.Sprintf("seen_users:%s:%s:%s:%s", branch, platform, runtime, update)
-	ttl := 86400
+	ttl := 14400
 
 	_ = resolvedCache.Sadd(activeUserKey, []string{clientId}, &ttl)
 
