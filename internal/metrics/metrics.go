@@ -58,12 +58,15 @@ func CleanupMetrics() {
 }
 
 func TrackUpdateErrorUsers(clientId, platform, runtime, branch, update string) {
-	if clientId == "" || platform == "" || runtime == "" || branch == "" || update == "" {
+	computedUpdate := update
+	if computedUpdate == "" {
+		computedUpdate = "unknown"
+	}
+	if clientId == "" || platform == "" || runtime == "" || branch == ""  {
 		return
 	}
-
 	resolvedCache := cache.GetCache()
-	key := fmt.Sprintf("update_error_users:%s:%s:%s:%s", branch, platform, runtime, update)
+	key := fmt.Sprintf("update_error_users:%s:%s:%s:%s", branch, platform, runtime, computedUpdate)
 	ttl := 600
 
 	_ = resolvedCache.Sadd(key, []string{runtime}, &ttl)
@@ -72,7 +75,7 @@ func TrackUpdateErrorUsers(clientId, platform, runtime, branch, update string) {
 	if err != nil {
 		return
 	}
-	updateErrorUsersVec.WithLabelValues(platform, runtime, branch, update).Set(float64(count))
+	updateErrorUsersVec.WithLabelValues(platform, runtime, branch, computedUpdate).Set(float64(count))
 }
 
 func TrackActiveUser(clientId, platform, runtime, branch, update string) {
