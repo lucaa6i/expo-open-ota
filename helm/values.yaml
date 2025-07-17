@@ -87,6 +87,9 @@ environment:
     required:
       - key: "storageMode"
         is: "s3"
+  - name: "AWS_BASE_ENDPOINT"
+    value: ""
+    required: false
   - name: "S3_BUCKET_NAME"
     value: ""
     required:

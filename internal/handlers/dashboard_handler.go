@@ -66,6 +66,7 @@ type SettingsEnv struct {
 	PUBLIC_LOCAL_EXPO_KEY_PATH             string `json:"PUBLIC_LOCAL_EXPO_KEY_PATH"`
 	PRIVATE_LOCAL_EXPO_KEY_PATH            string `json:"PRIVATE_LOCAL_EXPO_KEY_PATH"`
 	AWS_REGION                             string `json:"AWS_REGION"`
+	AWS_BASE_ENDPOINT                      string `json:"AWS_BASE_ENDPOINT"`
 	AWS_ACCESS_KEY_ID                      string `json:"AWS_ACCESS_KEY_ID"`
 	CLOUDFRONT_DOMAIN                      string `json:"CLOUDFRONT_DOMAIN"`
 	CLOUDFRONT_KEY_PAIR_ID                 string `json:"CLOUDFRONT_KEY_PAIR_ID"`

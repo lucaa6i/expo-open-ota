@@ -40,7 +40,14 @@ func GetS3Client() (*s3.Client, error) {
 
 		cfg, err = awsconfig.LoadDefaultConfig(context.TODO(), opts...)
 		if err == nil {
-			s3Client = s3.NewFromConfig(cfg)
+			baseEndpoint := config.GetEnv("AWS_BASE_ENDPOINT")
+			if baseEndpoint != "" {
+				s3Client = s3.NewFromConfig(cfg, func(o *s3.Options) {
+					o.BaseEndpoint = aws.String(baseEndpoint)
+				})
+			} else {
+				s3Client = s3.NewFromConfig(cfg)
+			}
 		}
 	})
 
