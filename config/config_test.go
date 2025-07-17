@@ -125,9 +125,44 @@ func TestNotSetEnv(t *testing2.T) {
 	assert.Empty(t, GetEnv("NOT_FOUND"))
 }
 
+
+func TestAwsBaseEndpointSet(t *testing2.T) {
+	teardown := setup(t)
+	defer teardown()
+	os.Setenv("STORAGE_MODE", "local")
+	os.Setenv("BASE_URL", "http://test.com")
+	os.Setenv("EXPO_ACCESS_TOKEN", "test")
+	os.Setenv("EXPO_APP_ID", "test")
+	os.Setenv("JWT_SECRET", "test")
+	os.Setenv("LOCAL_BUCKET_BASE_PATH", "./updates")
+	
+	expectedEndpoint := "https://test-account.r2.cloudflarestorage.com"
+	os.Setenv("AWS_BASE_ENDPOINT", expectedEndpoint)
+	LoadConfig()
+	actualEndpoint := GetEnv("AWS_BASE_ENDPOINT")
+	assert.Equal(t, expectedEndpoint, actualEndpoint)
+}
+
+func TestAwsBaseEndpointNotSet(t *testing2.T) {
+	teardown := setup(t)
+	defer teardown()
+	os.Setenv("STORAGE_MODE", "local")
+	os.Setenv("BASE_URL", "http://test.com")
+	os.Setenv("EXPO_ACCESS_TOKEN", "test")
+	os.Setenv("EXPO_APP_ID", "test")
+	os.Setenv("JWT_SECRET", "test")
+	os.Setenv("LOCAL_BUCKET_BASE_PATH", "./updates")
+	os.Unsetenv("AWS_BASE_ENDPOINT")
+	LoadConfig()
+	endpoint := GetEnv("AWS_BASE_ENDPOINT")
+	assert.Equal(t, DefaultEnvValues["AWS_BASE_ENDPOINT"], endpoint)
+	assert.Empty(t, endpoint)
+}
+
 func TestTestMode(t *testing2.T) {
 	teardown := setup(t)
 	defer teardown()
 	testMode := IsTestMode()
 	assert.True(t, testMode)
 }
+
