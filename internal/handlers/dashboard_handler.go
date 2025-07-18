@@ -99,6 +99,7 @@ func GetSettingsHandler(w http.ResponseWriter, r *http.Request) {
 		PUBLIC_LOCAL_EXPO_KEY_PATH:             config.GetEnv("PUBLIC_LOCAL_EXPO_KEY_PATH"),
 		PRIVATE_LOCAL_EXPO_KEY_PATH:            config.GetEnv("PRIVATE_LOCAL_EXPO_KEY_PATH"),
 		AWS_REGION:                             config.GetEnv("AWS_REGION"),
+		AWS_BASE_ENDPOINT:                      config.GetEnv("AWS_BASE_ENDPOINT"),
 		AWS_ACCESS_KEY_ID:                      config.GetEnv("AWS_ACCESS_KEY_ID"),
 		CLOUDFRONT_DOMAIN:                      config.GetEnv("CLOUDFRONT_DOMAIN"),
 		CLOUDFRONT_KEY_PAIR_ID:                 config.GetEnv("CLOUDFRONT_KEY_PAIR_ID"),
