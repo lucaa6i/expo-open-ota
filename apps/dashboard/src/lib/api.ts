@@ -161,6 +161,7 @@ export class ApiClient {
       PUBLIC_LOCAL_EXPO_KEY_PATH: string;
       PRIVATE_LOCAL_EXPO_KEY_PATH: string;
       AWS_REGION: string;
+      AWS_BASE_ENDPOINT: string;
       AWS_ACCESS_KEY_ID: string;
       CLOUDFRONT_DOMAIN: string;
       CLOUDFRONT_KEY_PAIR_ID: string;

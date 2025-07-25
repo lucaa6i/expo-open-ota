@@ -395,6 +395,11 @@ func (b *S3Bucket) RetrieveMigrationHistory() ([]string, error) {
 	}
 	resp, err := s3Client.GetObject(context.TODO(), input)
 	if err != nil {
+		var noSuchKey *s3types.NoSuchKey
+		if errors.As(err, &noSuchKey) {
+			// handle empty migration history if file doesn't exist (first time setup)
+			return nil, nil
+		}
 		return nil, fmt.Errorf("GetObject error: %w", err)
 	}
 	defer resp.Body.Close()

@@ -69,6 +69,7 @@ You can set these variables in a `.env` file for local development or in your de
 | Name | Required | Description | Example | Reference |
 | --- | --- | --- | --- | --- |
 | `AWS_REGION` | ✅ if using `aws-secrets-manager` or `s3` | AWS Region | `us-east-1` | [Ref](/docs/key-store?keyStore=aws-secrets-manager#key-store-configuration), [Storage](/docs/storage?storage=s3) |
+| `AWS_BASE_ENDPOINT` | ❌ | Custom S3-compatible endpoint for alternative object storage | `https://account-id.r2.cloudflarestorage.com` | [Storage](/docs/storage?storage=s3) |
 | `AWS_ACCESS_KEY_ID` | ✅ if using `aws-secrets-manager` or `s3` without IAM roles | AWS Access Key ID | `ACCESSKEYID` | [Ref](/docs/key-store?keyStore=aws-secrets-manager#key-store-configuration), [Storage](/docs/storage?storage=s3) |
 | `AWS_SECRET_ACCESS_KEY` | ✅ if using `aws-secrets-manager` or `s3` without IAM roles | AWS Secret Access Key | `SECRETACCESSKEY` | [Ref](/docs/key-store?keyStore=aws-secrets-manager#key-store-configuration), [Storage](/docs/storage?storage=s3) |
 
