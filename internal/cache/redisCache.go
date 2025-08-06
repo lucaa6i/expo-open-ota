@@ -11,23 +11,40 @@ import (
 )
 
 type RedisCache struct {
-	client   *redis.Client
+	client   redis.Cmdable // Changed from *redis.Client to interface
 	host     string
 	password string
 	port     string
 }
 
-func NewRedisCache(host, password, port string, useTLS bool) *RedisCache {
-	opts := &redis.Options{
-		Addr:     host + ":" + port,
-		Password: password,
-	}
+func NewRedisCache(host, password, port string, useTLS bool, useCluster bool) *RedisCache {
+	var client redis.Cmdable
+	
+	if useCluster {
+		// For cluster mode, use ClusterClient
+		opts := &redis.ClusterOptions{
+			Addrs:    []string{host + ":" + port},
+			Password: password,
+		}
 
-	if useTLS {
-		opts.TLSConfig = &tls.Config{}
-	}
+		if useTLS {
+			opts.TLSConfig = &tls.Config{}
+		}
 
-	client := redis.NewClient(opts)
+		client = redis.NewClusterClient(opts)
+	} else {
+		// For single instance mode, use regular Client
+		opts := &redis.Options{
+			Addr:     host + ":" + port,
+			Password: password,
+		}
+
+		if useTLS {
+			opts.TLSConfig = &tls.Config{}
+		}
+
+		client = redis.NewClient(opts)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
