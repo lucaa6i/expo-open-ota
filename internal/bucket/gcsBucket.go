@@ -27,11 +27,11 @@ type GCSBucket struct {
 
 // ListBucketResult represents the XML response from GCS ListObjects
 type ListBucketResult struct {
-	XMLName     xml.Name `xml:"ListBucketResult"`
-	Contents    []Object `xml:"Contents"`
+	XMLName        xml.Name       `xml:"ListBucketResult"`
+	Contents       []Object       `xml:"Contents"`
 	CommonPrefixes []CommonPrefix `xml:"CommonPrefixes"`
-	IsTruncated bool     `xml:"IsTruncated"`
-	NextMarker  string   `xml:"NextMarker"`
+	IsTruncated    bool           `xml:"IsTruncated"`
+	NextMarker     string         `xml:"NextMarker"`
 }
 
 type Object struct {
@@ -61,11 +61,11 @@ func (b *GCSBucket) generateSignature(method, path string, headers map[string]st
 
 	now := time.Now().UTC()
 	dateStr := now.Format("Mon, 02 Jan 2006 15:04:05 GMT")
-	
+
 	// Set required headers for AWS signature v2
 	headers["Date"] = dateStr
 	headers["Host"] = "storage.googleapis.com"
-	
+
 	// Create string to sign for AWS signature v2
 	// Format: HTTP-Verb + "\n" + Content-MD5 + "\n" + Content-Type + "\n" + Date + "\n" + CanonicalizedAmzHeaders + CanonicalizedResource
 	contentType := headers["Content-Type"]
@@ -73,16 +73,16 @@ func (b *GCSBucket) generateSignature(method, path string, headers map[string]st
 		contentType = ""
 	}
 	stringToSign := method + "\n" + "\n" + contentType + "\n" + dateStr + "\n" + path
-	
+
 	// Calculate HMAC-SHA1 signature (GCS expects SHA1, not SHA256)
 	h := hmac.New(sha1.New, []byte(b.SecretKey))
 	h.Write([]byte(stringToSign))
 	signature := base64.StdEncoding.EncodeToString(h.Sum(nil))
-	
+
 	// Create authorization header (AWS signature v2 style)
 	authHeader := fmt.Sprintf("AWS %s:%s", b.AccessKey, signature)
 	headers["Authorization"] = authHeader
-	
+
 	return headers, nil
 }
 
@@ -95,25 +95,25 @@ func (b *GCSBucket) makeRequest(method, path string, body io.Reader) (*http.Resp
 			return nil, fmt.Errorf("error reading body: %w", err)
 		}
 	}
-	
+
 	headers := make(map[string]string)
 	headers["Content-Type"] = "application/octet-stream"
-	
+
 	signedHeaders, err := b.generateSignature(method, path, headers)
 	if err != nil {
 		return nil, fmt.Errorf("error generating signature: %w", err)
 	}
-	
+
 	fullURL := b.BaseURL + path
 	req, err := http.NewRequest(method, fullURL, bytes.NewReader(bodyBytes))
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %w", err)
 	}
-	
+
 	for k, v := range signedHeaders {
 		req.Header.Set(k, v)
 	}
-	
+
 	client := &http.Client{Timeout: 30 * time.Second}
 	return client.Do(req)
 }
@@ -122,24 +122,24 @@ func (b *GCSBucket) GetBranches() ([]string, error) {
 	if b.BucketName == "" {
 		return nil, errors.New("BucketName not set")
 	}
-	
+
 	path := fmt.Sprintf("/%s/?delimiter=/", b.BucketName)
 	resp, err := b.makeRequest("GET", path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != 200 {
 		body, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("GCS API error (status %d): %s", resp.StatusCode, string(body))
 	}
-	
+
 	var result ListBucketResult
 	if err := xml.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("error parsing XML response: %w", err)
 	}
-	
+
 	var branches []string
 	for _, prefix := range result.CommonPrefixes {
 		if prefix.Prefix != "" {
@@ -148,7 +148,7 @@ func (b *GCSBucket) GetBranches() ([]string, error) {
 			branches = append(branches, branch)
 		}
 	}
-	
+
 	return branches, nil
 }
 
@@ -156,24 +156,24 @@ func (b *GCSBucket) GetRuntimeVersions(branch string) ([]RuntimeVersionWithStats
 	if b.BucketName == "" {
 		return nil, errors.New("BucketName not set")
 	}
-	
+
 	path := fmt.Sprintf("/%s/?prefix=%s/&delimiter=/", b.BucketName, url.QueryEscape(branch))
 	resp, err := b.makeRequest("GET", path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != 200 {
 		body, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("GCS API error (status %d): %s", resp.StatusCode, string(body))
 	}
-	
+
 	var result ListBucketResult
 	if err := xml.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("error parsing XML response: %w", err)
 	}
-	
+
 	var runtimeVersions []RuntimeVersionWithStats
 	for _, prefix := range result.CommonPrefixes {
 		if prefix.Prefix != "" {
@@ -181,25 +181,25 @@ func (b *GCSBucket) GetRuntimeVersions(branch string) ([]RuntimeVersionWithStats
 			parts := strings.Split(strings.TrimSuffix(prefix.Prefix, "/"), "/")
 			if len(parts) >= 2 {
 				runtimeVersion := parts[1]
-				
+
 				// Get stats for this runtime version
 				updatePath := fmt.Sprintf("/%s/?prefix=%s&delimiter=/", b.BucketName, url.QueryEscape(prefix.Prefix))
 				updateResp, err := b.makeRequest("GET", updatePath, nil)
 				if err != nil {
 					continue
 				}
-				
+
 				var updateResult ListBucketResult
 				if updateResp.StatusCode == 200 {
 					xml.NewDecoder(updateResp.Body).Decode(&updateResult)
 				}
 				updateResp.Body.Close()
-				
+
 				// Calculate stats
 				var lastUpdatedAt time.Time
 				var createdAt time.Time
 				numberOfUpdates := len(updateResult.CommonPrefixes)
-				
+
 				if numberOfUpdates > 0 {
 					// Find the most recent update
 					for _, updatePrefix := range updateResult.CommonPrefixes {
@@ -217,7 +217,7 @@ func (b *GCSBucket) GetRuntimeVersions(branch string) ([]RuntimeVersionWithStats
 						}
 					}
 				}
-				
+
 				runtimeVersions = append(runtimeVersions, RuntimeVersionWithStats{
 					RuntimeVersion:  runtimeVersion,
 					LastUpdatedAt:   lastUpdatedAt.Format(time.RFC3339),
@@ -227,7 +227,7 @@ func (b *GCSBucket) GetRuntimeVersions(branch string) ([]RuntimeVersionWithStats
 			}
 		}
 	}
-	
+
 	return runtimeVersions, nil
 }
 
@@ -235,26 +235,26 @@ func (b *GCSBucket) GetUpdates(branch string, runtimeVersion string) ([]types.Up
 	if b.BucketName == "" {
 		return nil, errors.New("BucketName not set")
 	}
-	
+
 	prefix := fmt.Sprintf("%s/%s/", branch, runtimeVersion)
 	path := fmt.Sprintf("/%s/?prefix=%s&delimiter=/", b.BucketName, url.QueryEscape(prefix))
-	
+
 	resp, err := b.makeRequest("GET", path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != 200 {
 		body, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("GCS API error (status %d): %s", resp.StatusCode, string(body))
 	}
-	
+
 	var result ListBucketResult
 	if err := xml.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("error parsing XML response: %w", err)
 	}
-	
+
 	var updates []types.Update
 	for _, commonPrefix := range result.CommonPrefixes {
 		if commonPrefix.Prefix != "" {
@@ -273,7 +273,7 @@ func (b *GCSBucket) GetUpdates(branch string, runtimeVersion string) ([]types.Up
 			}
 		}
 	}
-	
+
 	return updates, nil
 }
 
@@ -281,26 +281,26 @@ func (b *GCSBucket) GetFile(update types.Update, assetPath string) (*types.Bucke
 	if b.BucketName == "" {
 		return nil, errors.New("BucketName not set")
 	}
-	
+
 	key := fmt.Sprintf("%s/%s/%s/%s", update.Branch, update.RuntimeVersion, update.UpdateId, assetPath)
 	path := fmt.Sprintf("/%s/%s", b.BucketName, key)
-	
+
 	resp, err := b.makeRequest("GET", path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %w", err)
 	}
-	
+
 	if resp.StatusCode == 404 {
 		resp.Body.Close()
 		return nil, nil
 	}
-	
+
 	if resp.StatusCode != 200 {
 		body, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
 		return nil, fmt.Errorf("GCS API error (status %d): %s", resp.StatusCode, string(body))
 	}
-	
+
 	// Parse Last-Modified header
 	var lastModified time.Time
 	if lm := resp.Header.Get("Last-Modified"); lm != "" {
@@ -308,7 +308,7 @@ func (b *GCSBucket) GetFile(update types.Update, assetPath string) (*types.Bucke
 			lastModified = parsed
 		}
 	}
-	
+
 	return &types.BucketFile{
 		Reader:    resp.Body,
 		CreatedAt: lastModified,

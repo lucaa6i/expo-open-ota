@@ -11,12 +11,13 @@ import (
 	"expo-open-ota/internal/types"
 	update2 "expo-open-ota/internal/update"
 	"fmt"
-	"github.com/gorilla/mux"
 	"log"
 	"net/http"
 	"sort"
 	"strconv"
 	"time"
+
+	"github.com/gorilla/mux"
 )
 
 type BranchMapping struct {

@@ -24,7 +24,7 @@ func GetS3Client() (*s3.Client, error) {
 	initS3Client.Do(func() {
 		var cfg aws.Config
 		opts := []func(*awsconfig.LoadOptions) error{}
-		
+
 		// Für Google Cloud Storage spezielle Konfiguration
 		baseEndpoint := config.GetEnv("AWS_BASE_ENDPOINT")
 		if baseEndpoint == "https://storage.googleapis.com" {
@@ -34,7 +34,7 @@ func GetS3Client() (*s3.Client, error) {
 			// Standard AWS-Konfiguration
 			opts = append(opts, awsconfig.WithRegion(config.GetEnv("AWS_REGION")))
 		}
-		
+
 		accessKey := config.GetEnv("AWS_ACCESS_KEY_ID")
 		secretKey := config.GetEnv("AWS_SECRET_ACCESS_KEY")
 		if accessKey != "" && secretKey != "" {
