@@ -4,12 +4,13 @@ import (
 	"context"
 	"expo-open-ota/config"
 	"fmt"
+	"log"
+	"sync"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
-	"log"
-	"sync"
 )
 
 var (
@@ -44,6 +45,10 @@ func GetS3Client() (*s3.Client, error) {
 			if baseEndpoint != "" {
 				s3Client = s3.NewFromConfig(cfg, func(o *s3.Options) {
 					o.BaseEndpoint = aws.String(baseEndpoint)
+					// Für Google Cloud Storage: path-style URLs verwenden
+					if baseEndpoint == "https://storage.googleapis.com" {
+						o.UsePathStyle = true
+					}
 				})
 			} else {
 				s3Client = s3.NewFromConfig(cfg)
