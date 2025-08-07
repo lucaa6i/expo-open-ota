@@ -12,7 +12,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -53,74 +52,32 @@ func NewGCSBucket() *GCSBucket {
 	}
 }
 
-// generateSignature creates an AWS v4 signature for GCS compatibility
-func (b *GCSBucket) generateSignature(method, path string, headers map[string]string, payload string) (map[string]string, error) {
+// generateSignature creates a simple AWS signature for GCS compatibility
+func (b *GCSBucket) generateSignature(method, path string, headers map[string]string) (map[string]string, error) {
 	if b.AccessKey == "" || b.SecretKey == "" {
 		return nil, errors.New("access key and secret key must be set")
 	}
 
 	now := time.Now().UTC()
-	date := now.Format("20060102")
-	datetime := now.Format("20060102T150405Z")
+	dateStr := now.Format("Mon, 02 Jan 2006 15:04:05 GMT")
 	
-	// Create canonical request
-	canonicalHeaders := ""
-	signedHeaders := ""
-	headerKeys := make([]string, 0, len(headers))
+	// Use simple AWS signature v2 style which is more compatible with GCS
+	headers["Date"] = dateStr
+	headers["Host"] = "storage.googleapis.com"
 	
-	// Add required headers
-	headers["host"] = "storage.googleapis.com"
-	headers["x-amz-date"] = datetime
-	headers["x-amz-content-sha256"] = b.sha256Hash(payload)
+	// Create string to sign for AWS signature v2
+	stringToSign := method + "\n\n\n" + dateStr + "\n" + path
 	
-	for k := range headers {
-		headerKeys = append(headerKeys, strings.ToLower(k))
-	}
-	sort.Strings(headerKeys)
+	// Calculate HMAC-SHA1 signature
+	h := hmac.New(sha256.New, []byte(b.SecretKey))
+	h.Write([]byte(stringToSign))
+	signature := h.Sum(nil)
 	
-	for _, k := range headerKeys {
-		canonicalHeaders += k + ":" + strings.TrimSpace(headers[k]) + "\n"
-		if signedHeaders != "" {
-			signedHeaders += ";"
-		}
-		signedHeaders += k
-	}
+	// Create authorization header (AWS signature v2 style)
+	authHeader := fmt.Sprintf("AWS %s:%s", b.AccessKey, strings.TrimSpace(fmt.Sprintf("%x", signature)))
+	headers["Authorization"] = authHeader
 	
-	canonicalRequest := method + "\n" + path + "\n" + "\n" + canonicalHeaders + "\n" + signedHeaders + "\n" + b.sha256Hash(payload)
-	
-	// Create string to sign
-	credentialScope := date + "/auto/s3/aws4_request"
-	stringToSign := "AWS4-HMAC-SHA256\n" + datetime + "\n" + credentialScope + "\n" + b.sha256Hash(canonicalRequest)
-	
-	// Calculate signature
-	dateKey := b.hmacSHA256([]byte("AWS4"+b.SecretKey), date)
-	dateRegionKey := b.hmacSHA256(dateKey, "auto")
-	dateRegionServiceKey := b.hmacSHA256(dateRegionKey, "s3")
-	signingKey := b.hmacSHA256(dateRegionServiceKey, "aws4_request")
-	signature := b.hmacSHA256(signingKey, stringToSign)
-	
-	// Create authorization header
-	authorization := fmt.Sprintf("AWS4-HMAC-SHA256 Credential=%s/%s, SignedHeaders=%s, Signature=%x",
-		b.AccessKey, credentialScope, signedHeaders, signature)
-	
-	result := make(map[string]string)
-	for k, v := range headers {
-		result[k] = v
-	}
-	result["Authorization"] = authorization
-	
-	return result, nil
-}
-
-func (b *GCSBucket) sha256Hash(data string) string {
-	hash := sha256.Sum256([]byte(data))
-	return fmt.Sprintf("%x", hash)
-}
-
-func (b *GCSBucket) hmacSHA256(key []byte, data string) []byte {
-	h := hmac.New(sha256.New, key)
-	h.Write([]byte(data))
-	return h.Sum(nil)
+	return headers, nil
 }
 
 func (b *GCSBucket) makeRequest(method, path string, body io.Reader) (*http.Response, error) {
@@ -136,7 +93,7 @@ func (b *GCSBucket) makeRequest(method, path string, body io.Reader) (*http.Resp
 	headers := make(map[string]string)
 	headers["Content-Type"] = "application/octet-stream"
 	
-	signedHeaders, err := b.generateSignature(method, path, headers, string(bodyBytes))
+	signedHeaders, err := b.generateSignature(method, path, headers)
 	if err != nil {
 		return nil, fmt.Errorf("error generating signature: %w", err)
 	}
