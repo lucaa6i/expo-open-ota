@@ -3,7 +3,8 @@ package bucket
 import (
 	"bytes"
 	"crypto/hmac"
-	"crypto/sha256"
+	"crypto/sha1"
+	"encoding/base64"
 	"encoding/xml"
 	"errors"
 	"expo-open-ota/config"
@@ -52,7 +53,7 @@ func NewGCSBucket() *GCSBucket {
 	}
 }
 
-// generateSignature creates a simple AWS signature for GCS compatibility
+// generateSignature creates an AWS signature v2 for GCS compatibility
 func (b *GCSBucket) generateSignature(method, path string, headers map[string]string) (map[string]string, error) {
 	if b.AccessKey == "" || b.SecretKey == "" {
 		return nil, errors.New("access key and secret key must be set")
@@ -61,20 +62,25 @@ func (b *GCSBucket) generateSignature(method, path string, headers map[string]st
 	now := time.Now().UTC()
 	dateStr := now.Format("Mon, 02 Jan 2006 15:04:05 GMT")
 	
-	// Use simple AWS signature v2 style which is more compatible with GCS
+	// Set required headers for AWS signature v2
 	headers["Date"] = dateStr
 	headers["Host"] = "storage.googleapis.com"
 	
 	// Create string to sign for AWS signature v2
-	stringToSign := method + "\n\n\n" + dateStr + "\n" + path
+	// Format: HTTP-Verb + "\n" + Content-MD5 + "\n" + Content-Type + "\n" + Date + "\n" + CanonicalizedAmzHeaders + CanonicalizedResource
+	contentType := headers["Content-Type"]
+	if contentType == "" {
+		contentType = ""
+	}
+	stringToSign := method + "\n" + "\n" + contentType + "\n" + dateStr + "\n" + path
 	
-	// Calculate HMAC-SHA1 signature
-	h := hmac.New(sha256.New, []byte(b.SecretKey))
+	// Calculate HMAC-SHA1 signature (GCS expects SHA1, not SHA256)
+	h := hmac.New(sha1.New, []byte(b.SecretKey))
 	h.Write([]byte(stringToSign))
-	signature := h.Sum(nil)
+	signature := base64.StdEncoding.EncodeToString(h.Sum(nil))
 	
 	// Create authorization header (AWS signature v2 style)
-	authHeader := fmt.Sprintf("AWS %s:%s", b.AccessKey, strings.TrimSpace(fmt.Sprintf("%x", signature)))
+	authHeader := fmt.Sprintf("AWS %s:%s", b.AccessKey, signature)
 	headers["Authorization"] = authHeader
 	
 	return headers, nil
