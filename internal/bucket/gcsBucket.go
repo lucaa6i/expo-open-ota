@@ -54,7 +54,7 @@ func NewGCSBucket() *GCSBucket {
 }
 
 // generateSignature creates an AWS signature v2 for GCS compatibility
-func (b *GCSBucket) generateSignature(method, path string, headers map[string]string) (map[string]string, error) {
+func (b *GCSBucket) generateSignature(method, canonicalResource string, headers map[string]string) (map[string]string, error) {
 	if b.AccessKey == "" || b.SecretKey == "" {
 		return nil, errors.New("access key and secret key must be set")
 	}
@@ -68,11 +68,16 @@ func (b *GCSBucket) generateSignature(method, path string, headers map[string]st
 
 	// Create string to sign for AWS signature v2
 	// Format: HTTP-Verb + "\n" + Content-MD5 + "\n" + Content-Type + "\n" + Date + "\n" + CanonicalizedAmzHeaders + CanonicalizedResource
+	contentMD5 := ""
 	contentType := headers["Content-Type"]
 	if contentType == "" {
 		contentType = ""
 	}
-	stringToSign := method + "\n" + "\n" + contentType + "\n" + dateStr + "\n" + path
+	
+	// Build canonicalized AMZ headers (none for basic GCS usage)
+	canonicalizedAmzHeaders := ""
+	
+	stringToSign := method + "\n" + contentMD5 + "\n" + contentType + "\n" + dateStr + "\n" + canonicalizedAmzHeaders + canonicalResource
 
 	// Calculate HMAC-SHA1 signature (GCS expects SHA1, not SHA256)
 	h := hmac.New(sha1.New, []byte(b.SecretKey))
@@ -102,7 +107,10 @@ func (b *GCSBucket) makeRequest(method, path string, body io.Reader) (*http.Resp
 		headers["Content-Type"] = "application/octet-stream"
 	}
 
-	signedHeaders, err := b.generateSignature(method, path, headers)
+	// For AWS signature v2, the canonical resource is just the path
+	canonicalResource := path
+	
+	signedHeaders, err := b.generateSignature(method, canonicalResource, headers)
 	if err != nil {
 		return nil, fmt.Errorf("error generating signature: %w", err)
 	}
