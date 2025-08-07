@@ -11,7 +11,6 @@ import (
 	"expo-open-ota/internal/types"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -74,9 +73,6 @@ func (b *GCSBucket) generateSignature(method, resource string, contentType strin
 	
 	stringToSign := method + "\n" + contentMD5 + "\n" + contentType + "\n" + dateStr + "\n" + canonicalizedAmzHeaders + resource
 
-	// Debug logging
-	log.Printf("DEBUG: String to sign: %q", stringToSign)
-	log.Printf("DEBUG: Method=%s, Resource=%s, ContentType=%s, Date=%s", method, resource, contentType, dateStr)
 
 	// Calculate HMAC-SHA1 signature (GCS expects SHA1, not SHA256)
 	h := hmac.New(sha1.New, []byte(b.SecretKey))
@@ -85,7 +81,6 @@ func (b *GCSBucket) generateSignature(method, resource string, contentType strin
 
 	// Create authorization header (AWS signature v2 style)
 	authHeader := fmt.Sprintf("AWS %s:%s", b.AccessKey, signature)
-	log.Printf("DEBUG: Authorization header: %s", authHeader)
 	return authHeader, nil
 }
 
@@ -113,11 +108,8 @@ func (b *GCSBucket) makeRequest(method, path string, body io.Reader) (*http.Resp
 	if strings.Contains(path, "?") {
 		parts := strings.SplitN(path, "?", 2)
 		canonicalResource = parts[0]
-		log.Printf("DEBUG: Original path: %s", path)
-		log.Printf("DEBUG: Canonical resource (path only): %s", canonicalResource)
 	} else {
 		canonicalResource = path
-		log.Printf("DEBUG: No query params, canonical resource: %s", canonicalResource)
 	}
 
 	authHeader, err := b.generateSignature(method, canonicalResource, contentType, now)
