@@ -36,12 +36,18 @@ type BucketType string
 const (
 	S3BucketType    BucketType = "s3"
 	LocalBucketType BucketType = "local"
+	GCSBucketType   BucketType = "gcs"
 )
 
 func ResolveBucketType() BucketType {
 	bucketType := config.GetEnv("STORAGE_MODE")
 	if bucketType == "" || bucketType == "local" {
 		return LocalBucketType
+	}
+	// Check if it's Google Cloud Storage
+	baseEndpoint := config.GetEnv("AWS_BASE_ENDPOINT")
+	if bucketType == "s3" && baseEndpoint == "https://storage.googleapis.com" {
+		return GCSBucketType
 	}
 	return S3BucketType
 }
@@ -61,6 +67,8 @@ func GetBucket() Bucket {
 				bucketInstance = &S3Bucket{
 					BucketName: bucketName,
 				}
+			case GCSBucketType:
+				bucketInstance = NewGCSBucket()
 			case LocalBucketType:
 				basePath := config.GetEnv("LOCAL_BUCKET_BASE_PATH")
 				bucketInstance = &LocalBucket{

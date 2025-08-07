@@ -23,9 +23,18 @@ func GetS3Client() (*s3.Client, error) {
 
 	initS3Client.Do(func() {
 		var cfg aws.Config
-		opts := []func(*awsconfig.LoadOptions) error{
-			awsconfig.WithRegion(config.GetEnv("AWS_REGION")),
+		opts := []func(*awsconfig.LoadOptions) error{}
+		
+		// Für Google Cloud Storage spezielle Konfiguration
+		baseEndpoint := config.GetEnv("AWS_BASE_ENDPOINT")
+		if baseEndpoint == "https://storage.googleapis.com" {
+			// GCS-spezifische Konfiguration
+			opts = append(opts, awsconfig.WithRegion("auto"))
+		} else {
+			// Standard AWS-Konfiguration
+			opts = append(opts, awsconfig.WithRegion(config.GetEnv("AWS_REGION")))
 		}
+		
 		accessKey := config.GetEnv("AWS_ACCESS_KEY_ID")
 		secretKey := config.GetEnv("AWS_SECRET_ACCESS_KEY")
 		if accessKey != "" && secretKey != "" {
@@ -41,11 +50,10 @@ func GetS3Client() (*s3.Client, error) {
 
 		cfg, err = awsconfig.LoadDefaultConfig(context.TODO(), opts...)
 		if err == nil {
-			baseEndpoint := config.GetEnv("AWS_BASE_ENDPOINT")
 			if baseEndpoint != "" {
 				s3Client = s3.NewFromConfig(cfg, func(o *s3.Options) {
 					o.BaseEndpoint = aws.String(baseEndpoint)
-					// Für Google Cloud Storage: path-style URLs verwenden
+					// Für Google Cloud Storage: Spezielle Konfiguration
 					if baseEndpoint == "https://storage.googleapis.com" {
 						o.UsePathStyle = true
 					}
