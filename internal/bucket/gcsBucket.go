@@ -107,8 +107,42 @@ func (b *GCSBucket) makeRequest(method, path string, body io.Reader) (*http.Resp
 		headers["Content-Type"] = "application/octet-stream"
 	}
 
-	// For AWS signature v2, the canonical resource is just the path
-	canonicalResource := path
+	// Parse path to separate resource path from query parameters
+	var canonicalResource string
+	if strings.Contains(path, "?") {
+		parts := strings.SplitN(path, "?", 2)
+		resourcePath := parts[0]
+		queryString := parts[1]
+		
+		// Parse query parameters
+		queryParams, err := url.ParseQuery(queryString)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing query parameters: %w", err)
+		}
+		
+		// For AWS signature v2, we need to include specific query parameters in canonical resource
+		// Only include sub-resources (like delimiter, prefix, etc.)
+		var subResources []string
+		for key, values := range queryParams {
+			// Include these query parameters in the canonical resource
+			switch key {
+			case "delimiter", "prefix", "marker", "max-keys":
+				if len(values) > 0 && values[0] != "" {
+					subResources = append(subResources, key+"="+values[0])
+				} else {
+					subResources = append(subResources, key)
+				}
+			}
+		}
+		
+		if len(subResources) > 0 {
+			canonicalResource = resourcePath + "?" + strings.Join(subResources, "&")
+		} else {
+			canonicalResource = resourcePath
+		}
+	} else {
+		canonicalResource = path
+	}
 	
 	signedHeaders, err := b.generateSignature(method, canonicalResource, headers)
 	if err != nil {
