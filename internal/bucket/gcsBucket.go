@@ -54,22 +54,16 @@ func NewGCSBucket() *GCSBucket {
 }
 
 // generateSignature creates an AWS signature v2 for GCS compatibility
-func (b *GCSBucket) generateSignature(method, canonicalResource string, headers map[string]string) (map[string]string, error) {
+func (b *GCSBucket) generateSignature(method, resource string, contentType string, date time.Time) (string, error) {
 	if b.AccessKey == "" || b.SecretKey == "" {
-		return nil, errors.New("access key and secret key must be set")
+		return "", errors.New("access key and secret key must be set")
 	}
 
-	now := time.Now().UTC()
-	dateStr := now.Format("Mon, 02 Jan 2006 15:04:05 GMT")
-
-	// Set required headers for AWS signature v2
-	headers["Date"] = dateStr
-	headers["Host"] = "storage.googleapis.com"
+	dateStr := date.Format("Mon, 02 Jan 2006 15:04:05 GMT")
 
 	// Create string to sign for AWS signature v2
 	// Format: HTTP-Verb + "\n" + Content-MD5 + "\n" + Content-Type + "\n" + Date + "\n" + CanonicalizedAmzHeaders + CanonicalizedResource
 	contentMD5 := ""
-	contentType := headers["Content-Type"]
 	if contentType == "" {
 		contentType = ""
 	}
@@ -77,7 +71,7 @@ func (b *GCSBucket) generateSignature(method, canonicalResource string, headers 
 	// Build canonicalized AMZ headers (none for basic GCS usage)
 	canonicalizedAmzHeaders := ""
 	
-	stringToSign := method + "\n" + contentMD5 + "\n" + contentType + "\n" + dateStr + "\n" + canonicalizedAmzHeaders + canonicalResource
+	stringToSign := method + "\n" + contentMD5 + "\n" + contentType + "\n" + dateStr + "\n" + canonicalizedAmzHeaders + resource
 
 	// Calculate HMAC-SHA1 signature (GCS expects SHA1, not SHA256)
 	h := hmac.New(sha1.New, []byte(b.SecretKey))
@@ -85,10 +79,7 @@ func (b *GCSBucket) generateSignature(method, canonicalResource string, headers 
 	signature := base64.StdEncoding.EncodeToString(h.Sum(nil))
 
 	// Create authorization header (AWS signature v2 style)
-	authHeader := fmt.Sprintf("AWS %s:%s", b.AccessKey, signature)
-	headers["Authorization"] = authHeader
-
-	return headers, nil
+	return fmt.Sprintf("AWS %s:%s", b.AccessKey, signature), nil
 }
 
 func (b *GCSBucket) makeRequest(method, path string, body io.Reader) (*http.Response, error) {
@@ -101,13 +92,16 @@ func (b *GCSBucket) makeRequest(method, path string, body io.Reader) (*http.Resp
 		}
 	}
 
-	headers := make(map[string]string)
-	// Only set Content-Type for requests with body (PUT, POST)
+	now := time.Now().UTC()
+	dateStr := now.Format("Mon, 02 Jan 2006 15:04:05 GMT")
+
+	// Determine content type
+	contentType := ""
 	if body != nil {
-		headers["Content-Type"] = "application/octet-stream"
+		contentType = "application/octet-stream"
 	}
 
-	// Parse path to separate resource path from query parameters
+	// Parse path to separate resource path from query parameters for canonical resource
 	var canonicalResource string
 	if strings.Contains(path, "?") {
 		parts := strings.SplitN(path, "?", 2)
@@ -120,15 +114,13 @@ func (b *GCSBucket) makeRequest(method, path string, body io.Reader) (*http.Resp
 			return nil, fmt.Errorf("error parsing query parameters: %w", err)
 		}
 		
-		// For AWS signature v2, we need to include specific query parameters in canonical resource
-		// Only include sub-resources (like delimiter, prefix, etc.)
+		// For AWS signature v2, include specific query parameters in canonical resource
 		var subResources []string
 		for key, values := range queryParams {
-			// Include these query parameters in the canonical resource
 			switch key {
 			case "delimiter", "prefix", "marker", "max-keys":
 				if len(values) > 0 && values[0] != "" {
-					subResources = append(subResources, key+"="+values[0])
+					subResources = append(subResources, key+"="+url.QueryEscape(values[0]))
 				} else {
 					subResources = append(subResources, key)
 				}
@@ -143,8 +135,8 @@ func (b *GCSBucket) makeRequest(method, path string, body io.Reader) (*http.Resp
 	} else {
 		canonicalResource = path
 	}
-	
-	signedHeaders, err := b.generateSignature(method, canonicalResource, headers)
+
+	authHeader, err := b.generateSignature(method, canonicalResource, contentType, now)
 	if err != nil {
 		return nil, fmt.Errorf("error generating signature: %w", err)
 	}
@@ -155,8 +147,12 @@ func (b *GCSBucket) makeRequest(method, path string, body io.Reader) (*http.Resp
 		return nil, fmt.Errorf("error creating request: %w", err)
 	}
 
-	for k, v := range signedHeaders {
-		req.Header.Set(k, v)
+	// Set headers
+	req.Header.Set("Date", dateStr)
+	req.Header.Set("Host", "storage.googleapis.com")
+	req.Header.Set("Authorization", authHeader)
+	if contentType != "" {
+		req.Header.Set("Content-Type", contentType)
 	}
 
 	client := &http.Client{Timeout: 30 * time.Second}
