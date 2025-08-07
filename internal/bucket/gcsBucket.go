@@ -108,42 +108,13 @@ func (b *GCSBucket) makeRequest(method, path string, body io.Reader) (*http.Resp
 		contentType = "application/octet-stream"
 	}
 
-	// Parse path to separate resource path from query parameters for canonical resource
+	// For GCS with AWS signature v2, the canonical resource is just the resource path without query parameters
 	var canonicalResource string
 	if strings.Contains(path, "?") {
 		parts := strings.SplitN(path, "?", 2)
-		resourcePath := parts[0]
-		queryString := parts[1]
-		
+		canonicalResource = parts[0]
 		log.Printf("DEBUG: Original path: %s", path)
-		log.Printf("DEBUG: Resource path: %s, Query string: %s", resourcePath, queryString)
-		
-		// Parse query parameters
-		queryParams, err := url.ParseQuery(queryString)
-		if err != nil {
-			return nil, fmt.Errorf("error parsing query parameters: %w", err)
-		}
-		
-		// For AWS signature v2, include specific query parameters in canonical resource
-		var subResources []string
-		for key, values := range queryParams {
-			log.Printf("DEBUG: Query param: %s=%v", key, values)
-			switch key {
-			case "delimiter", "prefix", "marker", "max-keys":
-				if len(values) > 0 && values[0] != "" {
-					subResources = append(subResources, key+"="+url.QueryEscape(values[0]))
-				} else {
-					subResources = append(subResources, key)
-				}
-			}
-		}
-		
-		if len(subResources) > 0 {
-			canonicalResource = resourcePath + "?" + strings.Join(subResources, "&")
-		} else {
-			canonicalResource = resourcePath
-		}
-		log.Printf("DEBUG: Final canonical resource: %s", canonicalResource)
+		log.Printf("DEBUG: Canonical resource (path only): %s", canonicalResource)
 	} else {
 		canonicalResource = path
 		log.Printf("DEBUG: No query params, canonical resource: %s", canonicalResource)
