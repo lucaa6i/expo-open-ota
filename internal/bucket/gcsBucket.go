@@ -11,6 +11,7 @@ import (
 	"expo-open-ota/internal/types"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -73,13 +74,19 @@ func (b *GCSBucket) generateSignature(method, resource string, contentType strin
 	
 	stringToSign := method + "\n" + contentMD5 + "\n" + contentType + "\n" + dateStr + "\n" + canonicalizedAmzHeaders + resource
 
+	// Debug logging
+	log.Printf("DEBUG: String to sign: %q", stringToSign)
+	log.Printf("DEBUG: Method=%s, Resource=%s, ContentType=%s, Date=%s", method, resource, contentType, dateStr)
+
 	// Calculate HMAC-SHA1 signature (GCS expects SHA1, not SHA256)
 	h := hmac.New(sha1.New, []byte(b.SecretKey))
 	h.Write([]byte(stringToSign))
 	signature := base64.StdEncoding.EncodeToString(h.Sum(nil))
 
 	// Create authorization header (AWS signature v2 style)
-	return fmt.Sprintf("AWS %s:%s", b.AccessKey, signature), nil
+	authHeader := fmt.Sprintf("AWS %s:%s", b.AccessKey, signature)
+	log.Printf("DEBUG: Authorization header: %s", authHeader)
+	return authHeader, nil
 }
 
 func (b *GCSBucket) makeRequest(method, path string, body io.Reader) (*http.Response, error) {
@@ -108,6 +115,9 @@ func (b *GCSBucket) makeRequest(method, path string, body io.Reader) (*http.Resp
 		resourcePath := parts[0]
 		queryString := parts[1]
 		
+		log.Printf("DEBUG: Original path: %s", path)
+		log.Printf("DEBUG: Resource path: %s, Query string: %s", resourcePath, queryString)
+		
 		// Parse query parameters
 		queryParams, err := url.ParseQuery(queryString)
 		if err != nil {
@@ -117,6 +127,7 @@ func (b *GCSBucket) makeRequest(method, path string, body io.Reader) (*http.Resp
 		// For AWS signature v2, include specific query parameters in canonical resource
 		var subResources []string
 		for key, values := range queryParams {
+			log.Printf("DEBUG: Query param: %s=%v", key, values)
 			switch key {
 			case "delimiter", "prefix", "marker", "max-keys":
 				if len(values) > 0 && values[0] != "" {
@@ -132,8 +143,10 @@ func (b *GCSBucket) makeRequest(method, path string, body io.Reader) (*http.Resp
 		} else {
 			canonicalResource = resourcePath
 		}
+		log.Printf("DEBUG: Final canonical resource: %s", canonicalResource)
 	} else {
 		canonicalResource = path
+		log.Printf("DEBUG: No query params, canonical resource: %s", canonicalResource)
 	}
 
 	authHeader, err := b.generateSignature(method, canonicalResource, contentType, now)
