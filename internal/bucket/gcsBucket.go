@@ -97,7 +97,10 @@ func (b *GCSBucket) makeRequest(method, path string, body io.Reader) (*http.Resp
 	}
 
 	headers := make(map[string]string)
-	headers["Content-Type"] = "application/octet-stream"
+	// Only set Content-Type for requests with body (PUT, POST)
+	if body != nil {
+		headers["Content-Type"] = "application/octet-stream"
+	}
 
 	signedHeaders, err := b.generateSignature(method, path, headers)
 	if err != nil {
