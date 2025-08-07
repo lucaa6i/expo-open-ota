@@ -12,6 +12,7 @@ import (
 	update2 "expo-open-ota/internal/update"
 	"fmt"
 	"github.com/gorilla/mux"
+	"log"
 	"net/http"
 	"sort"
 	"strconv"
@@ -163,11 +164,13 @@ func GetBranchesHandler(w http.ResponseWriter, r *http.Request) {
 	resolvedBucket := bucket.GetBucket()
 	branches, err := resolvedBucket.GetBranches()
 	if err != nil {
+		log.Printf("Error getting branches from bucket: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	branchesMapping, err := services.FetchExpoBranchesMapping()
 	if err != nil {
+		log.Printf("Error fetching Expo branches mapping: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
