@@ -332,31 +332,308 @@ func (b *GCSBucket) GetFile(update types.Update, assetPath string) (*types.Bucke
 	}, nil
 }
 
-// Implement other required methods with stubs for now
 func (b *GCSBucket) RequestUploadUrlForFileUpdate(branch string, runtimeVersion string, updateId string, fileName string) (string, error) {
-	return "", errors.New("not implemented yet for GCS")
+	if b.BucketName == "" {
+		return "", errors.New("BucketName not set")
+	}
+	if b.AccessKey == "" || b.SecretKey == "" {
+		return "", errors.New("access key and secret key must be set")
+	}
+
+	// Generate signed URL for PUT operation
+	key := fmt.Sprintf("%s/%s/%s/%s", branch, runtimeVersion, updateId, fileName)
+	resource := fmt.Sprintf("/%s/%s", b.BucketName, key)
+	
+	// Set expiration time (1 hour from now)
+	expiration := time.Now().UTC().Add(1 * time.Hour)
+	expirationUnix := expiration.Unix()
+	
+	// Create string to sign for signed URL
+	stringToSign := fmt.Sprintf("PUT\n\napplication/octet-stream\n%d\n%s", expirationUnix, resource)
+	
+	// Calculate HMAC-SHA1 signature
+	h := hmac.New(sha1.New, []byte(b.SecretKey))
+	h.Write([]byte(stringToSign))
+	signature := base64.StdEncoding.EncodeToString(h.Sum(nil))
+	
+	// Build signed URL
+	signedURL := fmt.Sprintf("%s%s?GoogleAccessId=%s&Expires=%d&Signature=%s",
+		b.BaseURL,
+		resource,
+		url.QueryEscape(b.AccessKey),
+		expirationUnix,
+		url.QueryEscape(signature),
+	)
+	
+	return signedURL, nil
 }
 
 func (b *GCSBucket) UploadFileIntoUpdate(update types.Update, fileName string, file io.Reader) error {
-	return errors.New("not implemented yet for GCS")
+	if b.BucketName == "" {
+		return errors.New("BucketName not set")
+	}
+
+	key := fmt.Sprintf("%s/%s/%s/%s", update.Branch, update.RuntimeVersion, update.UpdateId, fileName)
+	path := fmt.Sprintf("/%s/%s", b.BucketName, key)
+
+	resp, err := b.makeRequest("PUT", path, file)
+	if err != nil {
+		return fmt.Errorf("error making request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("GCS API error (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	return nil
 }
 
 func (b *GCSBucket) DeleteUpdateFolder(branch string, runtimeVersion string, updateId string) error {
-	return errors.New("not implemented yet for GCS")
+	if b.BucketName == "" {
+		return errors.New("BucketName not set")
+	}
+
+	prefix := fmt.Sprintf("%s/%s/%s/", branch, runtimeVersion, updateId)
+	path := fmt.Sprintf("/%s/?prefix=%s", b.BucketName, url.QueryEscape(prefix))
+
+	resp, err := b.makeRequest("GET", path, nil)
+	if err != nil {
+		return fmt.Errorf("error listing objects: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("GCS API error (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	var result ListBucketResult
+	if err := xml.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return fmt.Errorf("error parsing XML response: %w", err)
+	}
+
+	// Delete each object
+	for _, obj := range result.Contents {
+		if obj.Key != "" {
+			objPath := fmt.Sprintf("/%s/%s", b.BucketName, obj.Key)
+			delResp, err := b.makeRequest("DELETE", objPath, nil)
+			if err != nil {
+				return fmt.Errorf("error deleting object %s: %w", obj.Key, err)
+			}
+			delResp.Body.Close()
+		}
+	}
+
+	return nil
 }
 
 func (b *GCSBucket) CreateUpdateFrom(previousUpdate *types.Update, newUpdateId string) (*types.Update, error) {
-	return nil, errors.New("not implemented yet for GCS")
+	if b.BucketName == "" {
+		return nil, errors.New("BucketName not set")
+	}
+	if previousUpdate == nil {
+		return nil, errors.New("previousUpdate is nil")
+	}
+	if previousUpdate.UpdateId == "" {
+		return nil, errors.New("previousUpdate.UpdateId is empty")
+	}
+	if newUpdateId == "" {
+		return nil, errors.New("newUpdateId is empty")
+	}
+
+	sourcePrefix := fmt.Sprintf("%s/%s/%s/", previousUpdate.Branch, previousUpdate.RuntimeVersion, previousUpdate.UpdateId)
+	targetPrefix := fmt.Sprintf("%s/%s/%s/", previousUpdate.Branch, previousUpdate.RuntimeVersion, newUpdateId)
+
+	// List objects in the source folder
+	path := fmt.Sprintf("/%s/?prefix=%s", b.BucketName, url.QueryEscape(sourcePrefix))
+	resp, err := b.makeRequest("GET", path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error listing objects: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("GCS API error (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	var result ListBucketResult
+	if err := xml.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("error parsing XML response: %w", err)
+	}
+
+	// Copy each object to the new location
+	for _, obj := range result.Contents {
+		if obj.Key == "" {
+			continue
+		}
+
+		// Skip metadata files
+		relPath := strings.TrimPrefix(obj.Key, sourcePrefix)
+		if relPath == "update-metadata.json" || relPath == ".check" {
+			continue
+		}
+
+		// Get the source object
+		srcPath := fmt.Sprintf("/%s/%s", b.BucketName, obj.Key)
+		srcResp, err := b.makeRequest("GET", srcPath, nil)
+		if err != nil {
+			continue // Skip this object on error
+		}
+
+		if srcResp.StatusCode == 200 {
+			// Upload to new location
+			newKey := targetPrefix + relPath
+			dstPath := fmt.Sprintf("/%s/%s", b.BucketName, newKey)
+			dstResp, err := b.makeRequest("PUT", dstPath, srcResp.Body)
+			if err == nil {
+				dstResp.Body.Close()
+			}
+		}
+		srcResp.Body.Close()
+	}
+
+	updateId, err := strconv.ParseInt(newUpdateId, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing update ID: %w", err)
+	}
+	return &types.Update{
+		Branch:         previousUpdate.Branch,
+		RuntimeVersion: previousUpdate.RuntimeVersion,
+		UpdateId:       newUpdateId,
+		CreatedAt:      time.Duration(updateId) * time.Millisecond,
+	}, nil
 }
 
 func (b *GCSBucket) RetrieveMigrationHistory() ([]string, error) {
-	return nil, errors.New("not implemented yet for GCS")
+	if b.BucketName == "" {
+		return nil, errors.New("BucketName not set")
+	}
+
+	path := fmt.Sprintf("/%s/.migrationhistory", b.BucketName)
+	resp, err := b.makeRequest("GET", path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error making request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == 404 {
+		// Migration history file doesn't exist, return empty history
+		return nil, nil
+	}
+
+	if resp.StatusCode != 200 {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("GCS API error (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	var migrations []string
+	content, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading response: %w", err)
+	}
+
+	lines := strings.Split(string(content), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			migrations = append(migrations, line)
+		}
+	}
+
+	return migrations, nil
 }
 
 func (b *GCSBucket) ApplyMigration(migrationId string) error {
-	return errors.New("not implemented yet for GCS")
+	if b.BucketName == "" {
+		return errors.New("BucketName not set")
+	}
+
+	migrationHistory, err := b.RetrieveMigrationHistory()
+	if err != nil {
+		return fmt.Errorf("RetrieveMigrationHistory error: %w", err)
+	}
+
+	// Check if migration is already applied
+	for _, id := range migrationHistory {
+		if id == migrationId {
+			return nil // Already applied
+		}
+	}
+
+	// Get current content
+	path := fmt.Sprintf("/%s/.migrationhistory", b.BucketName)
+	resp, err := b.makeRequest("GET", path, nil)
+	var currentContent []byte
+	if err == nil && resp.StatusCode == 200 {
+		currentContent, _ = io.ReadAll(resp.Body)
+		resp.Body.Close()
+	} else if resp != nil {
+		resp.Body.Close()
+	}
+
+	// Append new migration ID
+	newContent := append(currentContent, []byte(migrationId+"\n")...)
+
+	// Upload updated content
+	uploadResp, err := b.makeRequest("PUT", path, bytes.NewReader(newContent))
+	if err != nil {
+		return fmt.Errorf("error uploading migration history: %w", err)
+	}
+	defer uploadResp.Body.Close()
+
+	if uploadResp.StatusCode != 200 {
+		body, _ := io.ReadAll(uploadResp.Body)
+		return fmt.Errorf("GCS API error (status %d): %s", uploadResp.StatusCode, string(body))
+	}
+
+	return nil
 }
 
 func (b *GCSBucket) RemoveMigrationFromHistory(migrationId string) error {
-	return errors.New("not implemented yet for GCS")
+	if b.BucketName == "" {
+		return errors.New("BucketName not set")
+	}
+
+	migrationHistory, err := b.RetrieveMigrationHistory()
+	if err != nil {
+		return fmt.Errorf("RetrieveMigrationHistory error: %w", err)
+	}
+
+	// Check if migration exists
+	hasMigration := false
+	for _, id := range migrationHistory {
+		if id == migrationId {
+			hasMigration = true
+			break
+		}
+	}
+	if !hasMigration {
+		return nil // Migration doesn't exist, nothing to remove
+	}
+
+	// Build new content without the migration ID
+	var newContent []byte
+	for _, id := range migrationHistory {
+		if id != migrationId {
+			newContent = append(newContent, []byte(id+"\n")...)
+		}
+	}
+
+	// Upload updated content
+	path := fmt.Sprintf("/%s/.migrationhistory", b.BucketName)
+	resp, err := b.makeRequest("PUT", path, bytes.NewReader(newContent))
+	if err != nil {
+		return fmt.Errorf("error uploading migration history: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("GCS API error (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	return nil
 }
