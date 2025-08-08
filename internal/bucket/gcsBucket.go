@@ -348,8 +348,9 @@ func (b *GCSBucket) RequestUploadUrlForFileUpdate(branch string, runtimeVersion 
 	expiration := time.Now().UTC().Add(1 * time.Hour)
 	expirationUnix := expiration.Unix()
 	
-	// Create string to sign for signed URL
-	stringToSign := fmt.Sprintf("PUT\n\napplication/octet-stream\n%d\n%s", expirationUnix, resource)
+	// Create string to sign for signed URL - GCS format
+	// Format: HTTP-Verb + "\n" + Content-MD5 + "\n" + Content-Type + "\n" + Expiration + "\n" + Canonicalized_Resource
+	stringToSign := fmt.Sprintf("PUT\n\n\n%d\n%s", expirationUnix, resource)
 	
 	// Calculate HMAC-SHA1 signature
 	h := hmac.New(sha1.New, []byte(b.SecretKey))
