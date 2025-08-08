@@ -54,10 +54,6 @@ func ValidateExpoAuth(expoAuth types.ExpoAuth) (*ExpoUserAccount, error) {
 	if expoAccount == nil {
 		return nil, errors.New("no expo account found")
 	}
-	selfExpoUsername := FetchSelfExpoUsername()
-	if selfExpoUsername != expoAccount.Username {
-		return nil, errors.New("expo account does not match self expo username")
-	}
 	return expoAccount, nil
 }
 
