@@ -355,10 +355,13 @@ func (b *GCSBucket) RequestUploadUrlForFileUpdate(branch string, runtimeVersion 
 	// So we don't specify a content type in the signature (empty string)
 	stringToSign := fmt.Sprintf("PUT\n\n\n%d\n%s", expirationUnix, resource)
 	
-	// Debug logging - remove after fixing
-	fmt.Printf("GCS Debug - StringToSign:\n%s\n", stringToSign)
-	fmt.Printf("GCS Debug - Resource: %s\n", resource)
-	fmt.Printf("GCS Debug - Expiration: %d\n", expirationUnix)
+	// Debug logging - keep until issue resolved
+	fmt.Printf("=== GCS SIGNATURE DEBUG ===\n")
+	fmt.Printf("StringToSign:\n%s\n", stringToSign)
+	fmt.Printf("Resource: %s\n", resource)
+	fmt.Printf("Expiration: %d\n", expirationUnix)
+	fmt.Printf("FileName: %s\n", fileName)
+	fmt.Printf("=========================\n")
 	
 	// Calculate HMAC-SHA1 signature
 	h := hmac.New(sha1.New, []byte(b.SecretKey))
