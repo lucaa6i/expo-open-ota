@@ -340,8 +340,9 @@ func (b *GCSBucket) RequestUploadUrlForFileUpdate(branch string, runtimeVersion 
 		return "", errors.New("access key and secret key must be set")
 	}
 
-	// Generate signed URL for PUT operation
+	// Generate signed URL for PUT operation  
 	key := fmt.Sprintf("%s/%s/%s/%s", branch, runtimeVersion, updateId, fileName)
+	// Ensure resource path is properly formatted for GCS
 	resource := fmt.Sprintf("/%s/%s", b.BucketName, key)
 	
 	// Set expiration time (1 hour from now)
@@ -372,16 +373,21 @@ func (b *GCSBucket) RequestUploadUrlForFileUpdate(branch string, runtimeVersion 
 	// Format: HTTP-Verb + "\n" + Content-MD5 + "\n" + Content-Type + "\n" + Expiration + "\n" + Canonicalized_Resource
 	stringToSign := fmt.Sprintf("PUT\n\n%s\n%d\n%s", contentType, expirationUnix, resource)
 	
+	// Debug logging for signature generation
+	fmt.Printf("GCS Signature Debug - StringToSign:\n%s\n", stringToSign)
+	fmt.Printf("GCS Signature Debug - Resource: %s\n", resource)
+	fmt.Printf("GCS Signature Debug - ContentType: %s\n", contentType)
+	
 	// Calculate HMAC-SHA1 signature
 	h := hmac.New(sha1.New, []byte(b.SecretKey))
 	h.Write([]byte(stringToSign))
 	signature := base64.StdEncoding.EncodeToString(h.Sum(nil))
 	
-	// Build signed URL
+	// Build signed URL with proper parameter order for GCS
 	signedURL := fmt.Sprintf("%s%s?GoogleAccessId=%s&Expires=%d&Signature=%s",
 		b.BaseURL,
 		resource,
-		url.QueryEscape(b.AccessKey),
+		b.AccessKey,
 		expirationUnix,
 		url.QueryEscape(signature),
 	)
