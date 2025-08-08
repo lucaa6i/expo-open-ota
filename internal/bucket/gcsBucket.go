@@ -348,9 +348,29 @@ func (b *GCSBucket) RequestUploadUrlForFileUpdate(branch string, runtimeVersion 
 	expiration := time.Now().UTC().Add(1 * time.Hour)
 	expirationUnix := expiration.Unix()
 	
+	// Determine content type based on file extension
+	contentType := ""
+	if strings.HasSuffix(strings.ToLower(fileName), ".png") {
+		contentType = "image/png"
+	} else if strings.HasSuffix(strings.ToLower(fileName), ".jpg") || strings.HasSuffix(strings.ToLower(fileName), ".jpeg") {
+		contentType = "image/jpeg"
+	} else if strings.HasSuffix(strings.ToLower(fileName), ".gif") {
+		contentType = "image/gif"
+	} else if strings.HasSuffix(strings.ToLower(fileName), ".svg") {
+		contentType = "image/svg+xml"
+	} else if strings.HasSuffix(strings.ToLower(fileName), ".webp") {
+		contentType = "image/webp"
+	} else if strings.HasSuffix(strings.ToLower(fileName), ".js") {
+		contentType = "application/javascript"
+	} else if strings.HasSuffix(strings.ToLower(fileName), ".json") {
+		contentType = "application/json"
+	} else {
+		contentType = "application/octet-stream"
+	}
+	
 	// Create string to sign for signed URL - GCS format
 	// Format: HTTP-Verb + "\n" + Content-MD5 + "\n" + Content-Type + "\n" + Expiration + "\n" + Canonicalized_Resource
-	stringToSign := fmt.Sprintf("PUT\n\n\n%d\n%s", expirationUnix, resource)
+	stringToSign := fmt.Sprintf("PUT\n\n%s\n%d\n%s", contentType, expirationUnix, resource)
 	
 	// Calculate HMAC-SHA1 signature
 	h := hmac.New(sha1.New, []byte(b.SecretKey))
