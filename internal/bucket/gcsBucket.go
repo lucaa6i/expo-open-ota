@@ -351,9 +351,8 @@ func (b *GCSBucket) RequestUploadUrlForFileUpdate(branch string, runtimeVersion 
 	
 	
 	// Create string to sign for signed URL - GCS format
-	// For GCS signed URLs, we need to allow any content type to be sent by the client
-	// So we don't specify a content type in the signature (empty string)
-	stringToSign := fmt.Sprintf("PUT\n\n\n%d\n%s", expirationUnix, resource)
+	// Use wildcard (*) for content type to allow any content type
+	stringToSign := fmt.Sprintf("PUT\n\n*\n%d\n%s", expirationUnix, resource)
 	
 	// Debug logging - keep until issue resolved
 	fmt.Printf("=== GCS SIGNATURE DEBUG ===\n")
