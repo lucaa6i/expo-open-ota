@@ -11,8 +11,10 @@ import (
 	"expo-open-ota/internal/types"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -351,14 +353,19 @@ func (b *GCSBucket) RequestUploadUrlForFileUpdate(branch string, runtimeVersion 
 	
 	
 	// Create string to sign for signed URL - GCS format
-	// Use wildcard (*) for content type to allow any content type
-	stringToSign := fmt.Sprintf("PUT\n\n*\n%d\n%s", expirationUnix, resource)
+	// Detect content type based on file extension
+	contentType := mime.TypeByExtension(filepath.Ext(fileName))
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+	stringToSign := fmt.Sprintf("PUT\n\n%s\n%d\n%s", contentType, expirationUnix, resource)
 	
 	// Debug logging - keep until issue resolved
 	fmt.Printf("=== GCS SIGNATURE DEBUG ===\n")
 	fmt.Printf("Resource: %s\n", resource)
 	fmt.Printf("Expiration: %d\n", expirationUnix)
 	fmt.Printf("FileName: %s\n", fileName)
+	fmt.Printf("ContentType: %s\n", contentType)
 	fmt.Printf("StringToSign (quoted): %q\n", stringToSign)
 	fmt.Printf("StringToSign length: %d\n", len(stringToSign))
 	fmt.Printf("=========================\n")
