@@ -3,7 +3,6 @@ import spawnAsync from '@expo/spawn-async';
 import { Command, Flags } from '@oclif/core';
 import FormData from 'form-data';
 import fs from 'fs-extra';
-import mime from 'mime';
 import path from 'path';
 
 import { RequestUploadUrlItem, computeFilesRequests, requestUploadUrls } from '../lib/assets';
