@@ -353,11 +353,9 @@ func (b *GCSBucket) RequestUploadUrlForFileUpdate(branch string, runtimeVersion 
 	
 	
 	// Create string to sign for signed URL - GCS format
-	// Detect content type based on file extension
-	contentType := mime.TypeByExtension(filepath.Ext(fileName))
-	if contentType == "" {
-		contentType = "application/octet-stream"
-	}
+	// Use application/octet-stream consistently to avoid mime type detection mismatches
+	// between client (JavaScript mime library) and server (Go mime library)
+	contentType := "application/octet-stream"
 	stringToSign := fmt.Sprintf("PUT\n\n%s\n%d\n%s", contentType, expirationUnix, resource)
 	
 	// Debug logging - keep until issue resolved

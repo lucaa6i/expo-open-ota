@@ -292,10 +292,9 @@ export default class Publish extends Command {
             Log.error(`File ${itm.filePath} not found`);
             throw new Error(`File ${itm.filePath} not found`);
           }
-          let contentType = mime.getType(findFile.ext);
-          if (!contentType) {
-            contentType = 'application/octet-stream';
-          }
+          // Use application/octet-stream consistently to match server signature
+          // This avoids mime type detection mismatches between client and server
+          const contentType = 'application/octet-stream';
           const buffer = await fs.readFile(path.join(projectDir, outputDir, itm.filePath));
           const response = await fetchWithRetries(itm.requestUploadUrl, {
             method: 'PUT',
